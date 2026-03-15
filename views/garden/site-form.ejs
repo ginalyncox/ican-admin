@@ -1,0 +1,43 @@
+<div class="page-header">
+  <h1 class="page-header__title"><%= isNew ? 'New Garden Site' : 'Edit Garden Site' %></h1>
+</div>
+
+<div class="card" style="max-width: 640px;">
+  <div class="card__body">
+    <form method="POST" action="<%= isNew ? '/admin/garden/sites' : '/admin/garden/sites/' + site.id %>">
+      <div class="form-field">
+        <label class="form-label" for="name">Site Name</label>
+        <input class="form-input" type="text" id="name" name="name" value="<%= site.name %>" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="partner">Partner Organization</label>
+        <input class="form-input" type="text" id="partner" name="partner" value="<%= site.partner || '' %>" placeholder="e.g. Food Bank of Iowa">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="address">Address</label>
+        <input class="form-input" type="text" id="address" name="address" value="<%= site.address || '' %>">
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="total_plots">Total Plots</label>
+          <input class="form-input" type="number" id="total_plots" name="total_plots" value="<%= site.total_plots || '' %>" min="0">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="status">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="active" <%= site.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="inactive" <%= site.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea class="form-input" id="notes" name="notes" rows="3"><%= site.notes || '' %></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary"><%= isNew ? 'Add Site' : 'Update Site' %></button>
+        <a href="/admin/garden/sites" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

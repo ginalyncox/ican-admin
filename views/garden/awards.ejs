@@ -1,0 +1,42 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Annual Awards</h1>
+    <a href="/admin/garden/awards/new" class="btn btn--primary">Present Award</a>
+  </div>
+</div>
+
+<div class="filters">
+  <form method="GET" action="/admin/garden/awards" class="filters__form">
+    <select name="season" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Seasons</option>
+      <% seasons.forEach(s => { %>
+        <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %> (<%= s.year %>)</option>
+      <% }) %>
+    </select>
+  </form>
+</div>
+
+<% if (awards.length === 0) { %>
+  <div class="card"><div class="card__body"><p class="empty-state">No awards presented yet. <a href="/admin/garden/awards/new">Present the first award</a></p></div></div>
+<% } else { %>
+  <div class="awards-grid">
+    <% awards.forEach(a => { %>
+      <div class="award-card award-card--<%= a.category %>">
+        <div class="award-card__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        </div>
+        <div class="award-card__content">
+          <h3 class="award-card__name"><%= a.award_name %></h3>
+          <p class="award-card__recipient"><%= a.first_name %> <%= a.last_name %></p>
+          <span class="badge badge--<%= a.category %>"><%= a.category %></span>
+          <% if (a.season_name) { %><span class="text-muted"> &middot; <%= a.season_name %></span><% } %>
+          <% if (a.description) { %><p class="award-card__desc"><%= a.description %></p><% } %>
+          <% if (a.presented_at) { %><p class="text-muted" style="font-size:0.8rem">Presented: <%= a.presented_at %></p><% } %>
+        </div>
+        <form method="POST" action="/admin/garden/awards/<%= a.id %>/delete" onsubmit="return confirm('Remove this award?')">
+          <button type="submit" class="btn btn--danger btn--xs">&times;</button>
+        </form>
+      </div>
+    <% }) %>
+  </div>
+<% } %>

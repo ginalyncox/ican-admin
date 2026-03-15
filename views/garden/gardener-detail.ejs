@@ -1,0 +1,100 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title"><%= gardener.first_name %> <%= gardener.last_name %></h1>
+      <p class="page-header__subtitle"><%= gardener.site_name || 'No site' %> &middot; Plot <%= gardener.plot_number || '—' %> &middot; <span class="badge badge--<%= gardener.status %>"><%= gardener.status %></span></p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/garden/harvests/new?gardener=<%= gardener.id %>" class="btn btn--outline btn--sm">Log Harvest</a>
+      <a href="/admin/garden/hours/new?gardener=<%= gardener.id %>" class="btn btn--outline btn--sm">Log Hours</a>
+      <a href="/admin/garden/gardeners/<%= gardener.id %>/edit" class="btn btn--primary btn--sm">Edit</a>
+    </div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(stats.totalLbs).toFixed(1) %></span>
+      <span class="stat-card__label">Lbs Harvested</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(stats.totalHrs).toFixed(1) %></span>
+      <span class="stat-card__label">Volunteer Hours</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= awards.length %></span>
+      <span class="stat-card__label">Awards</span>
+    </div>
+  </div>
+</div>
+
+<% if (awards.length > 0) { %>
+<div class="card">
+  <div class="card__header"><h2 class="card__title">Awards</h2></div>
+  <div class="card__body">
+    <% awards.forEach(a => { %>
+      <div class="award-badge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        <div>
+          <strong><%= a.award_name %></strong>
+          <span class="text-muted"> &mdash; <%= a.category %><%= a.season_name ? ' (' + a.season_name + ')' : '' %></span>
+          <% if (a.description) { %><br><small class="text-muted"><%= a.description %></small><% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>
+<% } %>
+
+<div class="dashboard-grid">
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Harvest Log</h2></div>
+    <div class="card__body">
+      <% if (harvests.length === 0) { %>
+        <p class="empty-state">No harvests logged.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Date</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Status</th></tr></thead>
+          <tbody>
+            <% harvests.forEach(h => { %>
+              <tr>
+                <td><%= h.harvest_date %></td>
+                <td><%= h.crop %></td>
+                <td><%= h.pounds %></td>
+                <td><%= h.donated_to || (h.donated ? 'Yes' : 'No') %></td>
+                <td><span class="badge badge--<%= h.donation_status || 'pending' %>"><%= h.donation_status || 'pending' %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Volunteer Hours</h2></div>
+    <div class="card__body">
+      <% if (hours.length === 0) { %>
+        <p class="empty-state">No hours logged.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Date</th><th>Hours</th><th>Activity</th></tr></thead>
+          <tbody>
+            <% hours.forEach(h => { %>
+              <tr>
+                <td><%= h.work_date %></td>
+                <td><%= h.hours %></td>
+                <td><%= h.activity || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>

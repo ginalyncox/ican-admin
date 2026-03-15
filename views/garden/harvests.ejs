@@ -1,0 +1,97 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Harvest Log</h1>
+    <div class="page-header__actions">
+      <a href="/admin/garden/export/harvests" class="btn btn--outline btn--sm">Export CSV</a>
+      <a href="/admin/garden/harvests/new" class="btn btn--primary">Log Harvest</a>
+    </div>
+  </div>
+</div>
+
+<div class="verification-bar">
+  <a href="/admin/garden/harvests?donation_status=pending" class="verification-stat verification-stat--pending">
+    <span class="verification-stat__count"><%= verificationStats.pendingCount %></span>
+    <span class="verification-stat__label">Pending</span>
+  </a>
+  <a href="/admin/garden/harvests?donation_status=verified" class="verification-stat verification-stat--verified">
+    <span class="verification-stat__count"><%= verificationStats.verifiedCount %></span>
+    <span class="verification-stat__label">Verified</span>
+  </a>
+  <a href="/admin/garden/harvests?donation_status=flagged" class="verification-stat verification-stat--flagged">
+    <span class="verification-stat__count"><%= verificationStats.flaggedCount %></span>
+    <span class="verification-stat__label">Flagged</span>
+  </a>
+  <% if (verificationStats.pendingCount > 0) { %>
+    <form method="POST" action="/admin/garden/harvests/batch-verify" onsubmit="return confirm('Verify all pending donations?')" style="margin-left:auto">
+      <button type="submit" class="btn btn--success btn--sm">Verify All Pending</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="filters">
+  <form method="GET" action="/admin/garden/harvests" class="filters__form">
+    <select name="gardener" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Gardeners</option>
+      <% gardeners.forEach(g => { %>
+        <option value="<%= g.id %>" <%= filters.gardener == g.id ? 'selected' : '' %>><%= g.last_name %>, <%= g.first_name %></option>
+      <% }) %>
+    </select>
+    <select name="season" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Seasons</option>
+      <% seasons.forEach(s => { %>
+        <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %></option>
+      <% }) %>
+    </select>
+    <select name="donation_status" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="pending" <%= filters.donation_status === 'pending' ? 'selected' : '' %>>Pending</option>
+      <option value="verified" <%= filters.donation_status === 'verified' ? 'selected' : '' %>>Verified</option>
+      <option value="flagged" <%= filters.donation_status === 'flagged' ? 'selected' : '' %>>Flagged</option>
+    </select>
+  </form>
+</div>
+
+<% if (harvests.length === 0) { %>
+  <div class="card"><div class="card__body"><p class="empty-state">No harvest entries found.</p></div></div>
+<% } else { %>
+  <div class="card"><div class="card__body">
+    <table class="table">
+      <thead><tr><th>Date</th><th>Gardener</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <% harvests.forEach(h => { %>
+          <tr>
+            <td><%= h.harvest_date %></td>
+            <td><a href="/admin/garden/gardeners/<%= h.gardener_id %>"><%= h.first_name %> <%= h.last_name %></a></td>
+            <td><%= h.crop %></td>
+            <td><strong><%= h.pounds %></strong></td>
+            <td><%= h.donated_to || (h.donated ? 'Yes' : '—') %></td>
+            <td>
+              <% if (h.donated) { %>
+                <span class="badge badge--<%= h.donation_status || 'pending' %>"><%= (h.donation_status || 'pending').charAt(0).toUpperCase() + (h.donation_status || 'pending').slice(1) %></span>
+                <% if (h.flag_reason) { %><br><small class="text-muted"><%= h.flag_reason %></small><% } %>
+              <% } else { %>
+                <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td class="table__actions">
+              <% if (h.donated && h.donation_status !== 'verified') { %>
+                <form method="POST" action="/admin/garden/harvests/<%= h.id %>/verify" style="display:inline">
+                  <button type="submit" class="btn btn--success btn--xs" title="Verify">&#10003;</button>
+                </form>
+              <% } %>
+              <% if (h.donated && h.donation_status !== 'flagged') { %>
+                <form method="POST" action="/admin/garden/harvests/<%= h.id %>/flag" style="display:inline">
+                  <input type="hidden" name="flag_reason" value="Needs review">
+                  <button type="submit" class="btn btn--warning btn--xs" title="Flag">&#9873;</button>
+                </form>
+              <% } %>
+              <form method="POST" action="/admin/garden/harvests/<%= h.id %>/delete" onsubmit="return confirm('Delete?')" style="display:inline">
+                <button type="submit" class="btn btn--danger btn--xs" title="Delete">&times;</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div></div>
+<% } %>

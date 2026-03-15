@@ -1,0 +1,109 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Donation Report</h1>
+    <div class="page-header__actions">
+      <form method="GET" action="/admin/garden/donations" class="filters__form">
+        <select name="season" class="form-select form-select--sm" onchange="this.form.submit()">
+          <option value="">All Seasons</option>
+          <% seasons.forEach(s => { %>
+            <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %></option>
+          <% }) %>
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(totals.total_lbs).toFixed(1) %></span>
+      <span class="stat-card__label">Total Lbs Donated</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(totals.verified_lbs || 0).toFixed(1) %></span>
+      <span class="stat-card__label">Verified Lbs</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(totals.pending_lbs || 0).toFixed(1) %></span>
+      <span class="stat-card__label">Pending Lbs</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= totals.recipient_count || 0 %></span>
+      <span class="stat-card__label">Recipients</span>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">By Recipient</h2></div>
+    <div class="card__body">
+      <% if (byRecipient.length === 0) { %>
+        <p class="empty-state">No donations recorded.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Recipient</th><th>Entries</th><th>Total Lbs</th><th>Verified</th></tr></thead>
+          <tbody>
+            <% byRecipient.forEach(r => { %>
+              <tr>
+                <td><strong><%= r.donated_to %></strong></td>
+                <td><%= r.entries %></td>
+                <td><%= Number(r.total_lbs).toFixed(1) %></td>
+                <td><%= Number(r.verified_lbs || 0).toFixed(1) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">By Crop</h2></div>
+    <div class="card__body">
+      <% if (byCrop.length === 0) { %>
+        <p class="empty-state">No crop data.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Crop</th><th>Lbs</th><th>Entries</th></tr></thead>
+          <tbody>
+            <% byCrop.forEach(c => { %>
+              <tr>
+                <td><%= c.crop %></td>
+                <td><strong><%= Number(c.total_lbs).toFixed(1) %></strong></td>
+                <td><%= c.entries %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<% if (byMonth.length > 0) { %>
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Monthly Totals</h2></div>
+    <div class="card__body">
+      <table class="table">
+        <thead><tr><th>Month</th><th>Total Lbs</th><th>Verified Lbs</th></tr></thead>
+        <tbody>
+          <% byMonth.forEach(m => { %>
+            <tr>
+              <td><%= m.month %></td>
+              <td><%= Number(m.total_lbs).toFixed(1) %></td>
+              <td><%= Number(m.verified_lbs || 0).toFixed(1) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

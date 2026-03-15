@@ -1,0 +1,36 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Member Accounts</h1>
+    <a href="/admin/garden/members/new" class="btn btn--primary">Create Login</a>
+  </div>
+</div>
+
+<p class="text-muted" style="margin-bottom:1rem">Members can sign in at <strong>/member</strong> to view their stats, leaderboard, and awards.</p>
+
+<% if (members.length === 0) { %>
+  <div class="card"><div class="card__body"><p class="empty-state">No member logins created yet. <a href="/admin/garden/members/new">Create the first one</a></p></div></div>
+<% } else { %>
+  <div class="card"><div class="card__body">
+    <table class="table">
+      <thead><tr><th>Gardener</th><th>Email</th><th>Last Login</th><th></th></tr></thead>
+      <tbody>
+        <% members.forEach(m => { %>
+          <tr>
+            <td><strong><%= m.first_name %> <%= m.last_name %></strong></td>
+            <td><%= m.email %></td>
+            <td class="text-muted"><%= m.last_login ? new Date(m.last_login).toLocaleDateString() : 'Never' %></td>
+            <td class="table__actions">
+              <form method="POST" action="/admin/garden/members/<%= m.id %>/reset" style="display:inline">
+                <input type="hidden" name="password" value="">
+                <button type="button" class="btn btn--outline btn--xs" onclick="var p=prompt('New password:');if(p){this.previousElementSibling.value=p;this.form.submit();}">Reset PW</button>
+              </form>
+              <form method="POST" action="/admin/garden/members/<%= m.id %>/delete" onsubmit="return confirm('Remove this login?')" style="display:inline">
+                <button type="submit" class="btn btn--danger btn--xs">Remove</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div></div>
+<% } %>

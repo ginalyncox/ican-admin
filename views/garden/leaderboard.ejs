@@ -1,0 +1,65 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Contest Leaderboard</h1>
+    <div class="page-header__actions">
+      <form method="GET" action="/admin/garden/leaderboard" class="filters__form">
+        <select name="season" class="form-select form-select--sm" onchange="this.form.submit()">
+          <option value="">All Time</option>
+          <% seasons.forEach(s => { %>
+            <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %> (<%= s.year %>)</option>
+          <% }) %>
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Harvest Leaders (lbs)</h2></div>
+    <div class="card__body">
+      <% if (harvestLeaders.length === 0) { %>
+        <p class="empty-state">No harvest data.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Rank</th><th>Gardener</th><th>Site</th><th>Lbs</th><th>Entries</th></tr></thead>
+          <tbody>
+            <% harvestLeaders.forEach((g, i) => { %>
+              <tr<%= g.total_lbs > 0 ? '' : ' class="text-muted"' %>>
+                <td><span class="rank-badge rank-badge--<%= i+1 %>"><%= i+1 %></span></td>
+                <td><a href="/admin/garden/gardeners/<%= g.id %>"><%= g.first_name %> <%= g.last_name %></a></td>
+                <td><%= g.site_name || '—' %></td>
+                <td><strong><%= Number(g.total_lbs).toFixed(1) %></strong></td>
+                <td><%= g.harvest_count %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Volunteer Hours Leaders</h2></div>
+    <div class="card__body">
+      <% if (hoursLeaders.length === 0) { %>
+        <p class="empty-state">No volunteer data.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Rank</th><th>Gardener</th><th>Site</th><th>Hours</th><th>Entries</th></tr></thead>
+          <tbody>
+            <% hoursLeaders.forEach((g, i) => { %>
+              <tr<%= g.total_hrs > 0 ? '' : ' class="text-muted"' %>>
+                <td><span class="rank-badge rank-badge--<%= i+1 %>"><%= i+1 %></span></td>
+                <td><a href="/admin/garden/gardeners/<%= g.id %>"><%= g.first_name %> <%= g.last_name %></a></td>
+                <td><%= g.site_name || '—' %></td>
+                <td><strong><%= Number(g.total_hrs).toFixed(1) %></strong></td>
+                <td><%= g.entry_count %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>

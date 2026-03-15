@@ -1,0 +1,85 @@
+<div class="page-header">
+  <h1 class="page-header__title"><%= isNew ? 'New Post' : 'Edit Post' %></h1>
+  <% if (!isNew) { %>
+    <a href="/admin/posts/<%= post.id %>/preview" class="btn btn--ghost">Preview</a>
+  <% } %>
+</div>
+
+<form method="POST" action="<%= isNew ? '/admin/posts' : `/admin/posts/${post.id}` %>" class="post-form" id="postForm">
+  <div class="editor-layout">
+    <div class="editor-layout__main">
+      <div class="card">
+        <div class="card__body">
+          <div class="form-field">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" value="<%= post.title %>" required placeholder="Post title" class="form-input form-input--lg" oninput="generateSlug(this.value)">
+          </div>
+
+          <div class="form-field">
+            <label for="slug">Slug</label>
+            <div class="slug-preview">
+              <span class="slug-prefix">/blog/</span>
+              <input type="text" id="slug" name="slug" value="<%= post.slug %>" required placeholder="post-url-slug" class="form-input">
+              <span class="slug-suffix">.html</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label>Content</label>
+            <div id="quill-editor" class="quill-container"><%- post.content %></div>
+            <input type="hidden" name="content" id="content">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="editor-layout__sidebar">
+      <div class="card">
+        <div class="card__header">
+          <h3 class="card__title">Publish</h3>
+        </div>
+        <div class="card__body">
+          <div class="form-field">
+            <label for="status">Status</label>
+            <select name="status" id="status" class="form-select">
+              <option value="draft" <%= post.status === 'draft' ? 'selected' : '' %>>Draft</option>
+              <option value="published" <%= post.status === 'published' ? 'selected' : '' %>>Published</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary btn--full"><%= isNew ? 'Create Post' : 'Update Post' %></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__header">
+          <h3 class="card__title">Details</h3>
+        </div>
+        <div class="card__body">
+          <div class="form-field">
+            <label for="category">Category</label>
+            <select name="category" id="category" class="form-select">
+              <option value="">— None —</option>
+              <option value="announcement" <%= post.category === 'announcement' ? 'selected' : '' %>>Announcement</option>
+              <option value="legislative" <%= post.category === 'legislative' ? 'selected' : '' %>>Legislative</option>
+              <option value="victory-garden" <%= post.category === 'victory-garden' ? 'selected' : '' %>>Victory Garden</option>
+              <option value="community" <%= post.category === 'community' ? 'selected' : '' %>>Community</option>
+              <option value="opinion" <%= post.category === 'opinion' ? 'selected' : '' %>>Opinion</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="excerpt">Excerpt</label>
+            <textarea name="excerpt" id="excerpt" rows="3" class="form-input" placeholder="Brief description for blog listing"><%= post.excerpt || '' %></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="featured_image">Featured Image URL</label>
+            <input type="url" name="featured_image" id="featured_image" value="<%= post.featured_image || '' %>" class="form-input" placeholder="https://...">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

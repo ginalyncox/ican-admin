@@ -1,0 +1,51 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Gardeners</h1>
+    <div class="page-header__actions">
+      <a href="/admin/garden/export/gardeners" class="btn btn--outline btn--sm">Export CSV</a>
+      <a href="/admin/garden/gardeners/new" class="btn btn--primary">Add Gardener</a>
+    </div>
+  </div>
+</div>
+
+<div class="filters">
+  <form method="GET" action="/admin/garden/gardeners" class="filters__form">
+    <select name="season" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Seasons</option>
+      <% seasons.forEach(s => { %>
+        <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %> (<%= s.year %>)</option>
+      <% }) %>
+    </select>
+    <select name="status" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+      <option value="inactive" <%= filters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+      <option value="waitlist" <%= filters.status === 'waitlist' ? 'selected' : '' %>>Waitlist</option>
+    </select>
+  </form>
+</div>
+
+<% if (gardeners.length === 0) { %>
+  <div class="card"><div class="card__body"><p class="empty-state">No gardeners found. <a href="/admin/garden/gardeners/new">Add your first gardener</a></p></div></div>
+<% } else { %>
+  <div class="card"><div class="card__body">
+    <table class="table">
+      <thead><tr><th>Name</th><th>Email</th><th>Site</th><th>Plot</th><th>Season</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <% gardeners.forEach(g => { %>
+          <tr>
+            <td><a href="/admin/garden/gardeners/<%= g.id %>"><strong><%= g.last_name %>, <%= g.first_name %></strong></a></td>
+            <td class="text-muted"><%= g.email || '—' %></td>
+            <td><%= g.site_name || '—' %></td>
+            <td><%= g.plot_number || '—' %></td>
+            <td><%= g.season_name || '—' %></td>
+            <td><span class="badge badge--<%= g.status %>"><%= g.status %></span></td>
+            <td class="table__actions">
+              <a href="/admin/garden/gardeners/<%= g.id %>/edit" class="btn btn--outline btn--xs">Edit</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div></div>
+<% } %>

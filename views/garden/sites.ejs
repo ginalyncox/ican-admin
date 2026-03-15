@@ -1,0 +1,34 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Garden Sites</h1>
+    <a href="/admin/garden/sites/new" class="btn btn--primary">Add Site</a>
+  </div>
+</div>
+
+<% if (sites.length === 0) { %>
+  <div class="card"><div class="card__body"><p class="empty-state">No garden sites yet. <a href="/admin/garden/sites/new">Add your first site</a></p></div></div>
+<% } else { %>
+  <div class="card"><div class="card__body">
+    <table class="table">
+      <thead><tr><th>Site Name</th><th>Partner</th><th>Address</th><th>Plots</th><th>Gardeners</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <% sites.forEach(s => { %>
+          <tr>
+            <td><strong><%= s.name %></strong></td>
+            <td><%= s.partner || '—' %></td>
+            <td class="text-muted"><%= s.address || '—' %></td>
+            <td><%= s.total_plots %></td>
+            <td><%= s.gardenerCount %></td>
+            <td><span class="badge badge--<%= s.status %>"><%= s.status %></span></td>
+            <td class="table__actions">
+              <a href="/admin/garden/sites/<%= s.id %>/edit" class="btn btn--outline btn--xs">Edit</a>
+              <form method="POST" action="/admin/garden/sites/<%= s.id %>/delete" onsubmit="return confirm('Delete this site?')" style="display:inline">
+                <button type="submit" class="btn btn--danger btn--xs">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div></div>
+<% } %>

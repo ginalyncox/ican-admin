@@ -1,0 +1,59 @@
+<div class="page-header">
+  <h1 class="page-header__title">Present Award</h1>
+</div>
+
+<div class="card" style="max-width: 640px;">
+  <div class="card__body">
+    <form method="POST" action="/admin/garden/awards">
+      <div class="form-field">
+        <label class="form-label" for="award_name">Award Name</label>
+        <input class="form-input" type="text" id="award_name" name="award_name" value="<%= award.award_name %>" placeholder="e.g. Top Harvester 2026" required>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="gardener_id">Recipient</label>
+          <select class="form-select" id="gardener_id" name="gardener_id" required>
+            <option value="">— Select —</option>
+            <% gardeners.forEach(g => { %>
+              <option value="<%= g.id %>" <%= award.gardener_id == g.id ? 'selected' : '' %>><%= g.last_name %>, <%= g.first_name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="category">Category</label>
+          <select class="form-select" id="category" name="category" required>
+            <option value="">— Select —</option>
+            <option value="harvest" <%= award.category === 'harvest' ? 'selected' : '' %>>Harvest</option>
+            <option value="volunteer" <%= award.category === 'volunteer' ? 'selected' : '' %>>Volunteer</option>
+            <option value="community" <%= award.category === 'community' ? 'selected' : '' %>>Community</option>
+            <option value="innovation" <%= award.category === 'innovation' ? 'selected' : '' %>>Innovation</option>
+            <option value="overall" <%= award.category === 'overall' ? 'selected' : '' %>>Overall</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="season_id">Season</label>
+          <select class="form-select" id="season_id" name="season_id">
+            <option value="">— Select —</option>
+            <% seasons.forEach(s => { %>
+              <option value="<%= s.id %>" <%= award.season_id == s.id ? 'selected' : '' %>><%= s.name %> (<%= s.year %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="presented_at">Date Presented</label>
+          <input class="form-input" type="date" id="presented_at" name="presented_at" value="<%= award.presented_at || '' %>">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="description">Description</label>
+        <textarea class="form-input" id="description" name="description" rows="3" placeholder="Why this gardener earned this award..."><%= award.description || '' %></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">Present Award</button>
+        <a href="/admin/garden/awards" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,72 @@
+<div class="page-header">
+  <h1 class="page-header__title"><%= isNew ? 'Add Gardener' : 'Edit Gardener' %></h1>
+</div>
+
+<div class="card" style="max-width: 640px;">
+  <div class="card__body">
+    <form method="POST" action="<%= isNew ? '/admin/garden/gardeners' : '/admin/garden/gardeners/' + gardener.id %>">
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="first_name">First Name</label>
+          <input class="form-input" type="text" id="first_name" name="first_name" value="<%= gardener.first_name %>" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="last_name">Last Name</label>
+          <input class="form-input" type="text" id="last_name" name="last_name" value="<%= gardener.last_name %>" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-input" type="email" id="email" name="email" value="<%= gardener.email || '' %>">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="phone">Phone</label>
+          <input class="form-input" type="tel" id="phone" name="phone" value="<%= gardener.phone || '' %>">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="site_id">Garden Site</label>
+          <select class="form-select" id="site_id" name="site_id">
+            <option value="">— Select —</option>
+            <% sites.forEach(s => { %>
+              <option value="<%= s.id %>" <%= gardener.site_id == s.id ? 'selected' : '' %>><%= s.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="plot_number">Plot #</label>
+          <input class="form-input" type="text" id="plot_number" name="plot_number" value="<%= gardener.plot_number || '' %>">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="season_id">Season</label>
+          <select class="form-select" id="season_id" name="season_id">
+            <option value="">— Select —</option>
+            <% seasons.forEach(s => { %>
+              <option value="<%= s.id %>" <%= gardener.season_id == s.id ? 'selected' : '' %>><%= s.name %> (<%= s.year %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="status">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="active" <%= gardener.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="inactive" <%= gardener.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+            <option value="waitlist" <%= gardener.status === 'waitlist' ? 'selected' : '' %>>Waitlist</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea class="form-input" id="notes" name="notes" rows="3"><%= gardener.notes || '' %></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary"><%= isNew ? 'Add Gardener' : 'Update Gardener' %></button>
+        <a href="/admin/garden/gardeners" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

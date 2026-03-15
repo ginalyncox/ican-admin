@@ -1,0 +1,64 @@
+<div class="page-header">
+  <h1 class="page-header__title">Log Harvest</h1>
+</div>
+
+<div class="card" style="max-width: 640px;">
+  <div class="card__body">
+    <form method="POST" action="/admin/garden/harvests">
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="gardener_id">Gardener</label>
+          <select class="form-select" id="gardener_id" name="gardener_id" required>
+            <option value="">— Select —</option>
+            <% gardeners.forEach(g => { %>
+              <option value="<%= g.id %>" <%= harvest.gardener_id == g.id ? 'selected' : '' %>><%= g.last_name %>, <%= g.first_name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="season_id">Season</label>
+          <select class="form-select" id="season_id" name="season_id">
+            <option value="">— Select —</option>
+            <% seasons.forEach(s => { %>
+              <option value="<%= s.id %>" <%= harvest.season_id == s.id ? 'selected' : '' %>><%= s.name %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="harvest_date">Date</label>
+          <input class="form-input" type="date" id="harvest_date" name="harvest_date" value="<%= harvest.harvest_date %>" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="crop">Crop</label>
+          <input class="form-input" type="text" id="crop" name="crop" value="<%= harvest.crop %>" placeholder="e.g. Tomatoes" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="pounds">Pounds</label>
+          <input class="form-input" type="number" id="pounds" name="pounds" value="<%= harvest.pounds %>" step="0.1" min="0" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Donated?</label>
+          <div style="padding-top: 0.5rem;">
+            <label><input type="checkbox" name="donated" value="1" <%= harvest.donated ? 'checked' : '' %>> Yes, donated</label>
+          </div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="donated_to">Donated To</label>
+        <input class="form-input" type="text" id="donated_to" name="donated_to" value="<%= harvest.donated_to || '' %>" placeholder="e.g. Food Bank of Iowa">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea class="form-input" id="notes" name="notes" rows="2"><%= harvest.notes || '' %></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">Log Harvest</button>
+        <a href="/admin/garden/harvests" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

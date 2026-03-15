@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Login — ICAN Victory Garden</title>
+  <link rel="stylesheet" href="/admin/static/admin.css">
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <div class="login-card__header">
+      <svg viewBox="0 0 32 32" fill="none" width="40" height="40">
+        <path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z" fill="#2D6A3F" opacity="0.9"/>
+        <path d="M16 8 L16 24" stroke="#F5F3ED" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M16 14 L12 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M16 14 L20 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <h1>Victory Garden</h1>
+      <p>Member Portal</p>
+    </div>
+    <% if (error) { %>
+      <div class="alert alert--error"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/member/login">
+      <div class="form-field">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-input" type="email" id="email" name="email" required autofocus>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" name="password" required>
+      </div>
+      <button type="submit" class="btn btn--primary" style="width:100%;margin-top:0.5rem">Sign In</button>
+    </form>
+  </div>
+</body>
+</html>

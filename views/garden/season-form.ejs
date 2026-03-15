@@ -1,0 +1,46 @@
+<div class="page-header">
+  <h1 class="page-header__title"><%= isNew ? 'New Season' : 'Edit Season' %></h1>
+</div>
+
+<div class="card" style="max-width: 640px;">
+  <div class="card__body">
+    <form method="POST" action="<%= isNew ? '/admin/garden/seasons' : '/admin/garden/seasons/' + season.id %>">
+      <div class="form-field">
+        <label class="form-label" for="name">Season Name</label>
+        <input class="form-input" type="text" id="name" name="name" value="<%= season.name %>" placeholder="e.g. Summer 2026 Grow-Off" required>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="year">Year</label>
+          <input class="form-input" type="number" id="year" name="year" value="<%= season.year %>" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="status">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="upcoming" <%= season.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
+            <option value="active" <%= season.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="completed" <%= season.status === 'completed' ? 'selected' : '' %>>Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="start_date">Start Date</label>
+          <input class="form-input" type="date" id="start_date" name="start_date" value="<%= season.start_date %>" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="end_date">End Date</label>
+          <input class="form-input" type="date" id="end_date" name="end_date" value="<%= season.end_date %>" required>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="notes">Notes</label>
+        <textarea class="form-input" id="notes" name="notes" rows="3"><%= season.notes || '' %></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary"><%= isNew ? 'Create Season' : 'Update Season' %></button>
+        <a href="/admin/garden/seasons" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

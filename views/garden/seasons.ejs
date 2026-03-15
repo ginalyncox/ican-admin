@@ -1,0 +1,38 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Contest Seasons</h1>
+    <a href="/admin/garden/seasons/new" class="btn btn--primary">New Season</a>
+  </div>
+</div>
+
+<% if (seasons.length === 0) { %>
+  <div class="card"><div class="card__body"><p class="empty-state">No seasons created yet. <a href="/admin/garden/seasons/new">Create your first season</a></p></div></div>
+<% } else { %>
+  <div class="card"><div class="card__body">
+    <table class="table">
+      <thead>
+        <tr><th>Season</th><th>Year</th><th>Dates</th><th>Status</th><th>Gardeners</th><th>Harvest</th><th>Hours</th><th>Awards</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% seasons.forEach(s => { %>
+          <tr>
+            <td><strong><%= s.name %></strong></td>
+            <td><%= s.year %></td>
+            <td class="text-muted"><%= s.start_date %> &mdash; <%= s.end_date %></td>
+            <td><span class="badge badge--<%= s.status %>"><%= s.status %></span></td>
+            <td><%= s.gardenerCount %></td>
+            <td><%= Number(s.harvestLbs).toFixed(1) %> lbs</td>
+            <td><%= Number(s.volunteerHrs).toFixed(1) %> hrs</td>
+            <td><%= s.awardCount %></td>
+            <td class="table__actions">
+              <a href="/admin/garden/seasons/<%= s.id %>/edit" class="btn btn--outline btn--xs">Edit</a>
+              <form method="POST" action="/admin/garden/seasons/<%= s.id %>/delete" onsubmit="return confirm('Delete this season?')" style="display:inline">
+                <button type="submit" class="btn btn--danger btn--xs">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div></div>
+<% } %>

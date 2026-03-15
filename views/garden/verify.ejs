@@ -1,0 +1,252 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Verify Donations</h1>
+      <p class="page-header__subtitle">Review and confirm harvests donated to food banks and pantries</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/garden/donations" class="btn btn--outline btn--sm">Donation Report</a>
+      <a href="/admin/garden/harvests" class="btn btn--outline btn--sm">All Harvests</a>
+    </div>
+  </div>
+</div>
+
+<!-- Status summary bar -->
+<div class="verification-bar">
+  <a href="/admin/garden/verify?tab=pending" class="verification-stat verification-stat--pending <%= tab === 'pending' ? 'verification-stat--active' : '' %>">
+    <span class="verification-stat__count"><%= pending.length %></span>
+    <span class="verification-stat__label">Pending Review</span>
+  </a>
+  <a href="/admin/garden/verify?tab=flagged" class="verification-stat verification-stat--flagged <%= tab === 'flagged' ? 'verification-stat--active' : '' %>">
+    <span class="verification-stat__count"><%= flagged.length %></span>
+    <span class="verification-stat__label">Flagged</span>
+  </a>
+  <a href="/admin/garden/verify?tab=verified" class="verification-stat verification-stat--verified <%= tab === 'verified' ? 'verification-stat--active' : '' %>">
+    <span class="verification-stat__count"><%= recentlyVerified.length %></span>
+    <span class="verification-stat__label">Recently Verified</span>
+  </a>
+</div>
+
+<% if (tab === 'pending') { %>
+  <!-- ═══ PENDING TAB ═══ -->
+  <% if (pending.length === 0) { %>
+    <div class="card"><div class="card__body">
+      <div class="verify-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <h3>All caught up</h3>
+        <p class="text-muted">No pending donations to verify.</p>
+      </div>
+    </div></div>
+
+  <% } else { %>
+    <!-- Batch action form wraps everything -->
+    <form method="POST" action="/admin/garden/harvests/batch-action" id="batchForm">
+
+      <!-- Batch toolbar -->
+      <div class="verify-toolbar">
+        <label class="verify-toolbar__select-all">
+          <input type="checkbox" id="selectAll"> Select all
+        </label>
+        <span class="verify-toolbar__count" id="selectedCount">0 selected</span>
+        <div class="verify-toolbar__actions">
+          <button type="submit" name="action" value="verify" class="btn btn--success btn--sm" id="batchVerifyBtn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Verify Selected
+          </button>
+          <button type="submit" name="action" value="flag" class="btn btn--warning btn--sm" id="batchFlagBtn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            Flag Selected
+          </button>
+        </div>
+        <form method="POST" action="/admin/garden/harvests/batch-verify" onsubmit="return confirm('Verify ALL <%= pending.length %> pending donations?')" style="margin-left:auto">
+          <button type="submit" class="btn btn--primary btn--sm">Verify All (<%= pending.length %>)</button>
+        </form>
+      </div>
+
+      <!-- Group by recipient -->
+      <% const recipients = Object.keys(pendingByRecipient).sort(); %>
+      <% recipients.forEach(recipient => { %>
+        <% const group = pendingByRecipient[recipient]; %>
+        <div class="card verify-group">
+          <div class="card__header verify-group__header">
+            <div class="verify-group__title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <h2 class="card__title"><%= recipient %></h2>
+              <span class="badge badge--info"><%= group.items.length %> entries &middot; <%= Number(group.totalLbs).toFixed(1) %> lbs</span>
+            </div>
+          </div>
+          <div class="card__body" style="padding:0">
+            <table class="table table--verify">
+              <thead>
+                <tr>
+                  <th style="width:40px"><input type="checkbox" class="group-select" data-group="<%= recipient %>"></th>
+                  <th>Date</th>
+                  <th>Gardener</th>
+                  <th>Crop</th>
+                  <th>Lbs</th>
+                  <th>Notes</th>
+                  <th style="width:120px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% group.items.forEach(h => { %>
+                  <tr class="verify-row">
+                    <td><input type="checkbox" name="ids" value="<%= h.id %>" class="row-check" data-group="<%= recipient %>"></td>
+                    <td><%= h.harvest_date %></td>
+                    <td><a href="/admin/garden/gardeners/<%= h.gardener_id %>"><%= h.first_name %> <%= h.last_name %></a></td>
+                    <td><%= h.crop %></td>
+                    <td><strong><%= h.pounds %></strong></td>
+                    <td class="text-muted"><%= h.notes || '' %></td>
+                    <td class="table__actions">
+                      <button type="button" class="btn btn--success btn--xs verify-single" data-id="<%= h.id %>" title="Verify">&#10003;</button>
+                      <button type="button" class="btn btn--warning btn--xs flag-single" data-id="<%= h.id %>" title="Flag">&#9873;</button>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% }) %>
+    </form>
+  <% } %>
+
+<% } else if (tab === 'flagged') { %>
+  <!-- ═══ FLAGGED TAB ═══ -->
+  <% if (flagged.length === 0) { %>
+    <div class="card"><div class="card__body"><p class="empty-state">No flagged entries.</p></div></div>
+  <% } else { %>
+    <div class="card"><div class="card__body" style="padding:0">
+      <table class="table table--verify">
+        <thead><tr><th>Date</th><th>Gardener</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Reason</th><th>Flagged By</th><th></th></tr></thead>
+        <tbody>
+          <% flagged.forEach(h => { %>
+            <tr class="verify-row verify-row--flagged">
+              <td><%= h.harvest_date %></td>
+              <td><a href="/admin/garden/gardeners/<%= h.gardener_id %>"><%= h.first_name %> <%= h.last_name %></a></td>
+              <td><%= h.crop %></td>
+              <td><strong><%= h.pounds %></strong></td>
+              <td><%= h.donated_to || '—' %></td>
+              <td><span class="flag-reason"><%= h.flag_reason || 'No reason' %></span></td>
+              <td class="text-muted"><%= h.verifier_name || '—' %></td>
+              <td class="table__actions">
+                <form method="POST" action="/admin/garden/harvests/<%= h.id %>/verify" style="display:inline">
+                  <button type="submit" class="btn btn--success btn--xs" title="Verify anyway">&#10003; Verify</button>
+                </form>
+                <form method="POST" action="/admin/garden/harvests/<%= h.id %>/reset-status" style="display:inline">
+                  <button type="submit" class="btn btn--outline btn--xs" title="Reset to pending">Reset</button>
+                </form>
+                <form method="POST" action="/admin/garden/harvests/<%= h.id %>/delete" onsubmit="return confirm('Delete this entry?')" style="display:inline">
+                  <button type="submit" class="btn btn--danger btn--xs">&times;</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div></div>
+  <% } %>
+
+<% } else { %>
+  <!-- ═══ RECENTLY VERIFIED TAB ═══ -->
+  <% if (recentlyVerified.length === 0) { %>
+    <div class="card"><div class="card__body"><p class="empty-state">No verified entries yet.</p></div></div>
+  <% } else { %>
+    <div class="card"><div class="card__body" style="padding:0">
+      <table class="table table--verify">
+        <thead><tr><th>Date</th><th>Gardener</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Verified By</th><th></th></tr></thead>
+        <tbody>
+          <% recentlyVerified.forEach(h => { %>
+            <tr class="verify-row verify-row--verified">
+              <td><%= h.harvest_date %></td>
+              <td><%= h.first_name %> <%= h.last_name %></td>
+              <td><%= h.crop %></td>
+              <td><strong><%= h.pounds %></strong></td>
+              <td><%= h.donated_to || '—' %></td>
+              <td class="text-muted"><%= h.verifier_name || '—' %></td>
+              <td class="table__actions">
+                <form method="POST" action="/admin/garden/harvests/<%= h.id %>/reset-status" style="display:inline">
+                  <button type="submit" class="btn btn--outline btn--xs">Undo</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div></div>
+  <% } %>
+<% } %>
+
+<script>
+(function() {
+  // Single verify/flag buttons (POST via hidden forms)
+  document.querySelectorAll('.verify-single').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.dataset.id;
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/admin/garden/harvests/' + id + '/verify';
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+
+  document.querySelectorAll('.flag-single').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const reason = prompt('Flag reason (optional):', 'Needs review');
+      if (reason === null) return;
+      const id = this.dataset.id;
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/admin/garden/harvests/' + id + '/flag';
+      const input = document.createElement('input');
+      input.type = 'hidden'; input.name = 'flag_reason'; input.value = reason || 'Needs review';
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+
+  // Checkbox logic
+  const selectAll = document.getElementById('selectAll');
+  const batchVerifyBtn = document.getElementById('batchVerifyBtn');
+  const batchFlagBtn = document.getElementById('batchFlagBtn');
+  const selectedCountEl = document.getElementById('selectedCount');
+
+  function updateCount() {
+    const checked = document.querySelectorAll('.row-check:checked');
+    const count = checked.length;
+    if (selectedCountEl) selectedCountEl.textContent = count + ' selected';
+    if (batchVerifyBtn) batchVerifyBtn.disabled = count === 0;
+    if (batchFlagBtn) batchFlagBtn.disabled = count === 0;
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+      updateCount();
+    });
+  }
+
+  document.querySelectorAll('.group-select').forEach(gs => {
+    gs.addEventListener('change', function() {
+      const group = this.dataset.group;
+      document.querySelectorAll('.row-check[data-group="' + group + '"]').forEach(cb => { cb.checked = this.checked; });
+      updateCount();
+    });
+  });
+
+  document.querySelectorAll('.row-check').forEach(cb => {
+    cb.addEventListener('change', updateCount);
+  });
+
+  // Row click to toggle checkbox
+  document.querySelectorAll('.verify-row').forEach(row => {
+    row.addEventListener('click', function(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) return;
+      const cb = this.querySelector('.row-check');
+      if (cb) { cb.checked = !cb.checked; updateCount(); }
+    });
+  });
+})();
+</script>

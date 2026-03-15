@@ -1,0 +1,76 @@
+<div class="page-header">
+  <h1 class="page-header__title">Edit: <%= page.title %></h1>
+  <a href="/admin/pages" class="btn btn--ghost">Back to Pages</a>
+</div>
+
+<form method="POST" action="/admin/pages/<%= page.id %>" id="pageForm">
+  <input type="hidden" name="content" id="pageContent">
+
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header">
+      <h3 class="card__title">Page: /<%= page.slug %></h3>
+    </div>
+    <div class="card__body">
+      <p class="text-muted text-sm">Edit the content sections for this page. Changes will be stored and can be used by the static site generator.</p>
+    </div>
+  </div>
+
+  <% const content = JSON.parse(page.content); %>
+  <% const sections = Object.keys(content); %>
+
+  <% sections.forEach((section, idx) => { %>
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card__header">
+        <h3 class="card__title"><%= section.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) %></h3>
+      </div>
+      <div class="card__body">
+        <% if (typeof content[section] === 'string') { %>
+          <div class="form-field">
+            <textarea class="form-input page-section-input" data-section="<%= section %>" rows="6"><%= content[section] %></textarea>
+          </div>
+        <% } else if (Array.isArray(content[section])) { %>
+          <div class="form-field">
+            <textarea class="form-input page-section-input" data-section="<%= section %>" data-type="json" rows="8"><%= JSON.stringify(content[section], null, 2) %></textarea>
+            <small class="text-muted">Edit as JSON array</small>
+          </div>
+        <% } else { %>
+          <div class="form-field">
+            <textarea class="form-input page-section-input" data-section="<%= section %>" data-type="json" rows="8"><%= JSON.stringify(content[section], null, 2) %></textarea>
+            <small class="text-muted">Edit as JSON object</small>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn--primary">Save Page</button>
+    <a href="/admin/pages" class="btn btn--ghost">Cancel</a>
+  </div>
+</form>
+
+<script>
+document.getElementById('pageForm').addEventListener('submit', function(e) {
+  const inputs = document.querySelectorAll('.page-section-input');
+  const content = {};
+
+  inputs.forEach(input => {
+    const section = input.dataset.section;
+    const type = input.dataset.type;
+    if (type === 'json') {
+      try {
+        content[section] = JSON.parse(input.value);
+      } catch (err) {
+        e.preventDefault();
+        alert(`Invalid JSON in section "${section}". Please fix and try again.`);
+        input.focus();
+        return;
+      }
+    } else {
+      content[section] = input.value;
+    }
+  });
+
+  document.getElementById('pageContent').value = JSON.stringify(content);
+});
+</script>

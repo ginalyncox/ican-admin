@@ -1,0 +1,67 @@
+<div class="page-header">
+  <h1 class="page-header__title">Subscribers</h1>
+  <div class="page-header__actions">
+    <span class="page-header__stat"><%= activeCount %> active</span>
+    <a href="/admin/api/subscribers/export" class="btn btn--ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </a>
+  </div>
+</div>
+
+<!-- Add subscriber -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h3 class="card__title">Add Subscriber</h3>
+  </div>
+  <div class="card__body">
+    <form method="POST" action="/admin/subscribers" class="inline-form">
+      <div class="form-field">
+        <input type="email" name="email" required placeholder="Email address" class="form-input">
+      </div>
+      <div class="form-field">
+        <input type="text" name="name" placeholder="Name (optional)" class="form-input">
+      </div>
+      <button type="submit" class="btn btn--primary">Add</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (subscribers.length === 0) { %>
+      <p class="empty-state">No subscribers yet.</p>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Subscribed</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% subscribers.forEach(sub => { %>
+            <tr>
+              <td><%= sub.email %></td>
+              <td><%= sub.name || '—' %></td>
+              <td><span class="badge badge--source"><%= sub.source %></span></td>
+              <td><span class="badge badge--<%= sub.status === 'active' ? 'published' : 'draft' %>"><%= sub.status %></span></td>
+              <td class="text-muted"><%= new Date(sub.subscribed_at).toLocaleDateString() %></td>
+              <td>
+                <form method="POST" action="/admin/subscribers/<%= sub.id %>/toggle" style="display:inline">
+                  <button type="submit" class="btn btn--sm btn--ghost" title="<%= sub.status === 'active' ? 'Unsubscribe' : 'Reactivate' %>">
+                    <%= sub.status === 'active' ? 'Unsubscribe' : 'Reactivate' %>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

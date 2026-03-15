@@ -1,0 +1,33 @@
+<div class="page-header">
+  <h1 class="page-header__title">Preview: <%= post.title %></h1>
+  <div class="page-header__actions">
+    <a href="/admin/posts/<%= post.id %>/edit" class="btn btn--primary">Edit</a>
+    <a href="/admin/posts" class="btn btn--ghost">Back to Posts</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <div class="post-preview">
+      <% if (post.featured_image) { %>
+        <img src="<%= post.featured_image %>" alt="<%= post.title %>" class="post-preview__image">
+      <% } %>
+      <div class="post-preview__meta">
+        <span class="badge badge--<%= post.status %>"><%= post.status %></span>
+        <% if (post.category) { %>
+          <span class="badge badge--category"><%= post.category %></span>
+        <% } %>
+        <span class="text-muted">by <%= post.author_name || 'Unknown' %></span>
+        <% if (post.published_at) { %>
+          <span class="text-muted"><%= new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></span>
+        <% } %>
+      </div>
+      <% if (post.excerpt) { %>
+        <p class="post-preview__excerpt"><em><%= post.excerpt %></em></p>
+      <% } %>
+      <div class="post-preview__content ql-editor">
+        <%- post.content %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,129 @@
+<div class="page-header">
+  <h1 class="page-header__title">Form Submissions</h1>
+</div>
+
+<div class="filters">
+  <form method="GET" action="/admin/submissions" class="filters__form">
+    <select name="type" class="form-select" onchange="this.form.submit()">
+      <option value="">All Types</option>
+      <option value="contact" <%= filter === 'contact' ? 'selected' : '' %>>Contact</option>
+      <option value="newsletter" <%= filter === 'newsletter' ? 'selected' : '' %>>Newsletter</option>
+      <option value="volunteer" <%= filter === 'volunteer' ? 'selected' : '' %>>Volunteer</option>
+    </select>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (submissions.length === 0) { %>
+      <p class="empty-state">No submissions found.</p>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Preview</th>
+            <th>Status</th>
+            <th>Received</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% submissions.forEach(sub => { %>
+            <% const data = JSON.parse(sub.data); %>
+            <tr class="<%= !sub.read ? 'table__row--unread' : '' %>">
+              <td><span class="badge badge--<%= sub.form_type %>"><%= sub.form_type %></span></td>
+              <td>
+                <strong><%= data.name || data.email || 'Anonymous' %></strong>
+                <% if (data.subject) { %>
+                  <br><span class="text-muted text-sm"><%= data.subject %></span>
+                <% } %>
+                <% if (data.message) { %>
+                  <br><span class="text-muted text-sm"><%= data.message.substring(0, 80) %><%= data.message.length > 80 ? '...' : '' %></span>
+                <% } %>
+              </td>
+              <td>
+                <% if (!sub.read) { %>
+                  <span class="badge badge--new">New</span>
+                <% } else { %>
+                  <span class="text-muted">Read</span>
+                <% } %>
+              </td>
+              <td class="text-muted"><%= new Date(sub.created_at).toLocaleDateString() %></td>
+              <td class="actions-cell">
+                <button class="btn btn--sm btn--ghost" onclick="viewSubmission(<%= sub.id %>)" title="View details">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <form method="POST" action="/admin/submissions/<%= sub.id %>/toggle-read<%= filter ? `?type=${filter}` : '' %>" style="display:inline">
+                  <button type="submit" class="btn btn--sm btn--ghost" title="<%= sub.read ? 'Mark unread' : 'Mark read' %>">
+                    <% if (sub.read) { %>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <% } else { %>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,6 12,13 2,6"/><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/></svg>
+                    <% } %>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+
+<!-- Submission Detail Modal -->
+<div class="modal" id="submissionModal">
+  <div class="modal__backdrop" onclick="closeModal()"></div>
+  <div class="modal__content">
+    <div class="modal__header">
+      <h2 class="modal__title">Submission Details</h2>
+      <button class="modal__close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal__body" id="submissionDetail">
+      <p>Loading...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function viewSubmission(id) {
+  const modal = document.getElementById('submissionModal');
+  const detail = document.getElementById('submissionDetail');
+  detail.innerHTML = '<p>Loading...</p>';
+  modal.classList.add('modal--open');
+
+  fetch(`/admin/submissions/${id}`)
+    .then(r => r.json())
+    .then(result => {
+      if (result.success) {
+        const sub = result.submission;
+        let html = `<div class="submission-detail">`;
+        html += `<div class="submission-detail__row"><strong>Type:</strong> <span class="badge badge--${sub.form_type}">${sub.form_type}</span></div>`;
+        html += `<div class="submission-detail__row"><strong>Received:</strong> ${new Date(sub.created_at).toLocaleString()}</div>`;
+        html += `<hr>`;
+        for (const [key, value] of Object.entries(sub.data)) {
+          if (key === 'access_key' || key === 'botcheck') continue;
+          html += `<div class="submission-detail__row"><strong>${key.replace(/_/g, ' ')}:</strong> ${escapeHtml(String(value))}</div>`;
+        }
+        html += `</div>`;
+        detail.innerHTML = html;
+      }
+    })
+    .catch(() => { detail.innerHTML = '<p>Failed to load submission.</p>'; });
+}
+
+function closeModal() {
+  document.getElementById('submissionModal').classList.remove('modal--open');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+</script>

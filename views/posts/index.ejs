@@ -1,0 +1,73 @@
+<div class="page-header">
+  <h1 class="page-header__title">Blog Posts</h1>
+  <% if (user.role === 'admin' || user.role === 'editor') { %>
+    <a href="/admin/posts/new" class="btn btn--primary">+ New Post</a>
+  <% } %>
+</div>
+
+<div class="filters">
+  <form method="GET" action="/admin/posts" class="filters__form">
+    <select name="status" class="form-select" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
+      <option value="published" <%= filters.status === 'published' ? 'selected' : '' %>>Published</option>
+    </select>
+    <select name="category" class="form-select" onchange="this.form.submit()">
+      <option value="">All Categories</option>
+      <option value="announcement" <%= filters.category === 'announcement' ? 'selected' : '' %>>Announcement</option>
+      <option value="legislative" <%= filters.category === 'legislative' ? 'selected' : '' %>>Legislative</option>
+      <option value="victory-garden" <%= filters.category === 'victory-garden' ? 'selected' : '' %>>Victory Garden</option>
+      <option value="community" <%= filters.category === 'community' ? 'selected' : '' %>>Community</option>
+      <option value="opinion" <%= filters.category === 'opinion' ? 'selected' : '' %>>Opinion</option>
+    </select>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (posts.length === 0) { %>
+      <p class="empty-state">No posts found. <a href="/admin/posts/new">Create your first post</a></p>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% posts.forEach(post => { %>
+            <tr>
+              <td><strong><%= post.title %></strong></td>
+              <td class="text-muted"><%= post.author_name || '—' %></td>
+              <td><%- post.category ? `<span class="badge badge--category">${post.category}</span>` : '—' %></td>
+              <td><span class="badge badge--<%= post.status %>"><%= post.status %></span></td>
+              <td class="text-muted"><%= new Date(post.updated_at).toLocaleDateString() %></td>
+              <td class="actions-cell">
+                <a href="/admin/posts/<%= post.id %>/preview" class="btn btn--sm btn--ghost" title="Preview">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </a>
+                <% if (user.role === 'admin' || user.role === 'editor') { %>
+                  <a href="/admin/posts/<%= post.id %>/edit" class="btn btn--sm btn--ghost" title="Edit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </a>
+                <% } %>
+                <% if (user.role === 'admin') { %>
+                  <form method="POST" action="/admin/posts/<%= post.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this post?')">
+                    <button type="submit" class="btn btn--sm btn--ghost btn--danger" title="Delete">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

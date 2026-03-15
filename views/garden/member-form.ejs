@@ -1,0 +1,40 @@
+<div class="page-header">
+  <h1 class="page-header__title">Create Member Login</h1>
+</div>
+
+<div class="card" style="max-width: 640px;">
+  <div class="card__body">
+    <form method="POST" action="/admin/garden/members">
+      <div class="form-field">
+        <label class="form-label" for="gardener_id">Gardener</label>
+        <select class="form-select" id="gardener_id" name="gardener_id" required>
+          <option value="">— Select Gardener —</option>
+          <% gardeners.forEach(g => { %>
+            <option value="<%= g.id %>" data-email="<%= g.email || '' %>"><%= g.last_name %>, <%= g.first_name %><%= g.email ? ' (' + g.email + ')' : '' %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="email">Login Email</label>
+        <input class="form-input" type="email" id="email" name="email" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="text" id="password" name="password" required placeholder="Set initial password">
+        <small class="text-muted">Share this with the gardener. They'll use it to sign in at /member</small>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">Create Login</button>
+        <a href="/admin/garden/members" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.getElementById('gardener_id').addEventListener('change', function() {
+    var opt = this.options[this.selectedIndex];
+    var em = opt.getAttribute('data-email');
+    if (em) document.getElementById('email').value = em;
+  });
+</script>
