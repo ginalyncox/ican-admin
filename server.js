@@ -27,7 +27,7 @@ db.exec(schema);
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
-  const bcrypt = require('bcrypt');
+  const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('changeme123', 10);
   db.prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)').run(
     'Gina Cox', 'hello@iowacannabisaction.org', hash, 'admin'
