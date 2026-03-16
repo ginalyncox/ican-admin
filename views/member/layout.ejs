@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> — ICAN Victory Garden</title>
+  <title><%= title %> — ICAN Volunteer Portal</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z' fill='%232D6A3F'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/admin/static/admin.css">
 </head>
@@ -17,12 +17,15 @@
           <path d="M16 14 L12 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
           <path d="M16 14 L20 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
-        <span>ICAN Victory Garden</span>
+        <span>ICAN Volunteer Portal</span>
       </div>
       <nav class="member-nav">
-        <a href="/member" class="member-nav__link <%= path === '/member' || path === '/member/' ? 'member-nav__link--active' : '' %>">My Garden</a>
-        <a href="/member/leaderboard" class="member-nav__link <%= path === '/member/leaderboard' ? 'member-nav__link--active' : '' %>">Leaderboard</a>
-        <a href="/member/awards" class="member-nav__link <%= path === '/member/awards' ? 'member-nav__link--active' : '' %>">My Awards</a>
+        <a href="/member" class="member-nav__link <%= path === '/member' || path === '/member/' ? 'member-nav__link--active' : '' %>">Dashboard</a>
+        <a href="/member/programs" class="member-nav__link <%= path === '/member/programs' ? 'member-nav__link--active' : '' %>">My Programs</a>
+        <% if (typeof memberPrograms !== 'undefined' && memberPrograms && memberPrograms.includes('victory_garden')) { %>
+          <a href="/member/leaderboard" class="member-nav__link <%= path === '/member/leaderboard' ? 'member-nav__link--active' : '' %>">Leaderboard</a>
+          <a href="/member/awards" class="member-nav__link <%= path === '/member/awards' ? 'member-nav__link--active' : '' %>">My Awards</a>
+        <% } %>
         <a href="/member/profile" class="member-nav__link <%= path === '/member/profile' ? 'member-nav__link--active' : '' %>">Profile</a>
       </nav>
       <div class="member-header__user">
@@ -43,7 +46,7 @@
     </main>
 
     <footer class="member-footer">
-      <p>Iowa Cannabis Action Network &middot; Victory Garden Program</p>
+      <p>Iowa Cannabis Action Network &middot; Volunteer Portal</p>
     </footer>
   </div>
 </body>

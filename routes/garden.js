@@ -264,9 +264,11 @@ router.get('/gardeners/:id', requireAuth, (req, res) => {
   const totalLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?").get(req.params.id).c;
   const totalHrs = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?").get(req.params.id).c;
 
+  const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(req.params.id).map(p => p.program);
+
   res.render('garden/gardener-detail', {
     title: gardener.first_name + ' ' + gardener.last_name,
-    gardener, harvests, hours, awards,
+    gardener, harvests, hours, awards, programs,
     stats: { totalLbs, totalHrs }
   });
 });
@@ -277,15 +279,26 @@ router.get('/gardeners/:id/edit', requireRole('admin', 'editor'), (req, res) => 
   if (!gardener) { req.session.flash = { type: 'error', message: 'Gardener not found.' }; return res.redirect('/admin/garden/gardeners'); }
   const sites = db.prepare("SELECT * FROM garden_sites WHERE status = 'active' ORDER BY name").all();
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
-  res.render('garden/gardener-form', { title: 'Edit Gardener', gardener, sites, seasons, isNew: false });
+  const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(req.params.id).map(p => p.program);
+  res.render('garden/gardener-form', { title: 'Edit Gardener', gardener, sites, seasons, programs, isNew: false });
 });
 
 router.post('/gardeners/:id', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
   const { first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes } = req.body;
+  const programValues = req.body.programs || [];
+  const selectedPrograms = Array.isArray(programValues) ? programValues : [programValues];
   try {
     db.prepare(`UPDATE gardeners SET first_name = ?, last_name = ?, email = ?, phone = ?, site_id = ?, plot_number = ?, season_id = ?, status = ?, notes = ? WHERE id = ?`)
       .run(first_name, last_name, email || null, phone || null, site_id || null, plot_number || null, season_id || null, status, notes || null, req.params.id);
+
+    // Update program assignments
+    db.prepare('DELETE FROM volunteer_programs WHERE volunteer_id = ?').run(req.params.id);
+    const insertProg = db.prepare('INSERT INTO volunteer_programs (volunteer_id, program, assigned_by) VALUES (?, ?, ?)');
+    for (const prog of selectedPrograms) {
+      if (prog) insertProg.run(req.params.id, prog, res.locals.user ? res.locals.user.id : null);
+    }
+
     req.session.flash = { type: 'success', message: 'Gardener updated.' };
   } catch (err) {
     req.session.flash = { type: 'error', message: 'Failed to update gardener.' };

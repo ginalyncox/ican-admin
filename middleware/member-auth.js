@@ -21,6 +21,20 @@ function setMemberLocals(req, res, next) {
     email: req.session.memberEmail
   } : null;
   res.locals.path = req.originalUrl.split('?')[0];
+
+  // Expose program assignments for conditional nav rendering
+  if (req.session.memberId && req.session.memberGardenerId) {
+    try {
+      const db = req.app.locals.db;
+      const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(req.session.memberGardenerId);
+      res.locals.memberPrograms = programs.map(p => p.program);
+    } catch (e) {
+      res.locals.memberPrograms = [];
+    }
+  } else {
+    res.locals.memberPrograms = [];
+  }
+
   // Flash messages for member portal
   res.locals.memberFlash = req.session.memberFlash || null;
   delete req.session.memberFlash;

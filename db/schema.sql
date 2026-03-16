@@ -276,6 +276,16 @@ CREATE TABLE IF NOT EXISTS board_attendance (
   UNIQUE(meeting_id, member_id)
 );
 
+-- Volunteer Program Assignments
+CREATE TABLE IF NOT EXISTS volunteer_programs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  volunteer_id INTEGER REFERENCES gardeners(id) ON DELETE CASCADE,
+  program TEXT NOT NULL CHECK(program IN ('victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership')),
+  assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  assigned_by INTEGER REFERENCES users(id),
+  UNIQUE(volunteer_id, program)
+);
+
 -- Events
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

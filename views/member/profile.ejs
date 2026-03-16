@@ -1,7 +1,24 @@
 <div class="page-header">
   <h1 class="page-header__title">My Profile</h1>
-  <p class="page-header__subtitle">Update your contact information and password</p>
+  <p class="page-header__subtitle">Update your information and password</p>
 </div>
+
+<!-- Assigned Programs (read-only) -->
+<% if (programs && programs.length > 0) { %>
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">My Programs</h2>
+  </div>
+  <div class="card__body">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <% programs.forEach(p => { %>
+        <span class="badge" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;"><%= programLabels[p.program] || p.program %></span>
+      <% }) %>
+    </div>
+    <p style="font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; margin-bottom: 0;">Programs are managed by your coordinator.</p>
+  </div>
+</div>
+<% } %>
 
 <div class="dashboard-grid">
   <!-- Contact Info -->
@@ -14,16 +31,86 @@
         <div class="form-field">
           <label>Name</label>
           <input type="text" class="form-input" value="<%= gardener.first_name %> <%= gardener.last_name %>" disabled>
-          <small class="text-muted">Contact your garden admin to change your name</small>
+          <small class="text-muted">Contact your coordinator to change your name</small>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" class="form-input" value="<%= gardener.email || '' %>" placeholder="your@email.com">
+          </div>
+          <div class="form-field">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone" class="form-input" value="<%= gardener.phone || '' %>" placeholder="(515) 555-0123">
+          </div>
         </div>
         <div class="form-field">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" class="form-input" value="<%= gardener.email || '' %>" placeholder="your@email.com">
+          <label for="address">Street Address</label>
+          <input type="text" id="address" name="address" class="form-input" value="<%= gardener.address || '' %>" placeholder="123 Main St">
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
+          <div class="form-field">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" class="form-input" value="<%= gardener.city || '' %>">
+          </div>
+          <div class="form-field">
+            <label for="state">State</label>
+            <input type="text" id="state" name="state" class="form-input" value="<%= gardener.state || '' %>" maxlength="2">
+          </div>
+          <div class="form-field">
+            <label for="zip">Zip</label>
+            <input type="text" id="zip" name="zip" class="form-input" value="<%= gardener.zip || '' %>" maxlength="10">
+          </div>
         </div>
         <div class="form-field">
-          <label for="phone">Phone</label>
-          <input type="tel" id="phone" name="phone" class="form-input" value="<%= gardener.phone || '' %>" placeholder="(515) 555-0123">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" class="form-input" value="<%= gardener.date_of_birth || '' %>">
         </div>
+
+        <hr style="margin: 1.25rem 0; border-color: var(--color-border);">
+        <p style="font-weight: 600; margin-bottom: 0.75rem;">Emergency Contact</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-field">
+            <label for="emergency_contact_name">Name</label>
+            <input type="text" id="emergency_contact_name" name="emergency_contact_name" class="form-input" value="<%= gardener.emergency_contact_name || '' %>">
+          </div>
+          <div class="form-field">
+            <label for="emergency_contact_phone">Phone</label>
+            <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" class="form-input" value="<%= gardener.emergency_contact_phone || '' %>">
+          </div>
+        </div>
+
+        <hr style="margin: 1.25rem 0; border-color: var(--color-border);">
+        <p style="font-weight: 600; margin-bottom: 0.75rem;">Volunteer Details</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-field">
+            <label for="tshirt_size">T-Shirt Size</label>
+            <select id="tshirt_size" name="tshirt_size" class="form-input">
+              <option value="">—</option>
+              <option value="XS" <%= gardener.tshirt_size === 'XS' ? 'selected' : '' %>>XS</option>
+              <option value="S" <%= gardener.tshirt_size === 'S' ? 'selected' : '' %>>S</option>
+              <option value="M" <%= gardener.tshirt_size === 'M' ? 'selected' : '' %>>M</option>
+              <option value="L" <%= gardener.tshirt_size === 'L' ? 'selected' : '' %>>L</option>
+              <option value="XL" <%= gardener.tshirt_size === 'XL' ? 'selected' : '' %>>XL</option>
+              <option value="2XL" <%= gardener.tshirt_size === '2XL' ? 'selected' : '' %>>2XL</option>
+              <option value="3XL" <%= gardener.tshirt_size === '3XL' ? 'selected' : '' %>>3XL</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="availability">Availability</label>
+            <select id="availability" name="availability" class="form-input">
+              <option value="">—</option>
+              <option value="weekdays" <%= gardener.availability === 'weekdays' ? 'selected' : '' %>>Weekdays</option>
+              <option value="weekends" <%= gardener.availability === 'weekends' ? 'selected' : '' %>>Weekends</option>
+              <option value="evenings" <%= gardener.availability === 'evenings' ? 'selected' : '' %>>Evenings</option>
+              <option value="flexible" <%= gardener.availability === 'flexible' ? 'selected' : '' %>>Flexible</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="skills">Skills or Interests</label>
+          <textarea id="skills" name="skills" class="form-input" rows="2"><%= gardener.skills || '' %></textarea>
+        </div>
+
         <div class="form-field">
           <label>Login Email</label>
           <input type="text" class="form-input" value="<%= memberEmail %>" disabled>

@@ -6,17 +6,22 @@
 <!-- Progress Steps -->
 <div class="onboarding-progress">
   <div class="onboarding-step <%= step === 'password' ? 'onboarding-step--active' : (cred.must_change_password ? '' : 'onboarding-step--done') %>">
-    <div class="onboarding-step__number"><% if (cred.must_change_password) { %>1<% } else { %>&#10003;<% } %></div>
+    <div class="onboarding-step__number"><% if (!cred.must_change_password) { %>&#10003;<% } else { %>1<% } %></div>
     <div class="onboarding-step__label">Set Password</div>
   </div>
   <div class="onboarding-step__line <%= !cred.must_change_password ? 'onboarding-step__line--done' : '' %>"></div>
-  <div class="onboarding-step <%= step === 'profile' ? 'onboarding-step--active' : (gardener.phone && gardener.email ? 'onboarding-step--done' : '') %>">
-    <div class="onboarding-step__number"><% if (gardener.phone && gardener.email) { %>&#10003;<% } else { %>2<% } %></div>
-    <div class="onboarding-step__label">Your Profile</div>
+  <div class="onboarding-step <%= step === 'personal' ? 'onboarding-step--active' : (gardener.phone && gardener.email && gardener.emergency_contact_name ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (gardener.phone && gardener.email && gardener.emergency_contact_name) { %>&#10003;<% } else { %>2<% } %></div>
+    <div class="onboarding-step__label">Personal Info</div>
   </div>
-  <div class="onboarding-step__line <%= (gardener.phone && gardener.email) ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step__line <%= (gardener.phone && gardener.email && gardener.emergency_contact_name) ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'preferences' ? 'onboarding-step--active' : (gardener.availability ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (gardener.availability) { %>&#10003;<% } else { %>3<% } %></div>
+    <div class="onboarding-step__label">Preferences</div>
+  </div>
+  <div class="onboarding-step__line <%= gardener.availability ? 'onboarding-step__line--done' : '' %>"></div>
   <div class="onboarding-step <%= step === 'welcome' ? 'onboarding-step--active' : '' %>">
-    <div class="onboarding-step__number">3</div>
+    <div class="onboarding-step__number">4</div>
     <div class="onboarding-step__label">Get Started</div>
   </div>
 </div>
@@ -47,39 +52,148 @@
 </div>
 <% } %>
 
-<!-- Step 2: Complete Profile -->
-<% if (step === 'profile') { %>
+<!-- Step 2: Personal Information -->
+<% if (step === 'personal') { %>
 <div class="card onboarding-card">
   <div class="card__header">
     <h2 class="card__title">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Step 2: Complete Your Profile
+      Step 2: Personal Information
     </h2>
   </div>
   <div class="card__body">
-    <p style="margin-bottom:1.5rem; color: var(--color-muted);">We need your contact info so garden coordinators can reach you.</p>
-    <form method="POST" action="/member/onboarding/profile">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">We need your contact info so coordinators can reach you.</p>
+    <form method="POST" action="/member/onboarding/personal">
       <div class="form-row">
         <div class="form-group">
           <label>Name</label>
           <input type="text" class="form-control" value="<%= gardener.first_name %> <%= gardener.last_name %>" disabled>
         </div>
       </div>
-      <div class="form-group">
-        <label for="email">Email <span style="color:#c0392b;">*</span></label>
-        <input type="email" id="email" name="email" class="form-control" required value="<%= gardener.email || '' %>" placeholder="your@email.com">
+      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label for="email">Email <span style="color:#c0392b;">*</span></label>
+          <input type="email" id="email" name="email" class="form-control" required value="<%= gardener.email || '' %>" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone <span style="color:#c0392b;">*</span></label>
+          <input type="tel" id="phone" name="phone" class="form-control" required value="<%= gardener.phone || '' %>" placeholder="(515) 555-0100">
+        </div>
       </div>
       <div class="form-group">
-        <label for="phone">Phone Number <span style="color:#c0392b;">*</span></label>
-        <input type="tel" id="phone" name="phone" class="form-control" required value="<%= gardener.phone || '' %>" placeholder="(515) 555-0100">
+        <label for="address">Street Address</label>
+        <input type="text" id="address" name="address" class="form-control" value="<%= gardener.address || '' %>" placeholder="123 Main St">
       </div>
-      <button type="submit" class="btn btn--primary">Save Profile &amp; Continue</button>
+      <div class="form-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" class="form-control" value="<%= gardener.city || '' %>" placeholder="Des Moines">
+        </div>
+        <div class="form-group">
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" class="form-control" value="<%= gardener.state || 'IA' %>" placeholder="IA" maxlength="2">
+        </div>
+        <div class="form-group">
+          <label for="zip">Zip</label>
+          <input type="text" id="zip" name="zip" class="form-control" value="<%= gardener.zip || '' %>" placeholder="50309" maxlength="10">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="date_of_birth">Date of Birth</label>
+        <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" value="<%= gardener.date_of_birth || '' %>">
+      </div>
+      <hr style="margin: 1.5rem 0; border-color: var(--color-border);">
+      <p style="margin-bottom:1rem; font-weight:600;">Emergency Contact <span style="color:#c0392b;">*</span></p>
+      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label for="emergency_contact_name">Name <span style="color:#c0392b;">*</span></label>
+          <input type="text" id="emergency_contact_name" name="emergency_contact_name" class="form-control" required value="<%= gardener.emergency_contact_name || '' %>" placeholder="Jane Doe">
+        </div>
+        <div class="form-group">
+          <label for="emergency_contact_phone">Phone <span style="color:#c0392b;">*</span></label>
+          <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone" class="form-control" required value="<%= gardener.emergency_contact_phone || '' %>" placeholder="(515) 555-0200">
+        </div>
+      </div>
+      <button type="submit" class="btn btn--primary">Save &amp; Continue</button>
     </form>
   </div>
 </div>
 <% } %>
 
-<!-- Step 3: Welcome & Finish -->
+<!-- Step 3: Volunteer Preferences -->
+<% if (step === 'preferences') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+      Step 3: Volunteer Preferences
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Help us match you with the right volunteer opportunities.</p>
+    <form method="POST" action="/member/onboarding/preferences">
+      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label for="tshirt_size">T-Shirt Size</label>
+          <select id="tshirt_size" name="tshirt_size" class="form-control">
+            <option value="">— Select —</option>
+            <option value="XS" <%= gardener.tshirt_size === 'XS' ? 'selected' : '' %>>XS</option>
+            <option value="S" <%= gardener.tshirt_size === 'S' ? 'selected' : '' %>>S</option>
+            <option value="M" <%= gardener.tshirt_size === 'M' ? 'selected' : '' %>>M</option>
+            <option value="L" <%= gardener.tshirt_size === 'L' ? 'selected' : '' %>>L</option>
+            <option value="XL" <%= gardener.tshirt_size === 'XL' ? 'selected' : '' %>>XL</option>
+            <option value="2XL" <%= gardener.tshirt_size === '2XL' ? 'selected' : '' %>>2XL</option>
+            <option value="3XL" <%= gardener.tshirt_size === '3XL' ? 'selected' : '' %>>3XL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="availability">Availability <span style="color:#c0392b;">*</span></label>
+          <select id="availability" name="availability" class="form-control" required>
+            <option value="">— Select —</option>
+            <option value="weekdays" <%= gardener.availability === 'weekdays' ? 'selected' : '' %>>Weekdays</option>
+            <option value="weekends" <%= gardener.availability === 'weekends' ? 'selected' : '' %>>Weekends</option>
+            <option value="evenings" <%= gardener.availability === 'evenings' ? 'selected' : '' %>>Evenings</option>
+            <option value="flexible" <%= gardener.availability === 'flexible' ? 'selected' : '' %>>Flexible</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="how_heard">How did you hear about ICAN?</label>
+        <input type="text" id="how_heard" name="how_heard" class="form-control" value="<%= gardener.how_heard || '' %>" placeholder="Friend, social media, event, etc.">
+      </div>
+      <div class="form-group">
+        <label for="skills">Skills or Interests</label>
+        <textarea id="skills" name="skills" class="form-control" rows="3" placeholder="Gardening, event planning, social media, graphic design, etc."><%= gardener.skills || '' %></textarea>
+      </div>
+
+      <hr style="margin: 1.5rem 0; border-color: var(--color-border);">
+      <p style="margin-bottom:1rem; font-weight:600;">Agreements</p>
+      <div class="form-group">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:normal; cursor:pointer;">
+          <input type="checkbox" name="background_check_consent" value="1" <%= gardener.background_check_consent ? 'checked' : '' %> style="margin-top:3px;">
+          <span>I consent to a background check if required for my volunteer role</span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:normal; cursor:pointer;">
+          <input type="checkbox" name="photo_release_consent" value="1" <%= gardener.photo_release_consent ? 'checked' : '' %> style="margin-top:3px;">
+          <span>I grant permission for ICAN to use photos of me in publications and social media</span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:normal; cursor:pointer;">
+          <input type="checkbox" name="liability_waiver_signed" value="1" <%= gardener.liability_waiver_signed ? 'checked' : '' %> style="margin-top:3px;">
+          <span>I acknowledge the volunteer liability waiver</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn--primary">Save Preferences &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 4: Welcome & Finish -->
 <% if (step === 'welcome') { %>
 <div class="card onboarding-card">
   <div class="card__header">
@@ -90,19 +204,19 @@
   </div>
   <div class="card__body">
     <div style="padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15); margin-bottom:1.5rem;">
-      <h3 style="margin:0 0 0.75rem; font-size:1.05rem; color: var(--primary);">Welcome to the Victory Garden Program!</h3>
-      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">Here's what you can do in your Member Portal:</p>
+      <h3 style="margin:0 0 0.75rem; font-size:1.05rem; color: var(--primary);">Welcome to the ICAN Volunteer Portal!</h3>
+      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">Here's what you can do:</p>
       <ul style="margin:0; padding-left:1.25rem; font-size:0.9rem; color: var(--color-muted); line-height:1.8;">
-        <li><strong>Log Harvests</strong> &mdash; Record what you've grown and donated</li>
-        <li><strong>Log Volunteer Hours</strong> &mdash; Track your time in the garden</li>
-        <li><strong>View Leaderboard</strong> &mdash; See how you rank among fellow gardeners</li>
-        <li><strong>Earn Awards</strong> &mdash; Recognition for your contributions</li>
-        <li><strong>Update Profile</strong> &mdash; Keep your contact info current</li>
+        <li><strong>Dashboard</strong> &mdash; See your assigned programs and activity at a glance</li>
+        <li><strong>My Programs</strong> &mdash; View details about your volunteer programs</li>
+        <li><strong>Log Activity</strong> &mdash; Record harvests, hours, and other contributions</li>
+        <li><strong>Leaderboard</strong> &mdash; See how you rank among fellow volunteers</li>
+        <li><strong>Profile</strong> &mdash; Keep your contact info current</li>
       </ul>
     </div>
 
     <p style="margin-bottom:1.5rem; font-size:0.9rem; color: var(--color-muted);">
-      If you have questions, reach out to your garden coordinator or email <a href="mailto:hello@iowacannabisaction.org">hello@iowacannabisaction.org</a>.
+      Your coordinator will assign you to volunteer programs. If you have questions, email <a href="mailto:hello@iowacannabisaction.org">hello@iowacannabisaction.org</a>.
     </p>
 
     <form method="POST" action="/member/onboarding/complete">

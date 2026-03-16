@@ -63,6 +63,31 @@
         <label class="form-label" for="notes">Notes</label>
         <textarea class="form-input" id="notes" name="notes" rows="3"><%= gardener.notes || '' %></textarea>
       </div>
+
+      <% if (!isNew) { %>
+      <hr style="margin: 1rem 0; border-color: var(--color-border);">
+      <div class="form-field">
+        <label class="form-label">Volunteer Programs</label>
+        <p style="font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0.75rem;">Assign this volunteer to one or more programs.</p>
+        <% const allPrograms = [
+          { key: 'victory_garden', label: 'Victory Garden' },
+          { key: 'legislative', label: 'Legislative Action' },
+          { key: 'outreach', label: 'Community Outreach' },
+          { key: 'fundraising', label: 'Fundraising' },
+          { key: 'communications', label: 'Communications' },
+          { key: 'membership', label: 'Membership' }
+        ]; %>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <% allPrograms.forEach(p => { %>
+            <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer; font-size:0.9rem;">
+              <input type="checkbox" name="programs" value="<%= p.key %>" <%= (typeof programs !== 'undefined' && programs.includes(p.key)) ? 'checked' : '' %>>
+              <%= p.label %>
+            </label>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+
       <div class="form-actions">
         <button type="submit" class="btn btn--primary"><%= isNew ? 'Add Gardener' : 'Update Gardener' %></button>
         <a href="/admin/garden/gardeners" class="btn btn--outline">Cancel</a>

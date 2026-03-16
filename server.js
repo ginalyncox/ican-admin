@@ -52,6 +52,18 @@ try {
   db.exec(`ALTER TABLE member_credentials ADD COLUMN onboarding_completed_at DATETIME`);
 } catch (e) { /* column already exists */ }
 
+// Migrations — gardener volunteer profile columns
+const gardenerCols = [
+  ['address', 'TEXT'], ['city', 'TEXT'], ['state', 'TEXT'], ['zip', 'TEXT'],
+  ['date_of_birth', 'DATE'], ['emergency_contact_name', 'TEXT'], ['emergency_contact_phone', 'TEXT'],
+  ['tshirt_size', 'TEXT'], ['how_heard', 'TEXT'], ['skills', 'TEXT'], ['availability', 'TEXT'],
+  ['background_check_consent', 'INTEGER DEFAULT 0'], ['photo_release_consent', 'INTEGER DEFAULT 0'],
+  ['liability_waiver_signed', 'INTEGER DEFAULT 0']
+];
+for (const [col, type] of gardenerCols) {
+  try { db.exec(`ALTER TABLE gardeners ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
+}
+
 // Migration: fix submissions CHECK constraint to allow board_application
 try {
   // SQLite doesn't support ALTER CHECK, so recreate if the old constraint exists

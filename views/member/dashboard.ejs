@@ -1,54 +1,138 @@
 <div class="page-header">
   <h1 class="page-header__title">Welcome, <%= gardener.first_name %></h1>
-  <p class="page-header__subtitle"><%= gardener.site_name || '' %><%= gardener.plot_number ? ' · Plot ' + gardener.plot_number : '' %></p>
+  <p class="page-header__subtitle">Your volunteer dashboard</p>
 </div>
 
-<div class="stats-grid stats-grid--5">
-  <div class="stat-card stat-card--garden">
-    <div class="stat-card__info">
-      <span class="stat-card__value"><%= Number(stats.totalLbs).toFixed(1) %></span>
-      <span class="stat-card__label">Lbs Harvested</span>
+<!-- Program Cards -->
+<div class="portal-grid" style="margin-bottom: 1.5rem;">
+  <% if (programs.includes('victory_garden')) { %>
+  <div class="card">
+    <div class="card__header" style="border-left: 3px solid var(--primary);">
+      <h2 class="card__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+        Victory Garden
+      </h2>
+    </div>
+    <div class="card__body">
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+        <div style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"><%= Number(stats.totalLbs).toFixed(1) %></div>
+          <div style="font-size: 0.75rem; color: var(--color-muted);">Lbs Harvested</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"><%= Number(stats.totalDonatedLbs).toFixed(1) %></div>
+          <div style="font-size: 0.75rem; color: var(--color-muted);">Lbs Donated</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"><%= Number(stats.totalHrs).toFixed(1) %></div>
+          <div style="font-size: 0.75rem; color: var(--color-muted);">Hours</div>
+        </div>
+      </div>
+      <% if (gardener.site_name) { %>
+        <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.75rem;">
+          <%= gardener.site_name %><%= gardener.plot_number ? ' &middot; Plot ' + gardener.plot_number : '' %>
+        </p>
+      <% } %>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="/member/log-harvest" class="btn btn--primary btn--sm">Log Harvest</a>
+        <a href="/member/log-hours" class="btn btn--outline btn--sm">Log Hours</a>
+        <a href="/member/leaderboard" class="btn btn--ghost btn--sm">Leaderboard</a>
+      </div>
     </div>
   </div>
-  <div class="stat-card stat-card--garden">
-    <div class="stat-card__info">
-      <span class="stat-card__value"><%= Number(stats.totalDonatedLbs).toFixed(1) %></span>
-      <span class="stat-card__label">Lbs Donated</span>
+  <% } %>
+
+  <% if (programs.includes('legislative')) { %>
+  <div class="card">
+    <div class="card__header" style="border-left: 3px solid #6366f1;">
+      <h2 class="card__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+        Legislative Action
+      </h2>
+    </div>
+    <div class="card__body">
+      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
+        Help advance cannabis policy in Iowa through grassroots advocacy.
+      </p>
     </div>
   </div>
-  <div class="stat-card stat-card--garden">
-    <div class="stat-card__info">
-      <span class="stat-card__value"><%= Number(stats.totalHrs).toFixed(1) %></span>
-      <span class="stat-card__label">Volunteer Hours</span>
+  <% } %>
+
+  <% if (programs.includes('outreach')) { %>
+  <div class="card">
+    <div class="card__header" style="border-left: 3px solid #f59e0b;">
+      <h2 class="card__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Community Outreach
+      </h2>
+    </div>
+    <div class="card__body">
+      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
+        Engage neighbors, attend events, and spread the word about ICAN's mission.
+      </p>
     </div>
   </div>
-  <div class="stat-card stat-card--garden">
-    <div class="stat-card__info">
-      <span class="stat-card__value">#<%= stats.harvestRank %></span>
-      <span class="stat-card__label">Harvest Rank (of <%= stats.totalGardeners %>)</span>
+  <% } %>
+
+  <% if (programs.includes('fundraising')) { %>
+  <div class="card">
+    <div class="card__header" style="border-left: 3px solid #10b981;">
+      <h2 class="card__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Fundraising
+      </h2>
+    </div>
+    <div class="card__body">
+      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
+        Help raise funds through events, campaigns, and donor outreach.
+      </p>
     </div>
   </div>
-  <div class="stat-card stat-card--garden">
-    <div class="stat-card__info">
-      <span class="stat-card__value"><%= stats.awardCount %></span>
-      <span class="stat-card__label">Awards</span>
+  <% } %>
+
+  <% if (programs.includes('communications')) { %>
+  <div class="card">
+    <div class="card__header" style="border-left: 3px solid #8b5cf6;">
+      <h2 class="card__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Communications
+      </h2>
+    </div>
+    <div class="card__body">
+      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
+        Support newsletters, social media, and public messaging for ICAN.
+      </p>
     </div>
   </div>
+  <% } %>
+
+  <% if (programs.includes('membership')) { %>
+  <div class="card">
+    <div class="card__header" style="border-left: 3px solid #ec4899;">
+      <h2 class="card__title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Membership
+      </h2>
+    </div>
+    <div class="card__body">
+      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
+        Help grow ICAN's member base through recruitment and retention.
+      </p>
+    </div>
+  </div>
+  <% } %>
 </div>
 
-<!-- Quick Actions -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap">
-  <a href="/member/log-harvest" class="btn btn--primary">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Log Harvest
-  </a>
-  <a href="/member/log-hours" class="btn btn--ghost">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    Log Hours
-  </a>
+<% if (programs.length === 0) { %>
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__body" style="text-align: center; padding: 2rem;">
+    <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: 0.5rem;">No programs assigned yet.</p>
+    <p style="font-size: 0.85rem; color: var(--color-muted);">Your coordinator will assign you to volunteer programs. Check back soon!</p>
+  </div>
 </div>
+<% } %>
 
-<% if (awards.length > 0) { %>
+<% if (programs.includes('victory_garden') && awards.length > 0) { %>
 <div class="card" style="margin-bottom:1.5rem">
   <div class="card__header"><h2 class="card__title">My Awards</h2></div>
   <div class="card__body">
@@ -65,6 +149,7 @@
 </div>
 <% } %>
 
+<% if (programs.includes('victory_garden')) { %>
 <div class="dashboard-grid">
   <div class="card">
     <div class="card__header"><h2 class="card__title">Recent Harvests</h2></div>
@@ -111,3 +196,4 @@
     </div>
   </div>
 </div>
+<% } %>

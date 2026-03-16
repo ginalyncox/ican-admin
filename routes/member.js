@@ -6,7 +6,7 @@ const router = express.Router();
 // ── LOGIN ───────────────────────────────────────────────────
 router.get('/login', (req, res) => {
   if (req.session.memberId) return res.redirect('/member');
-  res.render('member/login', { title: 'Member Login', error: null, layout: false });
+  res.render('member/login', { title: 'Volunteer Login', error: null, layout: false });
 });
 
 router.post('/login', (req, res) => {
@@ -14,7 +14,7 @@ router.post('/login', (req, res) => {
   const db = req.app.locals.db;
 
   if (!email || !password) {
-    return res.render('member/login', { title: 'Member Login', error: 'Email and password are required.', layout: false });
+    return res.render('member/login', { title: 'Volunteer Login', error: 'Email and password are required.', layout: false });
   }
 
   const cred = db.prepare(`
@@ -25,12 +25,12 @@ router.post('/login', (req, res) => {
   `).get(email);
 
   if (!cred) {
-    return res.render('member/login', { title: 'Member Login', error: 'Invalid email or password.', layout: false });
+    return res.render('member/login', { title: 'Volunteer Login', error: 'Invalid email or password.', layout: false });
   }
 
   const valid = bcrypt.compareSync(password, cred.password_hash);
   if (!valid) {
-    return res.render('member/login', { title: 'Member Login', error: 'Invalid email or password.', layout: false });
+    return res.render('member/login', { title: 'Volunteer Login', error: 'Invalid email or password.', layout: false });
   }
 
   // Update last login
@@ -70,12 +70,17 @@ router.get('/onboarding', requireMember, (req, res) => {
     return res.redirect('/member');
   }
 
-  // Determine current step
+  // Determine current step (4 steps now)
   let step = 'password';
   if (!cred.must_change_password) {
-    step = 'profile';
-    if (gardener.phone && gardener.email) {
-      step = 'welcome';
+    step = 'personal';
+    // Personal info complete when phone, email, and emergency contact filled
+    if (gardener.phone && gardener.email && gardener.emergency_contact_name) {
+      step = 'preferences';
+      // Preferences complete when availability is set
+      if (gardener.availability) {
+        step = 'welcome';
+      }
     }
   }
 
@@ -109,33 +114,56 @@ router.post('/onboarding/password', requireMember, (req, res) => {
   const hash = bcrypt.hashSync(new_password, 10);
   db.prepare('UPDATE member_credentials SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.session.memberId);
   req.session.memberMustChangePassword = 0;
-  req.session.memberFlash = { type: 'success', message: 'Password set. Let\'s complete your profile.' };
+  req.session.memberFlash = { type: 'success', message: 'Password set. Now let\'s get your personal info.' };
   res.redirect('/member/onboarding');
 });
 
-// Onboarding Step 2: Complete profile
-router.post('/onboarding/profile', requireMember, (req, res) => {
+// Onboarding Step 2: Personal information
+router.post('/onboarding/personal', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
-  const { email: gardenerEmail, phone } = req.body;
+  const { email: gardenerEmail, phone, address, city, state, zip, date_of_birth, emergency_contact_name, emergency_contact_phone } = req.body;
 
-  if (!phone || !gardenerEmail) {
-    req.session.memberFlash = { type: 'error', message: 'Phone and email are required.' };
+  if (!phone || !gardenerEmail || !emergency_contact_name || !emergency_contact_phone) {
+    req.session.memberFlash = { type: 'error', message: 'Phone, email, and emergency contact are required.' };
     return res.redirect('/member/onboarding');
   }
 
-  db.prepare('UPDATE gardeners SET email = ?, phone = ? WHERE id = ?').run(gardenerEmail, phone, gid);
-  req.session.memberFlash = { type: 'success', message: 'Profile saved. Almost done!' };
+  db.prepare(`UPDATE gardeners SET email = ?, phone = ?, address = ?, city = ?, state = ?, zip = ?,
+    date_of_birth = ?, emergency_contact_name = ?, emergency_contact_phone = ? WHERE id = ?`)
+    .run(gardenerEmail, phone, address || null, city || null, state || null, zip || null,
+      date_of_birth || null, emergency_contact_name, emergency_contact_phone, gid);
+  req.session.memberFlash = { type: 'success', message: 'Personal info saved. One more step!' };
   res.redirect('/member/onboarding');
 });
 
-// Onboarding Step 3: Complete onboarding
+// Onboarding Step 3: Volunteer preferences
+router.post('/onboarding/preferences', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { tshirt_size, how_heard, skills, availability,
+    background_check_consent, photo_release_consent, liability_waiver_signed } = req.body;
+
+  if (!availability) {
+    req.session.memberFlash = { type: 'error', message: 'Please select your availability.' };
+    return res.redirect('/member/onboarding');
+  }
+
+  db.prepare(`UPDATE gardeners SET tshirt_size = ?, how_heard = ?, skills = ?, availability = ?,
+    background_check_consent = ?, photo_release_consent = ?, liability_waiver_signed = ? WHERE id = ?`)
+    .run(tshirt_size || null, how_heard || null, skills || null, availability,
+      background_check_consent ? 1 : 0, photo_release_consent ? 1 : 0, liability_waiver_signed ? 1 : 0, gid);
+  req.session.memberFlash = { type: 'success', message: 'Preferences saved. You\'re all set!' };
+  res.redirect('/member/onboarding');
+});
+
+// Onboarding Step 4: Complete onboarding
 router.post('/onboarding/complete', requireMember, (req, res) => {
   const db = req.app.locals.db;
 
   db.prepare("UPDATE member_credentials SET onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(req.session.memberId);
   req.session.memberOnboardingCompleted = 1;
-  req.session.memberFlash = { type: 'success', message: 'Welcome! Your onboarding is complete. Start logging your garden activity!' };
+  req.session.memberFlash = { type: 'success', message: 'Welcome! Your onboarding is complete.' };
   res.redirect('/member');
 });
 
@@ -152,38 +180,57 @@ router.get('/', requireMember, (req, res) => {
     WHERE g.id = ?
   `).get(gid);
 
-  const totalLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?").get(gid).c;
-  const totalHrs = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?").get(gid).c;
-  const totalDonatedLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ? AND donated = 1").get(gid).c;
-  const awardCount = db.prepare("SELECT COUNT(*) as c FROM garden_awards WHERE gardener_id = ?").get(gid).c;
+  // Get assigned programs
+  const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(p => p.program);
 
-  const recentHarvests = db.prepare("SELECT * FROM garden_harvests WHERE gardener_id = ? ORDER BY harvest_date DESC LIMIT 10").all(gid);
-  const recentHours = db.prepare("SELECT * FROM garden_hours WHERE gardener_id = ? ORDER BY work_date DESC LIMIT 10").all(gid);
-  const awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(gid);
+  // Only compute garden stats if in victory_garden program
+  let stats = { totalLbs: 0, totalHrs: 0, totalDonatedLbs: 0, awardCount: 0, harvestRank: 0, hoursRank: 0, totalGardeners: 0 };
+  let recentHarvests = [];
+  let recentHours = [];
+  let awards = [];
 
-  // Rank among all active gardeners (harvest lbs)
-  const allByLbs = db.prepare(`
-    SELECT g.id, COALESCE(SUM(h.pounds), 0) as total
-    FROM gardeners g LEFT JOIN garden_harvests h ON g.id = h.gardener_id
-    WHERE g.status = 'active' GROUP BY g.id ORDER BY total DESC
-  `).all();
-  const harvestRank = allByLbs.findIndex(r => r.id === gid) + 1;
+  if (programs.includes('victory_garden')) {
+    stats.totalLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?").get(gid).c;
+    stats.totalHrs = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?").get(gid).c;
+    stats.totalDonatedLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ? AND donated = 1").get(gid).c;
+    stats.awardCount = db.prepare("SELECT COUNT(*) as c FROM garden_awards WHERE gardener_id = ?").get(gid).c;
 
-  // Rank by hours
-  const allByHrs = db.prepare(`
-    SELECT g.id, COALESCE(SUM(vh.hours), 0) as total
-    FROM gardeners g LEFT JOIN garden_hours vh ON g.id = vh.gardener_id
-    WHERE g.status = 'active' GROUP BY g.id ORDER BY total DESC
-  `).all();
-  const hoursRank = allByHrs.findIndex(r => r.id === gid) + 1;
+    recentHarvests = db.prepare("SELECT * FROM garden_harvests WHERE gardener_id = ? ORDER BY harvest_date DESC LIMIT 10").all(gid);
+    recentHours = db.prepare("SELECT * FROM garden_hours WHERE gardener_id = ? ORDER BY work_date DESC LIMIT 10").all(gid);
+    awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(gid);
+  }
 
   res.render('member/dashboard', {
-    title: 'My Garden',
+    title: 'My Dashboard',
     gardener,
-    stats: { totalLbs, totalHrs, totalDonatedLbs, awardCount, harvestRank, hoursRank, totalGardeners: allByLbs.length },
+    programs,
+    stats,
     recentHarvests,
     recentHours,
     awards,
+    layout: 'member/layout'
+  });
+});
+
+// ── MY PROGRAMS ─────────────────────────────────────────────
+router.get('/programs', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const programs = db.prepare('SELECT program, assigned_at FROM volunteer_programs WHERE volunteer_id = ? ORDER BY assigned_at').all(gid);
+
+  const programInfo = {
+    victory_garden: { label: 'Victory Garden', color: 'var(--primary)', description: 'Grow food, log harvests, track volunteer hours, and compete on the leaderboard.' },
+    legislative: { label: 'Legislative Action', color: '#6366f1', description: 'Help advance cannabis policy in Iowa through grassroots advocacy.' },
+    outreach: { label: 'Community Outreach', color: '#f59e0b', description: 'Engage neighbors, attend events, and spread the word about ICAN\'s mission.' },
+    fundraising: { label: 'Fundraising', color: '#10b981', description: 'Help raise funds through events, campaigns, and donor outreach.' },
+    communications: { label: 'Communications', color: '#8b5cf6', description: 'Support newsletters, social media, and public messaging for ICAN.' },
+    membership: { label: 'Membership', color: '#ec4899', description: 'Help grow ICAN\'s member base through recruitment and retention.' }
+  };
+
+  res.render('member/programs', {
+    title: 'My Programs',
+    programs,
+    programInfo,
     layout: 'member/layout'
   });
 });
@@ -301,10 +348,23 @@ router.get('/profile', requireMember, (req, res) => {
   const gid = req.session.memberGardenerId;
   const gardener = db.prepare('SELECT * FROM gardeners WHERE id = ?').get(gid);
   const cred = db.prepare('SELECT email FROM member_credentials WHERE gardener_id = ?').get(gid);
+  const programs = db.prepare('SELECT program, assigned_at FROM volunteer_programs WHERE volunteer_id = ? ORDER BY assigned_at').all(gid);
+
+  const programLabels = {
+    victory_garden: 'Victory Garden',
+    legislative: 'Legislative Action',
+    outreach: 'Community Outreach',
+    fundraising: 'Fundraising',
+    communications: 'Communications',
+    membership: 'Membership'
+  };
+
   res.render('member/profile', {
     title: 'My Profile',
     gardener,
     memberEmail: cred ? cred.email : '',
+    programs,
+    programLabels,
     layout: 'member/layout'
   });
 });
@@ -312,8 +372,16 @@ router.get('/profile', requireMember, (req, res) => {
 router.post('/profile', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
-  const { email: gardenerEmail, phone } = req.body;
-  db.prepare('UPDATE gardeners SET email = ?, phone = ? WHERE id = ?').run(gardenerEmail || null, phone || null, gid);
+  const { email: gardenerEmail, phone, address, city, state, zip, date_of_birth,
+    emergency_contact_name, emergency_contact_phone, tshirt_size, skills, availability } = req.body;
+
+  db.prepare(`UPDATE gardeners SET email = ?, phone = ?, address = ?, city = ?, state = ?, zip = ?,
+    date_of_birth = ?, emergency_contact_name = ?, emergency_contact_phone = ?,
+    tshirt_size = ?, skills = ?, availability = ? WHERE id = ?`)
+    .run(gardenerEmail || null, phone || null, address || null, city || null, state || null, zip || null,
+      date_of_birth || null, emergency_contact_name || null, emergency_contact_phone || null,
+      tshirt_size || null, skills || null, availability || null, gid);
+
   req.session.memberFlash = { type: 'success', message: 'Profile updated.' };
   res.redirect('/member/profile');
 });
