@@ -1,6 +1,6 @@
 const express = require('express');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
+const BetterSqliteStore = require('./lib/session-store');
 const ejsLayouts = require('express-ejs-layouts');
 const path = require('path');
 const Database = require('better-sqlite3');
@@ -108,7 +108,7 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Sessions
 app.use(session({
-  store: new SQLiteStore({
+  store: new BetterSqliteStore({
     db: 'sessions.db',
     dir: path.join(__dirname, 'db')
   }),
