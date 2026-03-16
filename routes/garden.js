@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { PROGRAM_INFO } = require('../lib/constants');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
@@ -223,7 +224,7 @@ router.get('/gardeners', requireAuth, (req, res) => {
   const gardeners = db.prepare(query).all(...params);
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
 
-  res.render('garden/gardeners', { title: 'Gardeners', gardeners, seasons, filters: { season: seasonFilter, status: statusFilter } });
+  res.render('garden/gardeners', { title: 'Volunteers', gardeners, seasons, filters: { season: seasonFilter, status: statusFilter } });
 });
 
 router.get('/gardeners/new', requireRole('admin', 'editor'), (req, res) => {
@@ -279,7 +280,7 @@ router.get('/gardeners/:id', requireAuth, (req, res) => {
   const gardener = db.prepare(`SELECT g.*, gs.name as site_name, gsn.name as season_name
     FROM gardeners g LEFT JOIN garden_sites gs ON g.site_id = gs.id
     LEFT JOIN garden_seasons gsn ON g.season_id = gsn.id WHERE g.id = ?`).get(req.params.id);
-  if (!gardener) { req.session.flash = { type: 'error', message: 'Gardener not found.' }; return res.redirect('/admin/garden/gardeners'); }
+  if (!gardener) { req.session.flash = { type: 'error', message: 'Volunteer not found.' }; return res.redirect('/admin/garden/gardeners'); }
 
   const harvests = db.prepare("SELECT * FROM garden_harvests WHERE gardener_id = ? ORDER BY harvest_date DESC").all(req.params.id);
   // Attach photos to each harvest
@@ -304,11 +305,11 @@ router.get('/gardeners/:id', requireAuth, (req, res) => {
 router.get('/gardeners/:id/edit', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
   const gardener = db.prepare("SELECT * FROM gardeners WHERE id = ?").get(req.params.id);
-  if (!gardener) { req.session.flash = { type: 'error', message: 'Gardener not found.' }; return res.redirect('/admin/garden/gardeners'); }
+  if (!gardener) { req.session.flash = { type: 'error', message: 'Volunteer not found.' }; return res.redirect('/admin/garden/gardeners'); }
   const sites = db.prepare("SELECT * FROM garden_sites WHERE status = 'active' ORDER BY name").all();
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
   const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(req.params.id).map(p => p.program);
-  res.render('garden/gardener-form', { title: 'Edit Gardener', gardener, sites, seasons, programs, isNew: false });
+  res.render('garden/gardener-form', { title: 'Edit Volunteer', gardener, sites, seasons, programs, isNew: false });
 });
 
 router.post('/gardeners/:id', requireRole('admin', 'editor'), (req, res) => {
@@ -336,9 +337,9 @@ router.post('/gardeners/:id', requireRole('admin', 'editor'), (req, res) => {
       if (prog) insertProg.run(req.params.id, prog, res.locals.user ? res.locals.user.id : null);
     }
 
-    req.session.flash = { type: 'success', message: 'Gardener updated.' };
+    req.session.flash = { type: 'success', message: 'Volunteer updated.' };
   } catch (err) {
-    req.session.flash = { type: 'error', message: 'Failed to update gardener.' };
+    req.session.flash = { type: 'error', message: 'Failed to update volunteer.' };
   }
   res.redirect('/admin/garden/gardeners/' + req.params.id);
 });
@@ -346,7 +347,7 @@ router.post('/gardeners/:id', requireRole('admin', 'editor'), (req, res) => {
 router.post('/gardeners/:id/delete', requireRole('admin'), (req, res) => {
   const db = req.app.locals.db;
   db.prepare("DELETE FROM gardeners WHERE id = ?").run(req.params.id);
-  req.session.flash = { type: 'success', message: 'Gardener removed.' };
+  req.session.flash = { type: 'success', message: 'Volunteer removed.' };
   res.redirect('/admin/garden/gardeners');
 });
 
@@ -837,7 +838,7 @@ router.get('/export/gardeners', requireAuth, (req, res) => {
     csv += `"${r.first_name}","${r.last_name}","${r.email || ''}","${r.phone || ''}","${r.site_name || ''}","${r.plot_number || ''}","${r.season_name || ''}","${r.status}","${r.joined_date || ''}"\n`;
   }
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename=ican-gardeners.csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=ican-volunteers.csv');
   res.send(csv);
 });
 
@@ -968,21 +969,12 @@ router.get('/applications', requireAuth, (req, res) => {
     denied: db.prepare("SELECT COUNT(*) as c FROM program_applications WHERE status = 'denied'").get().c
   };
 
-  const programInfo = {
-    victory_garden: { label: 'Victory Garden', color: '#2D6A3F' },
-    legislative: { label: 'Legislative Action', color: '#6366f1' },
-    outreach: { label: 'Community Outreach', color: '#f59e0b' },
-    fundraising: { label: 'Fundraising', color: '#10b981' },
-    communications: { label: 'Communications', color: '#8b5cf6' },
-    membership: { label: 'Membership', color: '#ec4899' }
-  };
-
   res.render('garden/applications', {
     title: 'Program Applications',
     applications,
     counts,
     filter,
-    programInfo
+    programInfo: PROGRAM_INFO
   });
 });
 

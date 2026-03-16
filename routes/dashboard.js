@@ -58,15 +58,15 @@ router.get('/', requireAuth, (req, res) => {
     memberPortalUsers = db.prepare('SELECT COUNT(*) as count FROM member_credentials').get().count;
   } catch (e) { /* table may not exist yet */ }
 
-  // Unread messages count
-  let unreadMessages = 0;
+  // Total member messages count
+  let totalMessages = 0;
   try {
-    unreadMessages = db.prepare('SELECT COUNT(*) as count FROM member_messages').get().count;
+    totalMessages = db.prepare('SELECT COUNT(*) as count FROM member_messages').get().count;
   } catch (e) { /* table may not exist */ }
 
   res.render('dashboard', {
     title: 'Dashboard',
-    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, unreadMessages },
+    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, totalMessages },
     recentPosts,
     recentSubmissions
   });

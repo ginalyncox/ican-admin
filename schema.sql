@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
-  source TEXT DEFAULT 'website' CHECK(source IN ('website', 'manual', 'import')),
+  source TEXT DEFAULT 'website' CHECK(source IN ('website', 'manual', 'import', 'volunteer')),
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'unsubscribed')),
   subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -85,6 +85,20 @@ CREATE TABLE IF NOT EXISTS gardeners (
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'waitlist')),
   joined_date DATE DEFAULT (date('now')),
   notes TEXT,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  zip TEXT,
+  date_of_birth DATE,
+  emergency_contact_name TEXT,
+  emergency_contact_phone TEXT,
+  tshirt_size TEXT,
+  how_heard TEXT,
+  skills TEXT,
+  availability TEXT,
+  background_check_consent INTEGER DEFAULT 0,
+  photo_release_consent INTEGER DEFAULT 0,
+  liability_waiver_signed INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -184,6 +198,7 @@ CREATE TABLE IF NOT EXISTS board_members (
   must_change_password INTEGER DEFAULT 1,
   onboarding_completed INTEGER DEFAULT 0,
   onboarding_completed_at DATETIME,
+  officer_rank INTEGER DEFAULT 99,
   last_login DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -297,6 +312,26 @@ CREATE TABLE IF NOT EXISTS program_applications (
   reviewed_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(volunteer_id, program, status)
+);
+
+-- Internal Member Messages
+CREATE TABLE IF NOT EXISTS member_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  message_type TEXT DEFAULT 'general' CHECK(message_type IN ('general', 'newsletter', 'announcement', 'program_update')),
+  target_program TEXT,
+  sent_by INTEGER REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Member Message Read Receipts
+CREATE TABLE IF NOT EXISTS member_message_reads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER REFERENCES member_messages(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES member_credentials(id) ON DELETE CASCADE,
+  read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(message_id, member_id)
 );
 
 -- Events

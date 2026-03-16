@@ -26,7 +26,7 @@ const schema = fs.readFileSync(schemaPath, 'utf8');
 db.exec(schema);
 console.log('Database initialized at', dbPath);
 
-// Migrations — add columns that may not exist yet
+// Migrations for upgrading existing databases — new installs get these via schema.sql
 try {
   db.exec(`ALTER TABLE board_members ADD COLUMN locked_at DATETIME`);
 } catch (e) { /* column already exists */ }
@@ -66,48 +66,6 @@ const gardenerCols = [
 for (const [col, type] of gardenerCols) {
   try { db.exec(`ALTER TABLE gardeners ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
 }
-
-// Migration: fix submissions CHECK constraint to allow board_application
-try {
-  // SQLite doesn't support ALTER CHECK, so recreate if the old constraint exists
-  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'submissions'").get();
-  if (tableInfo && tableInfo.sql && !tableInfo.sql.includes('board_application')) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS submissions_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        form_type TEXT NOT NULL CHECK(form_type IN ('newsletter', 'contact', 'volunteer', 'board_application')),
-        data TEXT NOT NULL,
-        read INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-      INSERT INTO submissions_new SELECT * FROM submissions;
-      DROP TABLE submissions;
-      ALTER TABLE submissions_new RENAME TO submissions;
-    `);
-    console.log('Migrated submissions table: added board_application to CHECK constraint');
-  }
-} catch (e) { console.log('Submissions migration note:', e.message); }
-
-// Migration: fix subscribers CHECK constraint to allow 'volunteer' source
-try {
-  const subInfo = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'subscribers'").get();
-  if (subInfo && subInfo.sql && !subInfo.sql.includes('volunteer')) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS subscribers_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        name TEXT,
-        source TEXT DEFAULT 'website' CHECK(source IN ('website', 'manual', 'import', 'volunteer')),
-        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'unsubscribed')),
-        subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-      INSERT INTO subscribers_new SELECT * FROM subscribers;
-      DROP TABLE subscribers;
-      ALTER TABLE subscribers_new RENAME TO subscribers;
-    `);
-    console.log('Migrated subscribers table: added volunteer to CHECK constraint');
-  }
-} catch (e) { console.log('Subscribers migration note:', e.message); }
 
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;

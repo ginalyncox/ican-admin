@@ -75,15 +75,4 @@ router.post('/:id/delete', requireRole('admin'), (req, res) => {
   res.redirect('/admin/events');
 });
 
-// Public API endpoint for website events page
-router.get('/api/public', (req, res) => {
-  const db = req.app.locals.db;
-  const events = db.prepare(`
-    SELECT title, description, location, event_date, event_time, end_time, event_type
-    FROM events WHERE is_public = 1 AND event_date >= date('now')
-    ORDER BY event_date ASC LIMIT 20
-  `).all();
-  res.json(events);
-});
-
 module.exports = router;

@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { requireMember } = require('../middleware/member-auth');
+const { PROGRAM_INFO, VALID_PROGRAMS } = require('../lib/constants');
 const router = express.Router();
 
 // ── LOGIN ───────────────────────────────────────────────────
@@ -89,15 +90,7 @@ router.get('/onboarding', requireMember, (req, res) => {
     }
   }
 
-  // Program info for step 4
-  const programInfo = {
-    victory_garden: { label: 'Victory Garden', color: 'var(--primary)', description: 'Grow food for Iowans in need. Log harvests, track volunteer hours, and compete on the seasonal leaderboard. Our flagship community program.' },
-    legislative: { label: 'Legislative Action', color: '#6366f1', description: 'Help advance cannabis policy in Iowa. Attend lobby days, write legislators, and support grassroots advocacy campaigns.' },
-    outreach: { label: 'Community Outreach', color: '#f59e0b', description: 'Be the face of ICAN in your community. Staff event booths, give presentations, and build relationships with local organizations.' },
-    fundraising: { label: 'Fundraising', color: '#10b981', description: 'Help sustain ICAN\'s mission. Organize events, coordinate donor campaigns, and assist with grant writing.' },
-    communications: { label: 'Communications', color: '#8b5cf6', description: 'Shape ICAN\'s public voice. Write newsletter content, manage social media posts, and create marketing materials.' },
-    membership: { label: 'Membership', color: '#ec4899', description: 'Grow our volunteer base. Recruit new members, plan onboarding events, and help with retention outreach.' }
-  };
+  const programInfo = PROGRAM_INFO;
 
   // Get existing applications for this volunteer
   const existingApps = db.prepare('SELECT program, status FROM program_applications WHERE volunteer_id = ?').all(gardener.id);
@@ -190,7 +183,7 @@ router.post('/onboarding/programs', requireMember, (req, res) => {
     return res.redirect('/member/onboarding');
   }
 
-  const validPrograms = ['victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership'];
+  const validPrograms = VALID_PROGRAMS;
   const insert = db.prepare('INSERT OR IGNORE INTO program_applications (volunteer_id, program, status) VALUES (?, ?, \'pending\')');
   for (const prog of programs) {
     if (validPrograms.includes(prog)) {
@@ -253,21 +246,12 @@ router.get('/', requireMember, (req, res) => {
     awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(gid);
   }
 
-  const programInfo = {
-    victory_garden: { label: 'Victory Garden', color: 'var(--primary)' },
-    legislative: { label: 'Legislative Action', color: '#6366f1' },
-    outreach: { label: 'Community Outreach', color: '#f59e0b' },
-    fundraising: { label: 'Fundraising', color: '#10b981' },
-    communications: { label: 'Communications', color: '#8b5cf6' },
-    membership: { label: 'Membership', color: '#ec4899' }
-  };
-
   res.render('member/dashboard', {
     title: 'My Dashboard',
     gardener,
     programs,
     pendingApplications,
-    programInfo,
+    programInfo: PROGRAM_INFO,
     stats,
     recentHarvests,
     recentHours,
@@ -285,19 +269,10 @@ router.get('/programs', requireMember, (req, res) => {
   const pendingApps = db.prepare("SELECT program, created_at FROM program_applications WHERE volunteer_id = ? AND status = 'pending'").all(gid);
   const deniedApps = db.prepare("SELECT program, created_at, note FROM program_applications WHERE volunteer_id = ? AND status = 'denied'").all(gid);
 
-  const programInfo = {
-    victory_garden: { label: 'Victory Garden', color: 'var(--primary)', description: 'Grow food, log harvests, track volunteer hours, and compete on the leaderboard.' },
-    legislative: { label: 'Legislative Action', color: '#6366f1', description: 'Help advance cannabis policy in Iowa through grassroots advocacy.' },
-    outreach: { label: 'Community Outreach', color: '#f59e0b', description: 'Engage neighbors, attend events, and spread the word about ICAN\'s mission.' },
-    fundraising: { label: 'Fundraising', color: '#10b981', description: 'Help raise funds through events, campaigns, and donor outreach.' },
-    communications: { label: 'Communications', color: '#8b5cf6', description: 'Support newsletters, social media, and public messaging for ICAN.' },
-    membership: { label: 'Membership', color: '#ec4899', description: 'Help grow ICAN\'s member base through recruitment and retention.' }
-  };
-
   // Determine which programs are available to apply for
   const activeKeys = activePrograms.map(p => p.program);
   const pendingKeys = pendingApps.map(p => p.program);
-  const allKeys = Object.keys(programInfo);
+  const allKeys = Object.keys(PROGRAM_INFO);
   const availablePrograms = allKeys.filter(k => !activeKeys.includes(k) && !pendingKeys.includes(k));
 
   res.render('member/programs', {
@@ -306,7 +281,7 @@ router.get('/programs', requireMember, (req, res) => {
     pendingApps,
     deniedApps,
     availablePrograms,
-    programInfo,
+    programInfo: PROGRAM_INFO,
     layout: 'member/layout'
   });
 });
@@ -317,7 +292,7 @@ router.post('/apply-program', requireMember, (req, res) => {
   const gid = req.session.memberGardenerId;
   const program = req.body.program;
 
-  const validPrograms = ['victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership'];
+  const validPrograms = VALID_PROGRAMS;
   if (!program || !validPrograms.includes(program)) {
     req.session.memberFlash = { type: 'error', message: 'Invalid program.' };
     return res.redirect('/member/programs');
@@ -417,7 +392,7 @@ router.post('/log-harvest', requireMember, (req, res) => {
   try {
     db.prepare("INSERT INTO garden_harvests (gardener_id, season_id, harvest_date, crop, pounds, donated, donated_to, donation_status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)")
       .run(gid, season_id || null, harvest_date, crop, parseFloat(pounds) || 0, donated ? 1 : 0, donated_to || null, notes || null);
-    req.session.memberFlash = { type: 'success', message: 'Harvest logged. It will appear after admin verification.' };
+    req.session.memberFlash = { type: 'success', message: 'Harvest logged successfully.' };
   } catch (err) {
     req.session.memberFlash = { type: 'error', message: 'Failed to log harvest.' };
   }

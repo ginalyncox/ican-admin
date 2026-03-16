@@ -68,7 +68,7 @@ router.post('/login', (req, res) => {
   db.prepare("UPDATE board_members SET last_login = datetime('now') WHERE id = ?").run(member.id);
 
   req.session.directorId = member.id;
-  req.session.directorBoardMemberId = member.id;
+  req.session.directorBoardMemberId = member.id; // same as directorId — kept for legacy template compatibility
   req.session.directorName = member.first_name + ' ' + member.last_name;
   req.session.directorEmail = member.email;
   req.session.directorTitle = member.title;
