@@ -1,0 +1,120 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Committees</h1>
+    <p class="page-subtitle"><%= committees.length %> active committee<%= committees.length !== 1 ? 's' : '' %></p>
+  </div>
+  <% if (director.isOfficer) { %>
+    <button class="btn btn--primary" onclick="document.getElementById('new-committee').classList.toggle('hidden')">Create Committee</button>
+  <% } %>
+</div>
+
+<!-- Create Form (officers) -->
+<% if (director.isOfficer) { %>
+<div id="new-committee" class="card hidden" style="margin-bottom:1.5rem">
+  <div class="card__header"><h2 class="card__title">New Committee</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/director/committees">
+      <div class="form-group">
+        <label class="form-label">Committee Name *</label>
+        <input type="text" name="name" class="form-input" required placeholder="e.g. Finance Committee">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-input" rows="2" placeholder="Committee purpose and scope..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chair</label>
+        <select name="chair_id" class="form-input">
+          <option value="">Select chair...</option>
+          <% allMembers.forEach(m => { %>
+            <option value="<%= m.id %>"><%= m.first_name %> <%= m.last_name %></option>
+          <% }); %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn--primary">Create</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (committees.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <p class="text-muted" style="text-align:center;padding:2rem 0">No committees established yet.</p>
+    </div>
+  </div>
+<% } else { %>
+  <% committees.forEach(c => { %>
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title"><%= c.name %></h2>
+          <% if (c.description) { %><p class="text-muted" style="margin:0;font-size:0.85rem"><%= c.description %></p><% } %>
+        </div>
+        <span class="badge" style="background:#2D6A3F;color:#fff"><%= c.member_count %> member<%= c.member_count !== 1 ? 's' : '' %></span>
+      </div>
+      <div class="card__body">
+        <% if (c.chair_name) { %>
+          <p style="margin:0 0 0.75rem"><strong>Chair:</strong> <%= c.chair_name %></p>
+        <% } %>
+
+        <% if (c.members.length > 0) { %>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Title</th>
+                <th>Role</th>
+                <% if (director.isOfficer) { %><th style="width:60px"></th><% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% c.members.forEach(m => { %>
+                <tr>
+                  <td style="font-weight:600"><%= m.first_name %> <%= m.last_name %></td>
+                  <td><%= m.officer_title || m.title || 'Director' %></td>
+                  <td>
+                    <span class="badge" style="background:<%= m.role === 'chair' ? '#B8862B' : m.role === 'vice_chair' ? '#2D6A3F' : '#95a5a6' %>;color:#fff;font-size:0.7rem"><%= m.role.replace('_', ' ') %></span>
+                  </td>
+                  <% if (director.isOfficer) { %>
+                    <td>
+                      <form method="POST" action="/director/committees/<%= c.id %>/members/<%= m.member_id %>/remove" onsubmit="return confirm('Remove from committee?')">
+                        <button type="submit" class="btn btn--outline btn--xs" style="color:#c0392b">&times;</button>
+                      </form>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <p class="text-muted">No members assigned yet.</p>
+        <% } %>
+
+        <!-- Add Member -->
+        <% if (director.isOfficer) { %>
+          <form method="POST" action="/director/committees/<%= c.id %>/members" style="display:flex;gap:0.5rem;margin-top:1rem;align-items:flex-end">
+            <div class="form-group" style="flex:1;margin:0">
+              <select name="member_id" class="form-input" required>
+                <option value="">Add a member...</option>
+                <% allMembers.forEach(m => { %>
+                  <% if (!c.members.some(cm => cm.member_id === m.id)) { %>
+                    <option value="<%= m.id %>"><%= m.first_name %> <%= m.last_name %></option>
+                  <% } %>
+                <% }); %>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <select name="role" class="form-input">
+                <option value="member">Member</option>
+                <option value="vice_chair">Vice Chair</option>
+                <option value="chair">Chair</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn--primary btn--sm">Add</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  <% }); %>
+<% } %>

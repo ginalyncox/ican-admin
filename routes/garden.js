@@ -694,6 +694,7 @@ router.get('/hours', requireAuth, (req, res) => {
   const db = req.app.locals.db;
   const gardenerFilter = req.query.gardener || '';
   const seasonFilter = req.query.season || '';
+  const programFilter = req.query.program || '';
 
   let query = `SELECT vh.*, g.first_name, g.last_name, s.name as season_name
     FROM garden_hours vh
@@ -703,14 +704,25 @@ router.get('/hours', requireAuth, (req, res) => {
   const params = [];
   if (gardenerFilter) { conditions.push('vh.gardener_id = ?'); params.push(gardenerFilter); }
   if (seasonFilter) { conditions.push('vh.season_id = ?'); params.push(seasonFilter); }
+  if (programFilter) { conditions.push('vh.program = ?'); params.push(programFilter); }
   if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
-  query += ' ORDER BY vh.work_date DESC';
+  query += ' ORDER BY vh.work_date DESC LIMIT 500';
 
   const entries = db.prepare(query).all(...params);
   const gardeners = db.prepare("SELECT id, first_name, last_name FROM gardeners WHERE status = 'active' ORDER BY last_name, first_name").all();
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
 
-  res.render('garden/hours', { title: 'Volunteer Hours', entries, gardeners, seasons, filters: { gardener: gardenerFilter, season: seasonFilter } });
+  // Summary stats
+  let statsQuery = 'SELECT COALESCE(SUM(hours), 0) as totalHrs, COUNT(*) as totalEntries FROM garden_hours';
+  const statsConditions = [...conditions];
+  const statsParams = [...params];
+  if (statsConditions.length) statsQuery += ' WHERE ' + statsConditions.join(' AND ');
+  const hourStats = db.prepare(statsQuery).get(...statsParams);
+
+  res.render('garden/hours', {
+    title: 'Volunteer Hours', entries, gardeners, seasons, hourStats,
+    filters: { gardener: gardenerFilter, season: seasonFilter, program: programFilter }
+  });
 });
 
 router.get('/hours/new', requireRole('admin', 'editor'), (req, res) => {
@@ -719,17 +731,17 @@ router.get('/hours/new', requireRole('admin', 'editor'), (req, res) => {
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
   res.render('garden/hour-form', {
     title: 'Log Hours',
-    entry: { id: null, gardener_id: req.query.gardener || '', season_id: '', work_date: new Date().toISOString().split('T')[0], hours: '', activity: '', notes: '' },
+    entry: { id: null, gardener_id: req.query.gardener || '', program: req.query.program || 'victory_garden', season_id: '', work_date: new Date().toISOString().split('T')[0], hours: '', activity: '', notes: '' },
     gardeners, seasons, isNew: true
   });
 });
 
 router.post('/hours', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
-  const { gardener_id, season_id, work_date, hours, activity, notes } = req.body;
+  const { gardener_id, program, season_id, work_date, hours, activity, notes } = req.body;
   try {
-    db.prepare("INSERT INTO garden_hours (gardener_id, season_id, work_date, hours, activity, notes) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(gardener_id, season_id || null, work_date, parseFloat(hours) || 0, activity || null, notes || null);
+    db.prepare("INSERT INTO garden_hours (gardener_id, program, season_id, work_date, hours, activity, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(gardener_id, program || 'victory_garden', (program === 'victory_garden' && season_id) ? season_id : null, work_date, parseFloat(hours) || 0, activity || null, notes || null);
     req.session.flash = { type: 'success', message: 'Hours logged.' };
   } catch (err) {
     req.session.flash = { type: 'error', message: 'Failed to log hours.' };

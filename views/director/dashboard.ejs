@@ -11,24 +11,87 @@
     <div class="stat-card__detail"><%= myAttendance %> of <%= totalMeetings %> meetings</div>
   </div>
   <div class="stat-card">
+    <div class="stat-card__label">My Tasks</div>
+    <div class="stat-card__value" style="<%= overdueCount > 0 ? 'color:#c0392b' : '' %>"><%= myTasks.length %></div>
+    <div class="stat-card__detail"><% if (overdueCount > 0) { %><span style="color:#c0392b"><%= overdueCount %> overdue</span><% } else { %>All on track<% } %> &middot; <a href="/director/tasks">View &rarr;</a></div>
+  </div>
+  <div class="stat-card">
     <div class="stat-card__label">Open Votes</div>
     <div class="stat-card__value"><%= openVotes.length %></div>
     <div class="stat-card__detail"><a href="/director/votes">View all &rarr;</a></div>
   </div>
   <div class="stat-card">
-    <div class="stat-card__label">Board Members</div>
-    <div class="stat-card__value"><%= boardCount %></div>
-    <div class="stat-card__detail"><a href="/director/roster">View roster &rarr;</a></div>
-  </div>
-  <div class="stat-card">
     <div class="stat-card__label">COI Status (<%= currentYear %>)</div>
-    <div class="stat-card__value"><%= myCoi ? '✓ Filed' : '⚠ Needed' %></div>
+    <div class="stat-card__value"><%= myCoi ? 'Filed' : 'Needed' %></div>
     <div class="stat-card__detail"><a href="/director/coi"><%= myCoi ? 'View disclosure' : 'File now' %> &rarr;</a></div>
   </div>
 </div>
 
-<!-- Two column grid -->
+<!-- Priority row: Announcements + Tasks -->
 <div class="director-grid">
+  <!-- Unread Announcements -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Announcements <% if (unreadAnnouncements.length > 0) { %><span class="badge" style="background:#c0392b;color:#fff;font-size:0.7rem;vertical-align:middle;margin-left:4px"><%= unreadAnnouncements.length %> new</span><% } %></h2>
+      <a href="/director/announcements" class="btn btn--outline btn--sm">View all</a>
+    </div>
+    <div class="card__body">
+      <% if (unreadAnnouncements.length === 0) { %>
+        <p class="text-muted">All caught up — no unread announcements.</p>
+      <% } else { %>
+        <% unreadAnnouncements.forEach(a => { %>
+          <div style="padding:0.5rem 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <% if (a.priority === 'urgent') { %><span class="badge" style="background:#c0392b;color:#fff;font-size:0.65rem">URGENT</span> <% } %>
+              <% if (a.priority === 'important') { %><span class="badge" style="background:#e67e22;color:#fff;font-size:0.65rem">IMPORTANT</span> <% } %>
+              <strong><%= a.title %></strong>
+              <div class="text-muted" style="font-size:0.8rem"><%= a.author_name %> &middot; <%= new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></div>
+            </div>
+            <form method="POST" action="/director/announcements/<%= a.id %>/read">
+              <button type="submit" class="btn btn--outline btn--xs">&#10003;</button>
+            </form>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- My Action Items -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">My Action Items <% if (overdueCount > 0) { %><span class="badge" style="background:#c0392b;color:#fff;font-size:0.7rem;vertical-align:middle;margin-left:4px"><%= overdueCount %> overdue</span><% } %></h2>
+      <a href="/director/tasks" class="btn btn--outline btn--sm">View all</a>
+    </div>
+    <div class="card__body">
+      <% if (myTasks.length === 0) { %>
+        <p class="text-muted">No open tasks assigned to you.</p>
+      <% } else { %>
+        <% myTasks.forEach(t => { %>
+          <%
+            const isOverdue = t.due_date && t.due_date < new Date().toISOString().split('T')[0];
+            const priorityColors = { urgent: '#c0392b', high: '#e67e22', normal: '#2D6A3F', low: '#7f8c8d' };
+          %>
+          <div style="padding:0.5rem 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <span class="badge" style="background:<%= priorityColors[t.priority] || '#2D6A3F' %>;color:#fff;font-size:0.65rem"><%= t.priority %></span>
+              <strong style="<%= isOverdue ? 'color:#c0392b' : '' %>"><%= t.title %></strong>
+              <% if (t.due_date) { %>
+                <div class="text-muted" style="font-size:0.8rem;<%= isOverdue ? 'color:#c0392b;font-weight:600' : '' %>">
+                  Due <%= new Date(t.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %>
+                  <% if (isOverdue) { %> (OVERDUE)<% } %>
+                </div>
+              <% } %>
+            </div>
+            <form method="POST" action="/director/tasks/<%= t.id %>/status">
+              <input type="hidden" name="status" value="completed">
+              <button type="submit" class="btn btn--outline btn--xs" title="Complete">&#10003;</button>
+            </form>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
   <!-- Next Meeting -->
   <div class="card">
     <div class="card__header">
@@ -46,10 +109,31 @@
             <% if (nextMeeting.meeting_time) { %><p><%= nextMeeting.meeting_time %></p><% } %>
             <% if (nextMeeting.location) { %><p><%= nextMeeting.location %></p><% } %>
             <span class="badge badge--<%= nextMeeting.meeting_type %>"><%= nextMeeting.meeting_type %></span>
+            <a href="/director/meetings/<%= nextMeeting.id %>/agenda" class="btn btn--outline btn--xs" style="margin-left:0.5rem">Agenda</a>
           </div>
         </div>
       <% } else { %>
         <p class="text-muted">No upcoming meetings scheduled.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Open Polls -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Polls Awaiting Your Vote</h2>
+      <a href="/director/polls" class="btn btn--outline btn--sm">All polls</a>
+    </div>
+    <div class="card__body">
+      <% if (openPolls.length === 0) { %>
+        <p class="text-muted">You've voted on all open polls.</p>
+      <% } else { %>
+        <% openPolls.forEach(p => { %>
+          <div style="padding:0.5rem 0;border-bottom:1px solid #eee">
+            <a href="/director/polls" style="font-weight:600"><%= p.question %></a>
+            <div class="text-muted" style="font-size:0.8rem">By <%= p.created_by_name %> &middot; <%= p.response_count %> responses so far</div>
+          </div>
+        <% }); %>
       <% } %>
     </div>
   </div>
@@ -73,33 +157,6 @@
             </div>
           </div>
         <% }); %>
-      <% } %>
-    </div>
-  </div>
-
-  <!-- Recent Meetings -->
-  <div class="card">
-    <div class="card__header">
-      <h2 class="card__title">Recent Meetings</h2>
-      <a href="/director/meetings" class="btn btn--outline btn--sm">View all</a>
-    </div>
-    <div class="card__body">
-      <% if (recentMeetings.length === 0) { %>
-        <p class="text-muted">No meetings recorded yet.</p>
-      <% } else { %>
-        <table class="table">
-          <tbody>
-            <% recentMeetings.forEach(m => { %>
-              <tr>
-                <td><a href="/director/meetings/<%= m.id %>"><%= m.title %></a></td>
-                <td><%= new Date(m.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
-                <td>
-                  <span class="badge badge--<%= m.status === 'completed' ? 'garden' : m.status === 'cancelled' ? 'social' : 'meeting' %>"><%= m.status %></span>
-                </td>
-              </tr>
-            <% }); %>
-          </tbody>
-        </table>
       <% } %>
     </div>
   </div>

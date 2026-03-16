@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICAN Certified Volunteer Hours Report — <%= reportTitle %></title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&family=Georgia&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Work Sans', -apple-system, sans-serif;
+      color: #1a1a1a;
+      font-size: 11pt;
+      line-height: 1.5;
+      background: #fff;
+    }
+
+    @media print {
+      body { font-size: 10pt; }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+      @page { margin: 0.75in; size: letter; }
+    }
+
+    .print-btn {
+      position: fixed; top: 16px; right: 16px; z-index: 100;
+      background: #2D6A3F; color: #fff; border: none; padding: 10px 24px;
+      border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: 'Work Sans', sans-serif; display: flex; align-items: center; gap: 8px;
+    }
+    .print-btn:hover { background: #245533; }
+
+    .report {
+      max-width: 8.5in;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header / Letterhead */
+    .letterhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #2D6A3F;
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .letterhead__logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .letterhead__logo svg { flex-shrink: 0; }
+    .letterhead__org {
+      font-family: Georgia, serif;
+      font-size: 18pt;
+      font-weight: 700;
+      color: #2D6A3F;
+      line-height: 1.2;
+    }
+    .letterhead__org small {
+      display: block;
+      font-size: 9pt;
+      font-weight: 400;
+      color: #666;
+      font-family: 'Work Sans', sans-serif;
+      margin-top: 2px;
+    }
+    .letterhead__info {
+      text-align: right;
+      font-size: 8.5pt;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .report-title {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .report-title h1 {
+      font-size: 16pt;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    .report-title .subtitle {
+      font-size: 11pt;
+      color: #666;
+    }
+    .report-title .certified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0faf3;
+      border: 1px solid #2D6A3F;
+      color: #2D6A3F;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 9pt;
+      font-weight: 600;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Summary section */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    .summary-box {
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+    .summary-box__value {
+      font-size: 20pt;
+      font-weight: 700;
+      color: #2D6A3F;
+      line-height: 1.2;
+    }
+    .summary-box__label {
+      font-size: 8pt;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tables */
+    .section-title {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 1.5rem 0 0.75rem;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+      margin-bottom: 1rem;
+    }
+    thead th {
+      background: #f8f8f6;
+      padding: 6px 8px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #2D6A3F;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: #333;
+    }
+    tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    tbody tr:nth-child(even) td { background: #fafaf8; }
+    .text-right { text-align: right; }
+    .text-bold { font-weight: 700; }
+    .total-row td {
+      font-weight: 700;
+      border-top: 2px solid #2D6A3F;
+      background: #f0faf3 !important;
+      padding: 8px;
+    }
+
+    /* Program badge */
+    .prog-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* Certification footer */
+    .certification {
+      margin-top: 2rem;
+      border-top: 2px solid #2D6A3F;
+      padding-top: 1rem;
+    }
+    .certification__text {
+      font-size: 9.5pt;
+      color: #333;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .certification__sig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    .certification__sig-line {
+      border-top: 1px solid #666;
+      padding-top: 4px;
+      font-size: 8.5pt;
+      color: #666;
+    }
+    .certification__seal {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 1rem;
+      font-size: 8pt;
+      color: #888;
+    }
+    .certification__seal svg { flex-shrink: 0; }
+
+    .footer-note {
+      margin-top: 1.5rem;
+      font-size: 7.5pt;
+      color: #999;
+      text-align: center;
+      border-top: 1px solid #eee;
+      padding-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  Print / Save PDF
+</button>
+
+<div class="report">
+  <!-- Letterhead -->
+  <div class="letterhead">
+    <div class="letterhead__logo">
+      <svg viewBox="0 0 40 40" width="44" height="44" fill="none">
+        <path d="M20 3 C20 3 16 10 12 14 C8 18 6 23 8 27 C10 31 14 34 20 34 C26 34 30 31 32 27 C34 23 32 18 28 14 C24 10 20 3 20 3Z" fill="#2D6A3F"/>
+        <path d="M20 12 C20 12 17 16 15 19 C13 22 13 25 15 27 C17 29 19 30 20 30 C21 30 23 29 25 27 C27 25 27 22 25 19 C23 16 20 12 20 12Z" fill="#fff" opacity="0.3"/>
+      </svg>
+      <div class="letterhead__org">
+        Iowa Cannabis Action Network
+        <small>501(c)(4) Social Welfare Organization &bull; EIN 41-2746368</small>
+      </div>
+    </div>
+    <div class="letterhead__info">
+      IowaCannabisAction.org<br>
+      hello@iowacannabisaction.org<br>
+      Iowa Corp No: 849500
+    </div>
+  </div>
+
+  <!-- Report Title -->
+  <div class="report-title">
+    <h1>Certified Volunteer Hours Report</h1>
+    <div class="subtitle"><%= reportTitle %> &mdash; <%= programLabel %></div>
+    <div class="certified-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Certified by Iowa Cannabis Action Network, Inc.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="summary-box">
+      <div class="summary-box__value"><%= Number(totalHours).toFixed(1) %></div>
+      <div class="summary-box__label">Total Hours</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-box__value"><%= totalEntries %></div>
+      <div class="summary-box__label">Log Entries</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-box__value"><%= uniqueVolunteers %></div>
+      <div class="summary-box__label">Volunteers</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-box__value"><%= uniqueVolunteers > 0 ? (totalHours / uniqueVolunteers).toFixed(1) : '0' %></div>
+      <div class="summary-box__label">Avg Hours / Vol.</div>
+    </div>
+  </div>
+
+  <% if (Object.keys(byProgram).length > 0) { %>
+  <h2 class="section-title">Hours by Program</h2>
+  <table>
+    <thead><tr><th>Program</th><th class="text-right">Hours</th><th class="text-right">Entries</th><th class="text-right">Volunteers</th></tr></thead>
+    <tbody>
+      <% Object.entries(byProgram).forEach(([prog, data]) => { %>
+        <% const pColor = (programInfo[prog] || {}).color || '#666'; %>
+        <tr>
+          <td><span class="prog-badge" style="background: <%= pColor %>;"><%= (programInfo[prog] || { label: prog }).label %></span></td>
+          <td class="text-right text-bold"><%= Number(data.hours).toFixed(1) %></td>
+          <td class="text-right"><%= data.entries %></td>
+          <td class="text-right"><%= data.volunteerCount %></td>
+        </tr>
+      <% }) %>
+      <tr class="total-row">
+        <td>Total</td>
+        <td class="text-right"><%= Number(totalHours).toFixed(1) %></td>
+        <td class="text-right"><%= totalEntries %></td>
+        <td class="text-right"><%= uniqueVolunteers %></td>
+      </tr>
+    </tbody>
+  </table>
+  <% } %>
+
+  <h2 class="section-title">Volunteer Summary</h2>
+  <table>
+    <thead><tr><th>Volunteer</th><th>Programs</th><th class="text-right">Total Hours</th><th class="text-right">Entries</th><th>Activity Period</th></tr></thead>
+    <tbody>
+      <% volunteers.forEach(v => { %>
+        <tr>
+          <td class="text-bold"><%= v.name %></td>
+          <td>
+            <% v.programs.forEach(p => { %>
+              <span class="prog-badge" style="background: <%= (programInfo[p] || {}).color || '#666' %>;"><%= (programInfo[p] || { label: p }).label %></span>
+            <% }) %>
+          </td>
+          <td class="text-right text-bold"><%= Number(v.totalHours).toFixed(1) %></td>
+          <td class="text-right"><%= v.entries %></td>
+          <td><%= v.firstDate %> &ndash; <%= v.lastDate %></td>
+        </tr>
+      <% }) %>
+      <tr class="total-row">
+        <td colspan="2">Total &mdash; <%= uniqueVolunteers %> volunteer<%= uniqueVolunteers !== 1 ? 's' : '' %></td>
+        <td class="text-right"><%= Number(totalHours).toFixed(1) %></td>
+        <td class="text-right"><%= totalEntries %></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Certification -->
+  <div class="certification">
+    <div class="certification__text">
+      I hereby certify that the volunteer hours documented in this report are accurate and complete to the best of my knowledge. These hours were recorded by authorized volunteers and staff of the Iowa Cannabis Action Network, Inc., a 501(c)(4) social welfare organization incorporated in the State of Iowa. This report covers the period of <strong>January 1, <%= year %></strong> through <strong><%= new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></strong>.
+    </div>
+    <div class="certification__sig-grid">
+      <div>
+        <div style="height: 40px;"></div>
+        <div class="certification__sig-line">
+          Authorized Signature &mdash; President / Executive Director
+        </div>
+      </div>
+      <div>
+        <div style="height: 40px;"></div>
+        <div class="certification__sig-line">
+          Date
+        </div>
+      </div>
+    </div>
+    <div class="certification__seal">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#888" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4l2 2"/>
+      </svg>
+      Report generated on <%= generatedAt %> (Central Time) &bull; Iowa Cannabis Action Network, Inc. &bull; EIN 41-2746368
+    </div>
+  </div>
+
+  <div class="footer-note">
+    This document was generated by the ICAN administrative system. For questions or verification, contact hello@iowacannabisaction.org.
+  </div>
+</div>
+
+</body>
+</html>

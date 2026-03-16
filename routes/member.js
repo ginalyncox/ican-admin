@@ -229,20 +229,28 @@ router.get('/', requireMember, (req, res) => {
   // Get pending applications
   const pendingApplications = db.prepare("SELECT program, created_at FROM program_applications WHERE volunteer_id = ? AND status = 'pending' ORDER BY created_at DESC").all(gid);
 
-  // Only compute garden stats if in victory_garden program
+  // Compute stats across ALL programs
   let stats = { totalLbs: 0, totalHrs: 0, totalDonatedLbs: 0, awardCount: 0, harvestRank: 0, hoursRank: 0, totalGardeners: 0 };
   let recentHarvests = [];
   let recentHours = [];
   let awards = [];
 
+  // Total hours across ALL programs for this volunteer
+  stats.totalHrs = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?").get(gid).c;
+
+  // Recent hours from ALL programs
+  recentHours = db.prepare("SELECT * FROM garden_hours WHERE gardener_id = ? ORDER BY work_date DESC LIMIT 10").all(gid);
+
+  // Hours per program
+  const hoursByProgram = {};
+  const hbp = db.prepare("SELECT program, COALESCE(SUM(hours), 0) as total FROM garden_hours WHERE gardener_id = ? GROUP BY program").all(gid);
+  for (const h of hbp) { hoursByProgram[h.program] = h.total; }
+
   if (programs.includes('victory_garden')) {
     stats.totalLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?").get(gid).c;
-    stats.totalHrs = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?").get(gid).c;
     stats.totalDonatedLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ? AND donated = 1").get(gid).c;
     stats.awardCount = db.prepare("SELECT COUNT(*) as c FROM garden_awards WHERE gardener_id = ?").get(gid).c;
-
     recentHarvests = db.prepare("SELECT * FROM garden_harvests WHERE gardener_id = ? ORDER BY harvest_date DESC LIMIT 10").all(gid);
-    recentHours = db.prepare("SELECT * FROM garden_hours WHERE gardener_id = ? ORDER BY work_date DESC LIMIT 10").all(gid);
     awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(gid);
   }
 
@@ -256,6 +264,7 @@ router.get('/', requireMember, (req, res) => {
     recentHarvests,
     recentHours,
     awards,
+    hoursByProgram,
     layout: 'member/layout'
   });
 });
@@ -275,15 +284,22 @@ router.get('/programs', requireMember, (req, res) => {
   const allKeys = Object.keys(PROGRAM_INFO);
   const availablePrograms = allKeys.filter(k => !activeKeys.includes(k) && !pendingKeys.includes(k));
 
-  // Program-specific stats
+  // Program-specific stats — hours for ALL programs, plus garden-specific stats
   const programStats = {};
+  const hoursByProg = db.prepare("SELECT program, COALESCE(SUM(hours), 0) as total, COUNT(*) as entries FROM garden_hours WHERE gardener_id = ? GROUP BY program").all(gid);
+  for (const h of hoursByProg) {
+    programStats[h.program] = programStats[h.program] || {};
+    programStats[h.program].totalHrs = h.total;
+    programStats[h.program].hourEntries = h.entries;
+  }
+  // Ensure all active programs have a stats object
+  for (const k of activeKeys) {
+    if (!programStats[k]) programStats[k] = { totalHrs: 0, hourEntries: 0 };
+  }
   if (activeKeys.includes('victory_garden')) {
-    programStats.victory_garden = {
-      totalLbs: db.prepare('SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?').get(gid).c,
-      totalHrs: db.prepare('SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?').get(gid).c,
-      awardCount: db.prepare('SELECT COUNT(*) as c FROM garden_awards WHERE gardener_id = ?').get(gid).c,
-      harvestCount: db.prepare('SELECT COUNT(*) as c FROM garden_harvests WHERE gardener_id = ?').get(gid).c
-    };
+    programStats.victory_garden.totalLbs = db.prepare('SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?').get(gid).c;
+    programStats.victory_garden.awardCount = db.prepare('SELECT COUNT(*) as c FROM garden_awards WHERE gardener_id = ?').get(gid).c;
+    programStats.victory_garden.harvestCount = db.prepare('SELECT COUNT(*) as c FROM garden_harvests WHERE gardener_id = ?').get(gid).c;
   }
 
   res.render('member/programs', {
@@ -411,13 +427,18 @@ router.post('/log-harvest', requireMember, (req, res) => {
   res.redirect('/member');
 });
 
-// ── SELF-REPORTING: LOG VOLUNTEER HOURS ──────────────────────
+// ── SELF-REPORTING: LOG VOLUNTEER HOURS (ALL PROGRAMS) ──────
 router.get('/log-hours', requireMember, (req, res) => {
   const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
   const seasons = db.prepare("SELECT * FROM garden_seasons WHERE status = 'active' ORDER BY year DESC").all();
+  const memberPrograms = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(p => p.program);
+  const selectedProgram = req.query.program || '';
   res.render('member/log-hours', {
     title: 'Log Hours',
     seasons,
+    memberPrograms,
+    selectedProgram,
     layout: 'member/layout'
   });
 });
@@ -425,10 +446,16 @@ router.get('/log-hours', requireMember, (req, res) => {
 router.post('/log-hours', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
-  const { season_id, work_date, hours, activity, notes } = req.body;
+  const { program, season_id, work_date, hours, activity, notes } = req.body;
+  // Validate the volunteer belongs to this program
+  const memberPrograms = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(p => p.program);
+  if (!program || !memberPrograms.includes(program)) {
+    req.session.memberFlash = { type: 'error', message: 'Please select a valid program.' };
+    return res.redirect('/member/log-hours');
+  }
   try {
-    db.prepare("INSERT INTO garden_hours (gardener_id, season_id, work_date, hours, activity, notes) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(gid, season_id || null, work_date, parseFloat(hours) || 0, activity || null, notes || null);
+    db.prepare("INSERT INTO garden_hours (gardener_id, program, season_id, work_date, hours, activity, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(gid, program, (program === 'victory_garden' && season_id) ? season_id : null, work_date, parseFloat(hours) || 0, activity || null, notes || null);
     req.session.memberFlash = { type: 'success', message: 'Volunteer hours logged.' };
   } catch (err) {
     req.session.memberFlash = { type: 'error', message: 'Failed to log hours.' };

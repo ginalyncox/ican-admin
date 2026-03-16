@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICAN Certified Hours Letter — <%= volunteer.first_name %> <%= volunteer.last_name %></title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&family=Georgia&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Work Sans', -apple-system, sans-serif;
+      color: #1a1a1a;
+      font-size: 11pt;
+      line-height: 1.6;
+      background: #fff;
+    }
+
+    @media print {
+      body { font-size: 10.5pt; }
+      .no-print { display: none !important; }
+      @page { margin: 1in; size: letter; }
+    }
+
+    .print-btn {
+      position: fixed; top: 16px; right: 16px; z-index: 100;
+      background: #2D6A3F; color: #fff; border: none; padding: 10px 24px;
+      border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: 'Work Sans', sans-serif; display: flex; align-items: center; gap: 8px;
+    }
+    .print-btn:hover { background: #245533; }
+
+    .letter {
+      max-width: 8.5in;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .letterhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #2D6A3F;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+    .letterhead__logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .letterhead__org {
+      font-family: Georgia, serif;
+      font-size: 18pt;
+      font-weight: 700;
+      color: #2D6A3F;
+      line-height: 1.2;
+    }
+    .letterhead__org small {
+      display: block;
+      font-size: 9pt;
+      font-weight: 400;
+      color: #666;
+      font-family: 'Work Sans', sans-serif;
+      margin-top: 2px;
+    }
+    .letterhead__info {
+      text-align: right;
+      font-size: 8.5pt;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .date-line {
+      margin-bottom: 1.5rem;
+      font-size: 10.5pt;
+      color: #666;
+    }
+
+    .recipient {
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+
+    .body-text {
+      margin-bottom: 1.25rem;
+      text-align: justify;
+    }
+
+    .certified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0faf3;
+      border: 1px solid #2D6A3F;
+      color: #2D6A3F;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 9pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hours-summary {
+      background: #f8f8f6;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .hours-summary__total {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .hours-summary__value {
+      font-size: 36pt;
+      font-weight: 700;
+      color: #2D6A3F;
+      line-height: 1;
+    }
+    .hours-summary__label {
+      font-size: 10pt;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .hours-summary__programs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .prog-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 8pt;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin: 1rem 0;
+    }
+    thead th {
+      background: #f8f8f6;
+      padding: 5px 8px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #2D6A3F;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    tbody td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    tbody tr:nth-child(even) td { background: #fafaf8; }
+    .text-right { text-align: right; }
+    .text-bold { font-weight: 700; }
+    .total-row td {
+      font-weight: 700;
+      border-top: 2px solid #2D6A3F;
+      background: #f0faf3 !important;
+    }
+
+    .certification {
+      margin-top: 2rem;
+      border-top: 2px solid #2D6A3F;
+      padding-top: 1rem;
+    }
+    .certification__text {
+      font-size: 9.5pt;
+      color: #333;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .sig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    .sig-line {
+      border-top: 1px solid #666;
+      padding-top: 4px;
+      font-size: 8.5pt;
+      color: #666;
+    }
+    .seal {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 1.5rem;
+      font-size: 7.5pt;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  Print / Save PDF
+</button>
+
+<div class="letter">
+  <!-- Letterhead -->
+  <div class="letterhead">
+    <div class="letterhead__logo">
+      <svg viewBox="0 0 40 40" width="44" height="44" fill="none">
+        <path d="M20 3 C20 3 16 10 12 14 C8 18 6 23 8 27 C10 31 14 34 20 34 C26 34 30 31 32 27 C34 23 32 18 28 14 C24 10 20 3 20 3Z" fill="#2D6A3F"/>
+        <path d="M20 12 C20 12 17 16 15 19 C13 22 13 25 15 27 C17 29 19 30 20 30 C21 30 23 29 25 27 C27 25 27 22 25 19 C23 16 20 12 20 12Z" fill="#fff" opacity="0.3"/>
+      </svg>
+      <div class="letterhead__org">
+        Iowa Cannabis Action Network
+        <small>501(c)(4) Social Welfare Organization &bull; EIN 41-2746368</small>
+      </div>
+    </div>
+    <div class="letterhead__info">
+      IowaCannabisAction.org<br>
+      hello@iowacannabisaction.org<br>
+      Iowa Corp No: 849500
+    </div>
+  </div>
+
+  <div class="date-line"><%= generatedAt %></div>
+
+  <div class="certified-badge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Certified Volunteer Hours Verification
+  </div>
+
+  <div class="recipient">
+    To Whom It May Concern:
+  </div>
+
+  <div class="body-text">
+    This letter certifies that <strong><%= volunteer.first_name %> <%= volunteer.last_name %></strong> has served as a volunteer with the Iowa Cannabis Action Network, Inc. (ICAN), a 501(c)(4) social welfare organization incorporated in the State of Iowa. The volunteer hours documented below have been verified by the organization and are accurate to the best of our knowledge.
+  </div>
+
+  <!-- Hours Summary -->
+  <div class="hours-summary">
+    <div class="hours-summary__total">
+      <div class="hours-summary__value"><%= Number(totalHours).toFixed(1) %></div>
+      <div class="hours-summary__label">Certified Volunteer Hours — <%= reportTitle %></div>
+    </div>
+    <div class="hours-summary__programs">
+      <% programs.forEach(p => { %>
+        <span class="prog-badge" style="background: <%= (programInfo[p] || {}).color || '#666' %>;"><%= (programInfo[p] || { label: p }).label %></span>
+      <% }) %>
+    </div>
+  </div>
+
+  <% if (entries.length > 0) { %>
+  <h3 style="font-size: 11pt; margin-bottom: 0.5rem;">Detailed Hour Log</h3>
+  <table>
+    <thead><tr><th>Date</th><th>Program</th><th class="text-right">Hours</th><th>Activity</th><th>Notes</th></tr></thead>
+    <tbody>
+      <% entries.forEach(e => { %>
+        <tr>
+          <td><%= e.work_date %></td>
+          <td><span class="prog-badge" style="background: <%= (programInfo[e.program || 'victory_garden'] || {}).color || '#666' %>; font-size: 7pt;"><%= (programInfo[e.program || 'victory_garden'] || { label: 'Victory Garden' }).label %></span></td>
+          <td class="text-right text-bold"><%= e.hours %></td>
+          <td><%= e.activity || '' %></td>
+          <td><%= e.notes || '' %></td>
+        </tr>
+      <% }) %>
+      <tr class="total-row">
+        <td colspan="2">Total — <%= entries.length %> entr<%= entries.length === 1 ? 'y' : 'ies' %></td>
+        <td class="text-right"><%= Number(totalHours).toFixed(1) %></td>
+        <td colspan="2"></td>
+      </tr>
+    </tbody>
+  </table>
+  <% } %>
+
+  <div class="body-text">
+    <strong><%= volunteer.first_name %> <%= volunteer.last_name %></strong> has demonstrated dedication to ICAN's mission of cannabis policy reform, community empowerment, and public education in Iowa. We appreciate their service and confirm the accuracy of the hours documented above.
+  </div>
+
+  <!-- Certification -->
+  <div class="certification">
+    <div class="certification__text">
+      This certification is issued under the authority of the Iowa Cannabis Action Network, Inc. board of directors. The information contained herein is true and correct to the best of our knowledge.
+    </div>
+    <div class="sig-grid">
+      <div>
+        <div style="height: 48px;"></div>
+        <div class="sig-line">Gina Lyn Cox, President<br>Iowa Cannabis Action Network, Inc.</div>
+      </div>
+      <div>
+        <div style="height: 48px;"></div>
+        <div class="sig-line">Date</div>
+      </div>
+    </div>
+    <div class="seal">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+      Generated <%= generatedAt %> (Central Time) &bull; Iowa Cannabis Action Network, Inc. &bull; EIN 41-2746368 &bull; Iowa Corp No: 849500
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

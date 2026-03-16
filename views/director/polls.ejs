@@ -1,0 +1,166 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Polls & Surveys</h1>
+    <p class="page-subtitle"><%= openPolls.length %> open</p>
+  </div>
+  <button class="btn btn--primary" onclick="document.getElementById('new-poll').classList.toggle('hidden')">Create Poll</button>
+</div>
+
+<!-- Create Form -->
+<div id="new-poll" class="card hidden" style="margin-bottom:1.5rem">
+  <div class="card__header"><h2 class="card__title">New Poll</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/director/polls">
+      <div class="form-group">
+        <label class="form-label">Question *</label>
+        <input type="text" name="question" class="form-input" required placeholder="What would you like to ask?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-input" rows="2" placeholder="Optional context..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Poll Type</label>
+          <select name="poll_type" class="form-input">
+            <option value="single">Single choice</option>
+            <option value="multiple">Multiple choice</option>
+            <option value="yes_no">Yes / No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Closes On</label>
+          <input type="date" name="closes_at" class="form-input">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;padding-top:1.5rem">
+          <input type="checkbox" name="anonymous" id="anonymous" value="1">
+          <label for="anonymous" class="form-label" style="margin:0">Anonymous</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Options * (at least 2)</label>
+        <div id="options-container">
+          <input type="text" name="option_1" class="form-input" style="margin-bottom:0.5rem" placeholder="Option 1" required>
+          <input type="text" name="option_2" class="form-input" style="margin-bottom:0.5rem" placeholder="Option 2" required>
+          <input type="text" name="option_3" class="form-input" style="margin-bottom:0.5rem" placeholder="Option 3 (optional)">
+          <input type="text" name="option_4" class="form-input" style="margin-bottom:0.5rem" placeholder="Option 4 (optional)">
+        </div>
+        <button type="button" class="btn btn--outline btn--xs" onclick="addOption()">+ Add Option</button>
+      </div>
+      <button type="submit" class="btn btn--primary">Create Poll</button>
+    </form>
+  </div>
+</div>
+
+<script>
+var optCount = 4;
+function addOption() {
+  if (optCount >= 10) return;
+  optCount++;
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.name = 'option_' + optCount;
+  input.className = 'form-input';
+  input.style = 'margin-bottom:0.5rem';
+  input.placeholder = 'Option ' + optCount + ' (optional)';
+  document.getElementById('options-container').appendChild(input);
+}
+</script>
+
+<!-- Open Polls -->
+<% if (openPolls.length > 0) { %>
+  <h2 style="margin-bottom:1rem;font-size:1.1rem;color:#1E2418">Open Polls</h2>
+  <% openPolls.forEach(poll => { %>
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card__body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <h3 style="margin:0 0 0.25rem"><%= poll.question %></h3>
+            <% if (poll.description) { %><p class="text-muted" style="margin:0 0 0.75rem"><%= poll.description %></p><% } %>
+            <div class="text-muted" style="font-size:0.8rem;margin-bottom:0.75rem">
+              By <%= poll.created_by_name %> &middot; <%= poll.response_count %>/<%= poll.total_members %> responded
+              <% if (poll.anonymous) { %>&middot; Anonymous<% } %>
+              <% if (poll.closes_at) { %>&middot; Closes <%= new Date(poll.closes_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %><% } %>
+            </div>
+          </div>
+          <% if (poll.created_by === director.id || director.isOfficer) { %>
+            <form method="POST" action="/director/polls/<%= poll.id %>/close" onsubmit="return confirm('Close this poll?')">
+              <button type="submit" class="btn btn--outline btn--xs">Close Poll</button>
+            </form>
+          <% } %>
+        </div>
+
+        <% if (poll.myResponse.length > 0) { %>
+          <!-- Already voted — show results -->
+          <div style="margin-top:0.5rem">
+            <% const totalVotes = poll.options.reduce((s, o) => s + o.vote_count, 0); %>
+            <% poll.options.forEach(opt => { %>
+              <%
+                const pct = totalVotes > 0 ? Math.round(opt.vote_count / totalVotes * 100) : 0;
+                const isMyVote = poll.myResponse.some(r => r.option_id === opt.id);
+              %>
+              <div style="margin-bottom:0.5rem">
+                <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:2px">
+                  <span><%= isMyVote ? '&#10003; ' : '' %><%= opt.option_text %></span>
+                  <span style="font-weight:600"><%= pct %>% (<%= opt.vote_count %>)</span>
+                </div>
+                <div style="background:#e8e6e0;border-radius:4px;height:8px;overflow:hidden">
+                  <div style="background:<%= isMyVote ? '#2D6A3F' : '#B8862B' %>;height:100%;width:<%= pct %>%;border-radius:4px;transition:width 0.3s"></div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <!-- Vote form -->
+          <form method="POST" action="/director/polls/<%= poll.id %>/vote" style="margin-top:0.5rem">
+            <% poll.options.forEach(opt => { %>
+              <label style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;cursor:pointer">
+                <input type="<%= poll.poll_type === 'multiple' ? 'checkbox' : 'radio' %>" name="option_id" value="<%= opt.id %>" <%= poll.poll_type !== 'multiple' ? 'required' : '' %>>
+                <span><%= opt.option_text %></span>
+              </label>
+            <% }); %>
+            <button type="submit" class="btn btn--primary btn--sm" style="margin-top:0.5rem">Submit Vote</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  <% }); %>
+<% } %>
+
+<!-- Closed Polls -->
+<% if (closedPolls.length > 0) { %>
+  <h2 style="margin:1.5rem 0 1rem;font-size:1.1rem;color:#1E2418">Closed Polls</h2>
+  <% closedPolls.forEach(poll => { %>
+    <div class="card" style="margin-bottom:1rem;opacity:0.8">
+      <div class="card__body">
+        <h3 style="margin:0 0 0.25rem"><%= poll.question %> <span class="badge" style="background:#95a5a6;color:#fff;font-size:0.7rem">CLOSED</span></h3>
+        <div class="text-muted" style="font-size:0.8rem;margin-bottom:0.75rem">
+          By <%= poll.created_by_name %> &middot; <%= poll.response_count %> responses
+        </div>
+        <% const totalVotes = poll.options.reduce((s, o) => s + o.vote_count, 0); %>
+        <% poll.options.forEach(opt => { %>
+          <%
+            const pct = totalVotes > 0 ? Math.round(opt.vote_count / totalVotes * 100) : 0;
+          %>
+          <div style="margin-bottom:0.5rem">
+            <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:2px">
+              <span><%= opt.option_text %></span>
+              <span style="font-weight:600"><%= pct %>% (<%= opt.vote_count %>)</span>
+            </div>
+            <div style="background:#e8e6e0;border-radius:4px;height:8px;overflow:hidden">
+              <div style="background:#B8862B;height:100%;width:<%= pct %>%;border-radius:4px"></div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  <% }); %>
+<% } %>
+
+<% if (openPolls.length === 0 && closedPolls.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <p class="text-muted" style="text-align:center;padding:2rem 0">No polls yet. Create one to gather board feedback.</p>
+    </div>
+  </div>
+<% } %>

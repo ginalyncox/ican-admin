@@ -1,0 +1,111 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Volunteer Hours — <%= reportTitle %></h1>
+      <p class="page-header__subtitle"><%= program ? (programInfo[program] || { label: program }).label : 'All Programs' %></p>
+    </div>
+    <div class="page-header__actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <a href="/admin/reports/hours?year=<%= year %>&program=<%= program %>&format=certified" target="_blank" class="btn btn--primary btn--sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Certified Report
+      </a>
+      <a href="/admin/reports/hours?year=<%= year %>&program=<%= program %>&format=csv" class="btn btn--outline btn--sm">Export CSV</a>
+      <a href="/admin/reports/hours?year=<%= year %>&program=<%= program %>&format=summary-csv" class="btn btn--ghost btn--sm">Summary CSV</a>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters" style="margin-bottom: 1rem;">
+  <form method="GET" action="/admin/reports/hours" class="filters__form">
+    <select name="year" class="form-select form-select--sm" onchange="this.form.submit()">
+      <% const currentYear = new Date().getFullYear(); %>
+      <% years.forEach(y => { %>
+        <option value="<%= y %>" <%= y === year ? 'selected' : '' %>><%= y === currentYear ? y + ' (YTD)' : y %></option>
+      <% }) %>
+    </select>
+    <select name="program" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Programs</option>
+      <% Object.entries(programInfo).forEach(([k, v]) => { %>
+        <option value="<%= k %>" <%= program === k ? 'selected' : '' %>><%= v.label %></option>
+      <% }) %>
+    </select>
+  </form>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid stats-grid--4" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <div class="stat-card__label">Total Hours</div>
+    <div class="stat-card__value"><%= Number(totalHours).toFixed(1) %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Hour Entries</div>
+    <div class="stat-card__value"><%= totalEntries %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Volunteers</div>
+    <div class="stat-card__value"><%= uniqueVolunteers %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Avg per Volunteer</div>
+    <div class="stat-card__value"><%= uniqueVolunteers > 0 ? (totalHours / uniqueVolunteers).toFixed(1) : '0' %></div>
+  </div>
+</div>
+
+<!-- Hours by Program -->
+<% if (Object.keys(byProgram).length > 1 || !program) { %>
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header"><h2 class="card__title">Hours by Program</h2></div>
+  <div class="card__body">
+    <table class="table">
+      <thead><tr><th>Program</th><th>Hours</th><th>Entries</th><th>Volunteers</th></tr></thead>
+      <tbody>
+        <% Object.entries(byProgram).forEach(([prog, data]) => { %>
+          <tr>
+            <td><span class="badge" style="background: <%= (programInfo[prog] || {}).color || '#666' %>; color: #fff;"><%= (programInfo[prog] || { label: prog }).label %></span></td>
+            <td><strong><%= Number(data.hours).toFixed(1) %></strong></td>
+            <td><%= data.entries %></td>
+            <td><%= data.volunteerCount %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
+
+<!-- Volunteer Summary -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header"><h2 class="card__title">Volunteer Summary</h2></div>
+  <div class="card__body">
+    <% if (volunteers.length === 0) { %>
+      <p class="empty-state">No volunteer hours recorded for this period.</p>
+    <% } else { %>
+      <table class="table">
+        <thead><tr><th>Volunteer</th><th>Programs</th><th>Total Hours</th><th>Entries</th><th>First</th><th>Last</th><th></th></tr></thead>
+        <tbody>
+          <% volunteers.forEach(v => { %>
+            <tr>
+              <td><a href="/admin/garden/gardeners/<%= v.id %>"><%= v.name %></a></td>
+              <td>
+                <% v.programs.forEach(p => { %>
+                  <span class="badge" style="font-size: 0.65rem; background: <%= (programInfo[p] || {}).color || '#666' %>; color: #fff;"><%= (programInfo[p] || { label: p }).label %></span>
+                <% }) %>
+              </td>
+              <td><strong><%= Number(v.totalHours).toFixed(1) %></strong></td>
+              <td><%= v.entries %></td>
+              <td><%= v.firstDate %></td>
+              <td><%= v.lastDate %></td>
+              <td>
+                <a href="/admin/reports/hours/volunteer/<%= v.id %>?year=<%= year %>" target="_blank" class="btn btn--ghost btn--xs" title="Certified Letter">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

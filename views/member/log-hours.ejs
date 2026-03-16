@@ -5,13 +5,43 @@
   </div>
 </div>
 
+<%
+const activitySuggestions = {
+  victory_garden: 'e.g. Weeding, planting, watering, composting',
+  legislative: 'e.g. Lobby day, letter writing, hearing attendance',
+  outreach: 'e.g. Event staffing, tabling, community presentation',
+  fundraising: 'e.g. Event planning, donor outreach, grant writing',
+  communications: 'e.g. Newsletter writing, social media, photography',
+  membership: 'e.g. New member orientation, outreach calls, data entry'
+};
+%>
+
 <div class="card" style="max-width: 600px">
   <div class="card__body">
     <form method="POST" action="/member/log-hours">
-      <% if (seasons.length > 0) { %>
+
       <div class="form-field">
-        <label for="season_id">Season</label>
+        <label for="program">Program</label>
+        <% if (memberPrograms.length === 0) { %>
+          <p style="color: var(--color-muted); font-size: 0.9rem;">You are not enrolled in any programs yet. <a href="/member/programs">Apply for a program</a> first.</p>
+        <% } else if (memberPrograms.length === 1) { %>
+          <input type="hidden" name="program" value="<%= memberPrograms[0] %>">
+          <input type="text" class="form-input" value="<%= (programInfo[memberPrograms[0]] || {}).label || memberPrograms[0] %>" disabled>
+        <% } else { %>
+          <select id="program" name="program" class="form-select" required onchange="updateActivityPlaceholder()">
+            <option value="">Select a program...</option>
+            <% memberPrograms.forEach(p => { %>
+              <option value="<%= p %>" <%= selectedProgram === p ? 'selected' : '' %>><%= (programInfo[p] || {}).label || p %></option>
+            <% }); %>
+          </select>
+        <% } %>
+      </div>
+
+      <% if (seasons.length > 0) { %>
+      <div class="form-field" id="season-field" style="<%= (memberPrograms.length === 1 && memberPrograms[0] !== 'victory_garden') || (selectedProgram && selectedProgram !== 'victory_garden') ? 'display:none' : '' %>">
+        <label for="season_id">Season <span style="font-weight:normal; color:var(--color-muted);">(Victory Garden only)</span></label>
         <select id="season_id" name="season_id" class="form-select">
+          <option value="">No season</option>
           <% seasons.forEach(s => { %>
             <option value="<%= s.id %>"><%= s.name %> (<%= s.year %>)</option>
           <% }) %>
@@ -26,13 +56,13 @@
         </div>
         <div class="form-field">
           <label for="hours">Hours</label>
-          <input type="number" id="hours" name="hours" class="form-input" step="0.25" min="0" required placeholder="0.0">
+          <input type="number" id="hours" name="hours" class="form-input" step="0.25" min="0.25" required placeholder="0.0">
         </div>
       </div>
 
       <div class="form-field">
         <label for="activity">Activity</label>
-        <input type="text" id="activity" name="activity" class="form-input" placeholder="e.g. Weeding, planting, watering">
+        <input type="text" id="activity" name="activity" class="form-input" placeholder="<%= memberPrograms.length === 1 ? (activitySuggestions[memberPrograms[0]] || 'Describe what you worked on') : 'Describe what you worked on' %>">
       </div>
 
       <div class="form-field">
@@ -41,9 +71,24 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn btn--primary">Log Hours</button>
+        <button type="submit" class="btn btn--primary" <%= memberPrograms.length === 0 ? 'disabled' : '' %>>Log Hours</button>
         <a href="/member" class="btn btn--ghost">Cancel</a>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+const activitySuggestions = <%- JSON.stringify(activitySuggestions) %>;
+function updateActivityPlaceholder() {
+  const sel = document.getElementById('program');
+  const actInput = document.getElementById('activity');
+  const seasonField = document.getElementById('season-field');
+  if (sel && actInput) {
+    actInput.placeholder = activitySuggestions[sel.value] || 'Describe what you worked on';
+  }
+  if (seasonField) {
+    seasonField.style.display = (sel && sel.value === 'victory_garden') ? '' : 'none';
+  }
+}
+</script>

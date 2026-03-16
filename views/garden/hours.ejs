@@ -5,10 +5,40 @@
   </div>
 </div>
 
+<%
+const PROG_LABELS = {
+  victory_garden: 'Victory Garden',
+  legislative: 'Legislative',
+  outreach: 'Outreach',
+  fundraising: 'Fundraising',
+  communications: 'Communications',
+  membership: 'Membership'
+};
+%>
+
+<% if (typeof hourStats !== 'undefined' && hourStats) { %>
+<div class="stats-grid stats-grid--4" style="margin-bottom: 1rem;">
+  <div class="stat-card">
+    <div class="stat-card__label">Total Hours</div>
+    <div class="stat-card__value"><%= Number(hourStats.totalHrs).toFixed(1) %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Entries</div>
+    <div class="stat-card__value"><%= hourStats.totalEntries %></div>
+  </div>
+</div>
+<% } %>
+
 <div class="filters">
   <form method="GET" action="/admin/garden/hours" class="filters__form">
+    <select name="program" class="form-select form-select--sm" onchange="this.form.submit()">
+      <option value="">All Programs</option>
+      <% Object.entries(PROG_LABELS).forEach(([k, v]) => { %>
+        <option value="<%= k %>" <%= filters.program === k ? 'selected' : '' %>><%= v %></option>
+      <% }) %>
+    </select>
     <select name="gardener" class="form-select form-select--sm" onchange="this.form.submit()">
-      <option value="">All Gardeners</option>
+      <option value="">All Volunteers</option>
       <% gardeners.forEach(g => { %>
         <option value="<%= g.id %>" <%= filters.gardener == g.id ? 'selected' : '' %>><%= g.last_name %>, <%= g.first_name %></option>
       <% }) %>
@@ -19,6 +49,9 @@
         <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %></option>
       <% }) %>
     </select>
+    <% if (filters.program || filters.gardener || filters.season) { %>
+      <a href="/admin/garden/hours" class="btn btn--ghost btn--sm">Clear</a>
+    <% } %>
   </form>
 </div>
 
@@ -27,12 +60,13 @@
 <% } else { %>
   <div class="card"><div class="card__body">
     <table class="table">
-      <thead><tr><th>Date</th><th>Gardener</th><th>Hours</th><th>Activity</th><th>Season</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Volunteer</th><th>Program</th><th>Hours</th><th>Activity</th><th>Season</th><th></th></tr></thead>
       <tbody>
         <% entries.forEach(e => { %>
           <tr>
             <td><%= e.work_date %></td>
             <td><a href="/admin/garden/gardeners/<%= e.gardener_id %>"><%= e.first_name %> <%= e.last_name %></a></td>
+            <td><span class="badge" style="font-size: 0.7rem;"><%= PROG_LABELS[e.program] || e.program || 'Victory Garden' %></span></td>
             <td><strong><%= e.hours %></strong></td>
             <td><%= e.activity || '—' %></td>
             <td><%= e.season_name || '—' %></td>

@@ -1,0 +1,94 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Announcements</h1>
+    <p class="page-subtitle"><%= unreadCount %> unread</p>
+  </div>
+  <button class="btn btn--primary" onclick="document.getElementById('new-announcement').classList.toggle('hidden')">Post Announcement</button>
+</div>
+
+<!-- Create Form -->
+<div id="new-announcement" class="card hidden" style="margin-bottom:1.5rem">
+  <div class="card__header"><h2 class="card__title">New Announcement</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/director/announcements">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" name="title" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message *</label>
+        <textarea name="body" class="form-input" rows="5" required></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select name="priority" class="form-input">
+            <option value="normal">Normal</option>
+            <option value="important">Important</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;padding-top:1.5rem">
+          <input type="checkbox" name="pinned" id="pinned" value="1">
+          <label for="pinned" class="form-label" style="margin:0">Pin to top</label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn--primary">Post</button>
+    </form>
+  </div>
+</div>
+
+<!-- Announcements List -->
+<% if (announcements.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <p class="text-muted" style="text-align:center;padding:2rem 0">No announcements yet. Be the first to post one.</p>
+    </div>
+  </div>
+<% } else { %>
+  <% announcements.forEach(a => { %>
+    <div class="card" style="margin-bottom:1rem;<%= !a.i_read ? 'border-left:4px solid #2D6A3F' : '' %>">
+      <div class="card__body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.25rem">
+              <% if (a.pinned) { %>
+                <span class="badge" style="background:#B8862B;color:#fff;font-size:0.7rem">PINNED</span>
+              <% } %>
+              <% if (a.priority === 'urgent') { %>
+                <span class="badge" style="background:#c0392b;color:#fff;font-size:0.7rem">URGENT</span>
+              <% } else if (a.priority === 'important') { %>
+                <span class="badge" style="background:#e67e22;color:#fff;font-size:0.7rem">IMPORTANT</span>
+              <% } %>
+              <% if (!a.i_read) { %>
+                <span class="badge" style="background:#2D6A3F;color:#fff;font-size:0.7rem">NEW</span>
+              <% } %>
+            </div>
+            <h3 style="margin:0 0 0.5rem"><%= a.title %></h3>
+            <div style="white-space:pre-wrap;margin-bottom:0.75rem;color:#555;line-height:1.6"><%= a.body %></div>
+            <div class="text-muted" style="font-size:0.8rem">
+              Posted by <strong><%= a.author_name || 'Unknown' %></strong>
+              &middot; <%= new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %>
+              &middot; Read by <%= a.read_count %> of <%= a.total_members %>
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-shrink:0">
+            <% if (!a.i_read) { %>
+              <form method="POST" action="/director/announcements/<%= a.id %>/read">
+                <button type="submit" class="btn btn--outline btn--xs" title="Mark as read">&#10003; Read</button>
+              </form>
+            <% } %>
+            <% if (a.author_id === director.id || director.isOfficer) { %>
+              <form method="POST" action="/director/announcements/<%= a.id %>/pin">
+                <button type="submit" class="btn btn--outline btn--xs"><%= a.pinned ? 'Unpin' : 'Pin' %></button>
+              </form>
+              <form method="POST" action="/director/announcements/<%= a.id %>/delete" onsubmit="return confirm('Delete this announcement?')">
+                <button type="submit" class="btn btn--outline btn--xs" style="color:#c0392b">&times;</button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% }); %>
+<% } %>

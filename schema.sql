@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS garden_hours (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   gardener_id INTEGER REFERENCES gardeners(id) ON DELETE CASCADE,
   season_id INTEGER REFERENCES garden_seasons(id),
+  program TEXT DEFAULT 'victory_garden' CHECK(program IN ('victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership')),
   work_date DATE NOT NULL,
   hours REAL NOT NULL DEFAULT 0,
   activity TEXT,
@@ -382,4 +383,122 @@ CREATE TABLE IF NOT EXISTS events (
   is_public INTEGER DEFAULT 1,
   created_by INTEGER REFERENCES users(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Board Announcements / Discussion
+CREATE TABLE IF NOT EXISTS board_announcements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  priority TEXT DEFAULT 'normal' CHECK(priority IN ('normal', 'important', 'urgent')),
+  pinned INTEGER DEFAULT 0,
+  author_id INTEGER REFERENCES board_members(id),
+  author_name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Board Announcement Read Receipts
+CREATE TABLE IF NOT EXISTS board_announcement_reads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  announcement_id INTEGER REFERENCES board_announcements(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES board_members(id) ON DELETE CASCADE,
+  read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(announcement_id, member_id)
+);
+
+-- Action Items (tasks assigned to board members)
+CREATE TABLE IF NOT EXISTS board_action_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  assigned_to INTEGER REFERENCES board_members(id),
+  assigned_to_name TEXT,
+  meeting_id INTEGER REFERENCES board_meetings(id),
+  due_date DATE,
+  priority TEXT DEFAULT 'normal' CHECK(priority IN ('low', 'normal', 'high', 'urgent')),
+  status TEXT DEFAULT 'open' CHECK(status IN ('open', 'in_progress', 'completed', 'cancelled')),
+  completed_at DATETIME,
+  created_by INTEGER REFERENCES board_members(id),
+  created_by_name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Meeting Agenda Items (structured agendas)
+CREATE TABLE IF NOT EXISTS board_agenda_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  meeting_id INTEGER NOT NULL REFERENCES board_meetings(id) ON DELETE CASCADE,
+  sort_order INTEGER DEFAULT 0,
+  title TEXT NOT NULL,
+  description TEXT,
+  presenter TEXT,
+  duration_minutes INTEGER,
+  item_type TEXT DEFAULT 'discussion' CHECK(item_type IN ('call_to_order', 'roll_call', 'approval', 'report', 'discussion', 'action', 'vote', 'executive_session', 'adjournment', 'other')),
+  attachment_id INTEGER REFERENCES board_documents(id),
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Polls / Surveys (informal feedback)
+CREATE TABLE IF NOT EXISTS board_polls (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question TEXT NOT NULL,
+  description TEXT,
+  poll_type TEXT DEFAULT 'single' CHECK(poll_type IN ('single', 'multiple', 'yes_no')),
+  status TEXT DEFAULT 'open' CHECK(status IN ('open', 'closed')),
+  anonymous INTEGER DEFAULT 0,
+  created_by INTEGER REFERENCES board_members(id),
+  created_by_name TEXT,
+  closes_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Poll Options
+CREATE TABLE IF NOT EXISTS board_poll_options (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  poll_id INTEGER NOT NULL REFERENCES board_polls(id) ON DELETE CASCADE,
+  option_text TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- Poll Responses
+CREATE TABLE IF NOT EXISTS board_poll_responses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  poll_id INTEGER NOT NULL REFERENCES board_polls(id) ON DELETE CASCADE,
+  option_id INTEGER NOT NULL REFERENCES board_poll_options(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES board_members(id),
+  responded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(poll_id, option_id, member_id)
+);
+
+-- Resource Center Items
+CREATE TABLE IF NOT EXISTS board_resources (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT DEFAULT 'general' CHECK(category IN ('governance', 'training', 'legal', 'financial', 'compliance', 'reference', 'template', 'general')),
+  resource_type TEXT DEFAULT 'link' CHECK(resource_type IN ('link', 'document', 'video', 'guide')),
+  url TEXT,
+  document_id INTEGER REFERENCES board_documents(id),
+  pinned INTEGER DEFAULT 0,
+  created_by INTEGER REFERENCES board_members(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Committee Assignments
+CREATE TABLE IF NOT EXISTS board_committees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  chair_id INTEGER REFERENCES board_members(id),
+  status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS board_committee_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  committee_id INTEGER NOT NULL REFERENCES board_committees(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES board_members(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member' CHECK(role IN ('chair', 'vice_chair', 'member')),
+  joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(committee_id, member_id)
 );

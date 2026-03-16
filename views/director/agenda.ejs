@@ -1,0 +1,184 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Agenda Builder</h1>
+    <p class="page-subtitle">
+      <a href="/director/meetings/<%= meeting.id %>">&larr; <%= meeting.title %></a>
+      &middot; <%= new Date(meeting.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %>
+      <% if (totalMinutes > 0) { %>&middot; Est. <%= totalMinutes %> min total<% } %>
+    </p>
+  </div>
+  <button class="btn btn--primary" onclick="document.getElementById('add-item').classList.toggle('hidden')">Add Item</button>
+</div>
+
+<!-- Add Agenda Item Form -->
+<div id="add-item" class="card hidden" style="margin-bottom:1.5rem">
+  <div class="card__header"><h2 class="card__title">Add Agenda Item</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/director/meetings/<%= meeting.id %>/agenda">
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label class="form-label">Title *</label>
+          <input type="text" name="title" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select name="item_type" class="form-input">
+            <option value="call_to_order">Call to Order</option>
+            <option value="roll_call">Roll Call</option>
+            <option value="approval">Approval</option>
+            <option value="report">Report</option>
+            <option value="discussion" selected>Discussion</option>
+            <option value="action">Action Item</option>
+            <option value="vote">Vote / Motion</option>
+            <option value="executive_session">Executive Session</option>
+            <option value="adjournment">Adjournment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Presenter</label>
+          <input type="text" name="presenter" class="form-input" placeholder="Who presents this?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration (min)</label>
+          <input type="number" name="duration_minutes" class="form-input" min="1" max="180" placeholder="5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Attachment</label>
+          <select name="attachment_id" class="form-input">
+            <option value="">None</option>
+            <% documents.forEach(d => { %>
+              <option value="<%= d.id %>"><%= d.title %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes / Description</label>
+        <textarea name="description" class="form-input" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn--primary">Add to Agenda</button>
+    </form>
+  </div>
+</div>
+
+<!-- Agenda Items -->
+<% if (agendaItems.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <p class="text-muted" style="text-align:center;padding:2rem 0">No agenda items yet. Add the first item to build the meeting agenda.</p>
+    </div>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="card__body" style="padding:0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Item</th>
+            <th>Type</th>
+            <th>Presenter</th>
+            <th>Time</th>
+            <th>Attachment</th>
+            <th style="width:120px">Order</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%
+            const typeLabels = {
+              call_to_order: 'Call to Order', roll_call: 'Roll Call', approval: 'Approval',
+              report: 'Report', discussion: 'Discussion', action: 'Action', vote: 'Vote',
+              executive_session: 'Exec. Session', adjournment: 'Adjournment', other: 'Other'
+            };
+            const typeColors = {
+              call_to_order: '#2D6A3F', roll_call: '#2D6A3F', approval: '#3498db',
+              report: '#8e44ad', discussion: '#B8862B', action: '#e67e22', vote: '#c0392b',
+              executive_session: '#1E2418', adjournment: '#2D6A3F', other: '#95a5a6'
+            };
+          %>
+          <% agendaItems.forEach((item, idx) => { %>
+            <tr>
+              <td style="font-weight:600;color:#888"><%= idx + 1 %></td>
+              <td>
+                <div style="font-weight:600"><%= item.title %></div>
+                <% if (item.description) { %><div class="text-muted" style="font-size:0.8rem"><%= item.description %></div><% } %>
+              </td>
+              <td><span class="badge" style="background:<%= typeColors[item.item_type] || '#95a5a6' %>;color:#fff;font-size:0.7rem"><%= typeLabels[item.item_type] || item.item_type %></span></td>
+              <td><%= item.presenter || '—' %></td>
+              <td><%= item.duration_minutes ? item.duration_minutes + ' min' : '—' %></td>
+              <td>
+                <% if (item.attachment_id) { %>
+                  <a href="/director/documents/<%= item.attachment_id %>/download" style="font-size:0.8rem">
+                    &#128196; <%= item.attachment_title || item.attachment_name %>
+                  </a>
+                <% } else { %>—<% } %>
+              </td>
+              <td>
+                <div style="display:flex;gap:0.25rem">
+                  <% if (idx > 0) { %>
+                    <form method="POST" action="/director/meetings/<%= meeting.id %>/agenda/<%= item.id %>/move" style="display:inline">
+                      <input type="hidden" name="direction" value="up">
+                      <button type="submit" class="btn btn--outline btn--xs">&uarr;</button>
+                    </form>
+                  <% } %>
+                  <% if (idx < agendaItems.length - 1) { %>
+                    <form method="POST" action="/director/meetings/<%= meeting.id %>/agenda/<%= item.id %>/move" style="display:inline">
+                      <input type="hidden" name="direction" value="down">
+                      <button type="submit" class="btn btn--outline btn--xs">&darr;</button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+              <td>
+                <form method="POST" action="/director/meetings/<%= meeting.id %>/agenda/<%= item.id %>/delete" onsubmit="return confirm('Remove this item?')">
+                  <button type="submit" class="btn btn--outline btn--xs" style="color:#c0392b">&times;</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Printable Agenda Summary -->
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card__header">
+      <h2 class="card__title">Agenda Preview</h2>
+      <button class="btn btn--outline btn--sm" onclick="window.print()">Print Agenda</button>
+    </div>
+    <div class="card__body" id="printable-agenda">
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <h2 style="margin:0">Iowa Cannabis Action Network</h2>
+        <h3 style="margin:0.25rem 0;color:#2D6A3F"><%= meeting.title %></h3>
+        <p style="margin:0;color:#666">
+          <%= new Date(meeting.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>
+          <% if (meeting.meeting_time) { %> at <%= meeting.meeting_time %><% } %>
+          <% if (meeting.location) { %> &middot; <%= meeting.location %><% } %>
+        </p>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <% agendaItems.forEach((item, idx) => { %>
+          <tr style="border-bottom:1px solid #eee">
+            <td style="padding:0.5rem 1rem 0.5rem 0;font-weight:600;width:30px;vertical-align:top"><%= idx + 1 %>.</td>
+            <td style="padding:0.5rem 0;vertical-align:top">
+              <strong><%= item.title %></strong>
+              <% if (item.presenter) { %> <span style="color:#666">&mdash; <%= item.presenter %></span><% } %>
+              <% if (item.description) { %><div style="color:#555;font-size:0.85rem;margin-top:2px"><%= item.description %></div><% } %>
+            </td>
+            <td style="padding:0.5rem 0 0.5rem 1rem;text-align:right;white-space:nowrap;vertical-align:top;color:#666">
+              <%= item.duration_minutes ? item.duration_minutes + ' min' : '' %>
+            </td>
+          </tr>
+        <% }); %>
+      </table>
+      <% if (totalMinutes > 0) { %>
+        <p style="text-align:right;margin-top:0.75rem;font-weight:600;color:#2D6A3F">Total estimated time: <%= totalMinutes %> minutes</p>
+      <% } %>
+    </div>
+  </div>
+<% } %>

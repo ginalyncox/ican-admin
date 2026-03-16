@@ -1,0 +1,137 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Resource Center</h1>
+    <p class="page-subtitle">Governance guides, training materials, and reference documents</p>
+  </div>
+  <button class="btn btn--primary" onclick="document.getElementById('add-resource').classList.toggle('hidden')">Add Resource</button>
+</div>
+
+<!-- Category Filters -->
+<% if (categories.length > 0) { %>
+  <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
+    <a href="/director/resources" class="btn btn--<%= !currentCategory ? 'primary' : 'outline' %> btn--sm">All</a>
+    <% categories.forEach(cat => { %>
+      <a href="/director/resources?category=<%= cat.category %>" class="btn btn--<%= currentCategory === cat.category ? 'primary' : 'outline' %> btn--sm">
+        <%= cat.category.charAt(0).toUpperCase() + cat.category.slice(1) %> (<%= cat.count %>)
+      </a>
+    <% }); %>
+  </div>
+<% } %>
+
+<!-- Add Resource Form -->
+<div id="add-resource" class="card hidden" style="margin-bottom:1.5rem">
+  <div class="card__header"><h2 class="card__title">Add Resource</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/director/resources">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" name="title" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-input" rows="2"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select name="category" class="form-input">
+            <option value="governance">Governance</option>
+            <option value="training">Training</option>
+            <option value="legal">Legal</option>
+            <option value="financial">Financial</option>
+            <option value="compliance">Compliance</option>
+            <option value="reference">Reference</option>
+            <option value="template">Template</option>
+            <option value="general" selected>General</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select name="resource_type" class="form-input" id="resourceType" onchange="toggleFields()">
+            <option value="link">External Link</option>
+            <option value="document">Board Document</option>
+            <option value="video">Video</option>
+            <option value="guide">Guide / How-To</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" id="url-field">
+        <label class="form-label">URL</label>
+        <input type="url" name="url" class="form-input" placeholder="https://...">
+      </div>
+      <div class="form-group hidden" id="doc-field">
+        <label class="form-label">Linked Document</label>
+        <select name="document_id" class="form-input">
+          <option value="">Select a document...</option>
+          <% documents.forEach(d => { %>
+            <option value="<%= d.id %>"><%= d.title %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:0.5rem">
+        <input type="checkbox" name="pinned" id="res-pinned" value="1">
+        <label for="res-pinned" class="form-label" style="margin:0">Pin to top</label>
+      </div>
+      <button type="submit" class="btn btn--primary">Add Resource</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleFields() {
+  var type = document.getElementById('resourceType').value;
+  document.getElementById('url-field').classList.toggle('hidden', type === 'document');
+  document.getElementById('doc-field').classList.toggle('hidden', type !== 'document');
+}
+</script>
+
+<!-- Resources Grid -->
+<% if (resources.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <p class="text-muted" style="text-align:center;padding:2rem 0">No resources yet. Add governance guides, training materials, or reference links.</p>
+    </div>
+  </div>
+<% } else { %>
+  <%
+    const typeIcons = {
+      link: '&#128279;', document: '&#128196;', video: '&#127909;', guide: '&#128218;'
+    };
+    const catColors = {
+      governance: '#2D6A3F', training: '#3498db', legal: '#8e44ad',
+      financial: '#e67e22', compliance: '#c0392b', reference: '#B8862B',
+      template: '#16a085', general: '#95a5a6'
+    };
+  %>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(340px, 1fr));gap:1rem">
+    <% resources.forEach(r => { %>
+      <div class="card" style="<%= r.pinned ? 'border-left:4px solid #B8862B' : '' %>">
+        <div class="card__body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <span style="font-size:1.25rem"><%- typeIcons[r.resource_type] || '&#128196;' %></span>
+              <span class="badge" style="background:<%= catColors[r.category] || '#95a5a6' %>;color:#fff;font-size:0.7rem"><%= r.category %></span>
+              <% if (r.pinned) { %><span class="badge" style="background:#B8862B;color:#fff;font-size:0.7rem">PINNED</span><% } %>
+            </div>
+            <form method="POST" action="/director/resources/<%= r.id %>/delete" onsubmit="return confirm('Remove this resource?')">
+              <button type="submit" class="btn btn--outline btn--xs" style="color:#c0392b">&times;</button>
+            </form>
+          </div>
+          <h3 style="margin:0 0 0.25rem">
+            <% if (r.url) { %>
+              <a href="<%= r.url %>" target="_blank" rel="noopener"><%= r.title %></a>
+            <% } else if (r.document_id) { %>
+              <a href="/director/documents/<%= r.document_id %>/download"><%= r.title %></a>
+            <% } else { %>
+              <%= r.title %>
+            <% } %>
+          </h3>
+          <% if (r.description) { %><p class="text-muted" style="margin:0 0 0.5rem;font-size:0.85rem"><%= r.description %></p><% } %>
+          <div class="text-muted" style="font-size:0.75rem">
+            Added by <%= r.created_by_name || 'Unknown' %> &middot; <%= new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>

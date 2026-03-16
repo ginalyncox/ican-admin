@@ -1,0 +1,143 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Action Items</h1>
+    <p class="page-subtitle"><%= stats.myOpen %> assigned to me &middot; <%= stats.totalOpen %> total open<% if (stats.myOverdue) { %> &middot; <span style="color:#c0392b"><%= stats.myOverdue %> overdue</span><% } %></p>
+  </div>
+  <button class="btn btn--primary" onclick="document.getElementById('new-task').classList.toggle('hidden')">New Action Item</button>
+</div>
+
+<!-- Filters -->
+<div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
+  <a href="/director/tasks?filter=mine" class="btn btn--<%= filter === 'mine' ? 'primary' : 'outline' %> btn--sm">My Tasks</a>
+  <a href="/director/tasks?filter=all" class="btn btn--<%= filter === 'all' ? 'primary' : 'outline' %> btn--sm">All Tasks</a>
+  <a href="/director/tasks?filter=overdue" class="btn btn--<%= filter === 'overdue' ? 'primary' : 'outline' %> btn--sm" style="<%= stats.myOverdue ? 'color:#c0392b' : '' %>">Overdue<% if (stats.myOverdue) { %> (<%= stats.myOverdue %>)<% } %></a>
+</div>
+
+<!-- Create Form -->
+<div id="new-task" class="card hidden" style="margin-bottom:1.5rem">
+  <div class="card__header"><h2 class="card__title">New Action Item</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/director/tasks">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" name="title" class="form-input" required placeholder="What needs to be done?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-input" rows="3" placeholder="Additional details..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Assign To</label>
+          <select name="assigned_to" class="form-input">
+            <option value="">Unassigned</option>
+            <% members.forEach(m => { %>
+              <option value="<%= m.id %>"><%= m.first_name %> <%= m.last_name %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input type="date" name="due_date" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select name="priority" class="form-input">
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Related Meeting</label>
+        <select name="meeting_id" class="form-input">
+          <option value="">None</option>
+          <% meetings.forEach(m => { %>
+            <option value="<%= m.id %>"><%= m.title %> (<%= m.meeting_date %>)</option>
+          <% }); %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn--primary">Create</button>
+    </form>
+  </div>
+</div>
+
+<!-- Tasks List -->
+<% if (items.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <p class="text-muted" style="text-align:center;padding:2rem 0">No action items found.</p>
+    </div>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="card__body" style="padding:0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:40%">Task</th>
+            <th>Assigned To</th>
+            <th>Due Date</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th style="width:120px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% items.forEach(item => { %>
+            <%
+              const isOverdue = item.due_date && item.due_date < new Date().toISOString().split('T')[0] && item.status !== 'completed';
+              const priorityColors = { urgent: '#c0392b', high: '#e67e22', normal: '#2D6A3F', low: '#7f8c8d' };
+              const statusColors = { open: '#3498db', in_progress: '#e67e22', completed: '#2D6A3F', cancelled: '#95a5a6' };
+            %>
+            <tr style="<%= item.status === 'completed' ? 'opacity:0.6' : '' %>">
+              <td>
+                <div style="font-weight:600;<%= item.status === 'completed' ? 'text-decoration:line-through' : '' %>"><%= item.title %></div>
+                <% if (item.description) { %><div class="text-muted" style="font-size:0.8rem;margin-top:2px"><%= item.description.substring(0, 100) %><%= item.description.length > 100 ? '...' : '' %></div><% } %>
+                <% if (item.meeting_title) { %><div class="text-muted" style="font-size:0.75rem;margin-top:2px">From: <%= item.meeting_title %></div><% } %>
+              </td>
+              <td><%= item.assigned_to_name || 'Unassigned' %></td>
+              <td style="<%= isOverdue ? 'color:#c0392b;font-weight:600' : '' %>">
+                <% if (item.due_date) { %>
+                  <%= new Date(item.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %>
+                  <% if (isOverdue) { %><div style="font-size:0.7rem">OVERDUE</div><% } %>
+                <% } else { %>&mdash;<% } %>
+              </td>
+              <td><span class="badge" style="background:<%= priorityColors[item.priority] || '#2D6A3F' %>;color:#fff;font-size:0.7rem"><%= item.priority %></span></td>
+              <td><span class="badge" style="background:<%= statusColors[item.status] || '#95a5a6' %>;color:#fff;font-size:0.7rem"><%= item.status.replace('_', ' ') %></span></td>
+              <td>
+                <div style="display:flex;gap:0.25rem;flex-wrap:wrap">
+                  <% if (item.status === 'open') { %>
+                    <form method="POST" action="/director/tasks/<%= item.id %>/status" style="display:inline">
+                      <input type="hidden" name="status" value="in_progress">
+                      <button type="submit" class="btn btn--outline btn--xs" title="Start">&#9654;</button>
+                    </form>
+                    <form method="POST" action="/director/tasks/<%= item.id %>/status" style="display:inline">
+                      <input type="hidden" name="status" value="completed">
+                      <button type="submit" class="btn btn--outline btn--xs" title="Complete">&#10003;</button>
+                    </form>
+                  <% } else if (item.status === 'in_progress') { %>
+                    <form method="POST" action="/director/tasks/<%= item.id %>/status" style="display:inline">
+                      <input type="hidden" name="status" value="completed">
+                      <button type="submit" class="btn btn--outline btn--xs" title="Complete">&#10003;</button>
+                    </form>
+                  <% } else if (item.status === 'completed') { %>
+                    <form method="POST" action="/director/tasks/<%= item.id %>/status" style="display:inline">
+                      <input type="hidden" name="status" value="open">
+                      <button type="submit" class="btn btn--outline btn--xs" title="Reopen">&#8634;</button>
+                    </form>
+                  <% } %>
+                  <form method="POST" action="/director/tasks/<%= item.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this task?')">
+                    <button type="submit" class="btn btn--outline btn--xs" style="color:#c0392b">&times;</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

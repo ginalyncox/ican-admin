@@ -1402,16 +1402,18 @@ textarea.form-input {
 .director-nav__link {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.75rem;
+  gap: 0.3rem;
+  padding: 0.4rem 0.55rem;
   border-radius: var(--radius-sm);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 500;
   color: rgba(245, 243, 237, 0.7);
   text-decoration: none;
   transition: all var(--transition);
   white-space: nowrap;
 }
+.director-nav::-webkit-scrollbar { height: 3px; }
+.director-nav::-webkit-scrollbar-thumb { background: rgba(245,243,237,0.3); border-radius: 3px; }
 .director-nav__link:hover {
   color: var(--text-inverse);
   background: rgba(245, 243, 237, 0.1);

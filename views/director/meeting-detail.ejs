@@ -9,6 +9,7 @@
     </p>
   </div>
   <div style="display:flex; gap:0.5rem; align-items:center;">
+    <a href="/director/meetings/<%= meeting.id %>/agenda" class="btn btn--primary btn--sm">Agenda Builder</a>
     <span class="badge badge--<%= meeting.meeting_type %>" style="font-size:0.85rem;"><%= meeting.meeting_type %></span>
     <span class="badge badge--<%= meeting.status === 'completed' ? 'garden' : meeting.status === 'cancelled' ? 'social' : 'meeting' %>" style="font-size:0.85rem;"><%= meeting.status %></span>
   </div>

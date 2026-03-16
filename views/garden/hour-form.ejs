@@ -2,12 +2,23 @@
   <h1 class="page-header__title">Log Volunteer Hours</h1>
 </div>
 
+<%
+const PROG_LABELS = {
+  victory_garden: 'Victory Garden',
+  legislative: 'Legislative Action',
+  outreach: 'Community Outreach',
+  fundraising: 'Fundraising',
+  communications: 'Communications',
+  membership: 'Membership'
+};
+%>
+
 <div class="card" style="max-width: 640px;">
   <div class="card__body">
     <form method="POST" action="/admin/garden/hours">
       <div class="form-row">
         <div class="form-field">
-          <label class="form-label" for="gardener_id">Gardener</label>
+          <label class="form-label" for="gardener_id">Volunteer</label>
           <select class="form-select" id="gardener_id" name="gardener_id" required>
             <option value="">— Select —</option>
             <% gardeners.forEach(g => { %>
@@ -16,9 +27,19 @@
           </select>
         </div>
         <div class="form-field">
-          <label class="form-label" for="season_id">Season</label>
+          <label class="form-label" for="program">Program</label>
+          <select class="form-select" id="program" name="program" required onchange="document.getElementById('season-row').style.display = this.value === 'victory_garden' ? '' : 'none';">
+            <% Object.entries(PROG_LABELS).forEach(([k, v]) => { %>
+              <option value="<%= k %>" <%= (entry.program || 'victory_garden') === k ? 'selected' : '' %>><%= v %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" id="season-row" style="<%= (entry.program && entry.program !== 'victory_garden') ? 'display:none' : '' %>">
+        <div class="form-field">
+          <label class="form-label" for="season_id">Season <span style="font-weight:normal; color:var(--color-muted);">(Victory Garden)</span></label>
           <select class="form-select" id="season_id" name="season_id">
-            <option value="">— Select —</option>
+            <option value="">— None —</option>
             <% seasons.forEach(s => { %>
               <option value="<%= s.id %>" <%= entry.season_id == s.id ? 'selected' : '' %>><%= s.name %></option>
             <% }) %>
@@ -32,7 +53,7 @@
         </div>
         <div class="form-field">
           <label class="form-label" for="hours">Hours</label>
-          <input class="form-input" type="number" id="hours" name="hours" value="<%= entry.hours %>" step="0.25" min="0" required>
+          <input class="form-input" type="number" id="hours" name="hours" value="<%= entry.hours %>" step="0.25" min="0.25" required>
         </div>
       </div>
       <div class="form-field">

@@ -67,6 +67,11 @@ for (const [col, type] of gardenerCols) {
   try { db.exec(`ALTER TABLE gardeners ADD COLUMN ${col} ${type}`); } catch (e) { /* exists */ }
 }
 
+// Migration — add program column to garden_hours for universal hour logging
+try {
+  db.exec(`ALTER TABLE garden_hours ADD COLUMN program TEXT DEFAULT 'victory_garden'`);
+} catch (e) { /* column already exists */ }
+
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
@@ -142,6 +147,7 @@ app.use('/admin/events', require('./routes/events'));
 app.use('/admin/board', require('./routes/board-admin'));
 app.use('/admin/directory', require('./routes/directory'));
 app.use('/admin/messages', require('./routes/messages'));
+app.use('/admin/reports', require('./routes/reports'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');
