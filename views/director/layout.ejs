@@ -10,6 +10,9 @@
 <body class="director-body">
   <div class="director-layout">
     <header class="director-header">
+      <button class="mobile-menu-toggle" onclick="toggleMobileNav()" aria-label="Open menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div class="director-header__brand">
         <svg viewBox="0 0 32 32" fill="none" width="28" height="28">
           <path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z" fill="#2D6A3F" opacity="0.9"/>
@@ -105,5 +108,104 @@
       <p>Iowa Cannabis Action Network &middot; Board of Directors Portal</p>
     </footer>
   </div>
+
+  <!-- Mobile Nav Drawer -->
+  <div class="mobile-nav-overlay mobile-nav-overlay--director" id="mobileNavOverlay" onclick="closeMobileNav()"></div>
+  <aside class="mobile-nav-drawer mobile-nav-drawer--director" id="mobileNavDrawer">
+    <div class="mobile-nav-drawer__header">
+      <div class="mobile-nav-drawer__brand">
+        <svg viewBox="0 0 32 32" fill="none" width="24" height="24">
+          <path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z" fill="#2D6A3F" opacity="0.9"/>
+          <path d="M16 8 L16 24" stroke="#F5F3ED" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M16 14 L12 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M16 14 L20 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <span>Board Portal</span>
+      </div>
+      <button class="mobile-nav-drawer__close" onclick="closeMobileNav()" aria-label="Close menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5F3ED" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <nav class="mobile-nav-drawer__links">
+      <a href="/director" class="mobile-nav-drawer__link <%= path === '/director' || path === '/director/' ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
+      </a>
+      <a href="/director/announcements" class="mobile-nav-drawer__link <%= path.startsWith('/director/announcements') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Announcements
+      </a>
+      <a href="/director/tasks" class="mobile-nav-drawer__link <%= path.startsWith('/director/tasks') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Tasks
+      </a>
+      <a href="/director/meetings" class="mobile-nav-drawer__link <%= path.startsWith('/director/meetings') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Meetings
+      </a>
+      <a href="/director/votes" class="mobile-nav-drawer__link <%= path.startsWith('/director/votes') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Votes
+      </a>
+      <a href="/director/polls" class="mobile-nav-drawer__link <%= path.startsWith('/director/polls') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        Polls
+      </a>
+      <a href="/director/documents" class="mobile-nav-drawer__link <%= path.startsWith('/director/documents') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Documents
+      </a>
+      <a href="/director/resources" class="mobile-nav-drawer__link <%= path.startsWith('/director/resources') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Resources
+      </a>
+      <a href="/director/committees" class="mobile-nav-drawer__link <%= path.startsWith('/director/committees') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Committees
+      </a>
+      <a href="/director/coi" class="mobile-nav-drawer__link <%= path.startsWith('/director/coi') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        COI
+      </a>
+      <a href="/director/calendar" class="mobile-nav-drawer__link <%= path.startsWith('/director/calendar') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="1"/></svg>
+        Calendar
+      </a>
+      <a href="/director/financials" class="mobile-nav-drawer__link <%= path.startsWith('/director/financials') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Financials
+      </a>
+      <a href="/director/roster" class="mobile-nav-drawer__link <%= path.startsWith('/director/roster') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+        Roster
+      </a>
+      <a href="/director/profile" class="mobile-nav-drawer__link <%= path.startsWith('/director/profile') ? 'mobile-nav-drawer__link--active' : '' %>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </a>
+    </nav>
+    <div class="mobile-nav-drawer__footer">
+      <span><%= director.name %></span>
+      <% if (director.officerTitle) { %><span style="font-size: 0.75rem; opacity: 0.6;"><%= director.officerTitle %></span><% } %>
+      <a href="/director/logout">Sign out</a>
+    </div>
+  </aside>
+
+  <script>
+    function toggleMobileNav() {
+      var drawer = document.getElementById('mobileNavDrawer');
+      var overlay = document.getElementById('mobileNavOverlay');
+      drawer.classList.add('mobile-nav-drawer--open');
+      overlay.classList.add('mobile-nav-overlay--open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMobileNav() {
+      var drawer = document.getElementById('mobileNavDrawer');
+      var overlay = document.getElementById('mobileNavOverlay');
+      drawer.classList.remove('mobile-nav-drawer--open');
+      overlay.classList.remove('mobile-nav-overlay--open');
+      document.body.style.overflow = '';
+    }
+  </script>
 </body>
 </html>
