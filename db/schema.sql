@@ -175,7 +175,9 @@ CREATE TABLE IF NOT EXISTS board_members (
   term_end DATE,
   is_officer INTEGER DEFAULT 0,
   officer_title TEXT,
-  status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'emeritus')),
+  status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'emeritus', 'locked')),
+  locked_at DATETIME,
+  locked_reason TEXT,
   last_login DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

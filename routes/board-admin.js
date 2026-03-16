@@ -57,6 +57,25 @@ router.post('/:id/status', requireAuth, requireRole('admin'), (req, res) => {
   res.redirect('/admin/board');
 });
 
+// Lock board member (blocks login, shows seat as vacant on public site)
+router.post('/:id/lock', requireAuth, requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const { reason } = req.body;
+  const member = db.prepare('SELECT first_name, last_name FROM board_members WHERE id = ?').get(req.params.id);
+  db.prepare(`UPDATE board_members SET status = 'locked', locked_at = datetime('now'), locked_reason = ? WHERE id = ?`).run(reason || null, req.params.id);
+  req.session.flash = { type: 'success', message: `${member ? member.first_name + ' ' + member.last_name : 'Board member'} has been locked. Their portal access is blocked and their seat shows as vacant on the public website.` };
+  res.redirect('/admin/board');
+});
+
+// Unlock board member (restores to active)
+router.post('/:id/unlock', requireAuth, requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const member = db.prepare('SELECT first_name, last_name FROM board_members WHERE id = ?').get(req.params.id);
+  db.prepare(`UPDATE board_members SET status = 'active', locked_at = NULL, locked_reason = NULL WHERE id = ?`).run(req.params.id);
+  req.session.flash = { type: 'success', message: `${member ? member.first_name + ' ' + member.last_name : 'Board member'} has been unlocked. Portal access restored and seat is visible on the public website.` };
+  res.redirect('/admin/board');
+});
+
 // Reset board member password
 router.post('/:id/reset-password', requireAuth, requireRole('admin'), (req, res) => {
   const db = req.app.locals.db;

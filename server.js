@@ -24,6 +24,14 @@ db.pragma('foreign_keys = ON');
 const schema = fs.readFileSync(schemaPath, 'utf8');
 db.exec(schema);
 
+// Migrations — add columns that may not exist yet
+try {
+  db.exec(`ALTER TABLE board_members ADD COLUMN locked_at DATETIME`);
+} catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE board_members ADD COLUMN locked_reason TEXT`);
+} catch (e) { /* column already exists */ }
+
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
@@ -128,12 +136,27 @@ app.post('/admin/api/webhook', (req, res) => {
 
 // Public API: upcoming events (no auth — used by public website)
 app.get('/api/events', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
   const events = db.prepare(`
     SELECT title, description, location, event_date, event_time, end_time, event_type
     FROM events WHERE is_public = 1 AND event_date >= date('now')
     ORDER BY event_date ASC LIMIT 20
   `).all();
   res.json(events);
+});
+
+// Public API: active board members (no auth — used by public website)
+// Locked members are returned with is_locked=1 so the website shows their seat as vacant
+app.get('/api/board', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const members = db.prepare(`
+    SELECT first_name, last_name, title, officer_title, is_officer, bio, term_start, term_end,
+      CASE WHEN status = 'locked' THEN 1 ELSE 0 END as is_locked
+    FROM board_members
+    WHERE status IN ('active', 'locked')
+    ORDER BY is_officer DESC, last_name ASC
+  `).all();
+  res.json(members);
 });
 
 // Subscriber CSV export

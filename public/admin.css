@@ -1777,6 +1777,10 @@ textarea.form-input {
 .badge--report { background: #f0e3f5; color: #7a2c99; }
 .badge--compliance { background: #fde8d5; color: #b8540d; }
 
+/* Locked badge */
+.badge--locked { background: #fce4e4; color: #a32929; font-weight: 600; }
+.badge--garden { background: var(--success-light); color: var(--success); }
+
 /* Responsive director */
 @media (max-width: 900px) {
   .director-grid { grid-template-columns: 1fr; }

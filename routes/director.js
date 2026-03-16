@@ -44,11 +44,19 @@ router.post('/login', (req, res) => {
   }
 
   const member = db.prepare(`
-    SELECT * FROM board_members WHERE email = ? AND status = 'active'
+    SELECT * FROM board_members WHERE email = ?
   `).get(email);
 
   if (!member) {
     return res.render('director/login', { title: 'Director Login', error: 'Invalid email or password.', layout: false });
+  }
+
+  if (member.status === 'locked') {
+    return res.render('director/login', { title: 'Director Login', error: 'Your account has been locked by an administrator. Please contact the board chair for assistance.', layout: false });
+  }
+
+  if (member.status !== 'active') {
+    return res.render('director/login', { title: 'Director Login', error: 'Your account is not active. Please contact the administrator.', layout: false });
   }
 
   const valid = bcrypt.compareSync(password, member.password_hash);
