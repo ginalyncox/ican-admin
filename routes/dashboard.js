@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { getRecentActivity } = require('../lib/activity-log');
 const router = express.Router();
 
 router.get('/', requireAuth, (req, res) => {
@@ -64,11 +65,15 @@ router.get('/', requireAuth, (req, res) => {
     totalMessages = db.prepare('SELECT COUNT(*) as count FROM member_messages').get().count;
   } catch (e) { /* table may not exist */ }
 
+  // Recent activity
+  const recentActivity = getRecentActivity(db, 15);
+
   res.render('dashboard', {
     title: 'Dashboard',
     stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, totalMessages },
     recentPosts,
-    recentSubmissions
+    recentSubmissions,
+    recentActivity
   });
 });
 

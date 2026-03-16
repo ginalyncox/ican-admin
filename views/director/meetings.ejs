@@ -20,17 +20,38 @@
             <th>Time</th>
             <th>Location</th>
             <th>Type</th>
+            <th>Your RSVP</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <% upcoming.forEach(m => { %>
+            <%
+              const myResponse = (typeof rsvpMap !== 'undefined' && rsvpMap[m.id]) || null;
+              const summary = (typeof rsvpSummary !== 'undefined' && rsvpSummary[m.id]) || [];
+              const attendingCount = summary.filter(s => s.response === 'attending' || s.response === 'remote').reduce((a,b) => a + b.count, 0);
+            %>
             <tr>
               <td><%= new Date(m.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
-              <td><strong><%= m.title %></strong></td>
+              <td>
+                <strong><%= m.title %></strong>
+                <% if (attendingCount > 0) { %>
+                  <span style="font-size: 0.72rem; color: var(--color-muted); display: block;"><%= attendingCount %> confirmed</span>
+                <% } %>
+              </td>
               <td><%= m.meeting_time || '—' %></td>
               <td><%= m.location || '—' %></td>
               <td><span class="badge badge--<%= m.meeting_type %>"><%= m.meeting_type %></span></td>
+              <td>
+                <div class="rsvp-group">
+                  <form method="POST" action="/director/meetings/<%= m.id %>/rsvp" style="display: contents;">
+                    <button name="response" value="attending" class="rsvp-btn <%= myResponse === 'attending' ? 'active' : '' %>">Attending</button>
+                    <button name="response" value="remote" class="rsvp-btn <%= myResponse === 'remote' ? 'active active--remote' : '' %>">Remote</button>
+                    <button name="response" value="tentative" class="rsvp-btn <%= myResponse === 'tentative' ? 'active active--tentative' : '' %>">Maybe</button>
+                    <button name="response" value="declined" class="rsvp-btn <%= myResponse === 'declined' ? 'active active--declined' : '' %>">Can't</button>
+                  </form>
+                </div>
+              </td>
               <td class="table__actions"><a href="/director/meetings/<%= m.id %>" class="btn btn--outline btn--sm">Details</a></td>
             </tr>
           <% }); %>

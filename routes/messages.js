@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { logActivity } = require('../lib/activity-log');
 
 router.use(requireAuth);
 
@@ -35,6 +36,7 @@ router.post('/send', requireRole('admin', 'editor'), (req, res) => {
     db.prepare('INSERT INTO member_messages (subject, body, message_type, target_program, sent_by) VALUES (?, ?, ?, ?, ?)').run(
       subject, body, message_type || 'general', target_program || null, req.session.userId
     );
+    logActivity(db, { userId: req.session.userId, userName: res.locals.user?.name, action: 'sent message', entityType: 'message', entityLabel: subject, details: message_type === 'general' ? 'To all members' : 'To ' + (target_program || 'all') });
     req.session.flash = { type: 'success', message: 'Message sent to all members.' };
   } catch (err) {
     req.session.flash = { type: 'error', message: 'Failed to send message.' };

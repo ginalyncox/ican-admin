@@ -295,12 +295,54 @@ router.get('/meetings', requireDirector, (req, res) => {
     ORDER BY meeting_date DESC LIMIT 20
   `).all();
 
+  // Get RSVP data for upcoming meetings
+  const myId = req.session.directorBoardMemberId;
+  const rsvpMap = {};
+  try {
+    const rsvps = db.prepare('SELECT meeting_id, response FROM meeting_rsvps WHERE member_id = ?').all(myId);
+    for (const r of rsvps) rsvpMap[r.meeting_id] = r.response;
+  } catch (e) { /* table may not exist yet */ }
+
+  // RSVP summary per meeting
+  const rsvpSummary = {};
+  try {
+    for (const m of upcoming) {
+      rsvpSummary[m.id] = db.prepare('SELECT response, COUNT(*) as count FROM meeting_rsvps WHERE meeting_id = ? GROUP BY response').all(m.id);
+    }
+  } catch (e) { /* ignore */ }
+
   res.render('director/meetings', {
     title: 'Board Meetings',
     upcoming,
     past,
+    rsvpMap,
+    rsvpSummary,
     layout: 'director/layout'
   });
+});
+
+// RSVP to a meeting
+router.post('/meetings/:id/rsvp', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const { response, note } = req.body;
+  const myId = req.session.directorBoardMemberId;
+  const validResponses = ['attending', 'remote', 'declined', 'tentative'];
+  if (!validResponses.includes(response)) {
+    req.session.directorFlash = { type: 'error', message: 'Invalid RSVP response.' };
+    return res.redirect('/director/meetings');
+  }
+  try {
+    db.prepare(`
+      INSERT INTO meeting_rsvps (meeting_id, member_id, response, note)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(meeting_id, member_id) DO UPDATE SET response = excluded.response, note = excluded.note, responded_at = datetime('now')
+    `).run(req.params.id, myId, response, note || null);
+    req.session.directorFlash = { type: 'success', message: 'RSVP updated.' };
+  } catch (e) {
+    req.session.directorFlash = { type: 'error', message: 'Failed to save RSVP.' };
+  }
+  const referer = req.get('Referer') || '/director/meetings';
+  res.redirect(referer);
 });
 
 router.get('/meetings/:id', requireDirector, (req, res) => {
@@ -325,12 +367,26 @@ router.get('/meetings/:id', requireDirector, (req, res) => {
   // All active members for attendance
   const allMembers = db.prepare(`SELECT * FROM board_members WHERE status = 'active' ORDER BY last_name`).all();
 
+  // RSVP data
+  let rsvps = [];
+  let myRsvp = null;
+  try {
+    rsvps = db.prepare(`
+      SELECT r.*, b.first_name, b.last_name
+      FROM meeting_rsvps r JOIN board_members b ON r.member_id = b.id
+      WHERE r.meeting_id = ? ORDER BY b.last_name
+    `).all(req.params.id);
+    myRsvp = db.prepare('SELECT response, note FROM meeting_rsvps WHERE meeting_id = ? AND member_id = ?').get(req.params.id, req.session.directorBoardMemberId);
+  } catch (e) { /* table may not exist */ }
+
   res.render('director/meeting-detail', {
     title: meeting.title,
     meeting,
     attendance,
     votes,
     allMembers,
+    rsvps,
+    myRsvp,
     layout: 'director/layout'
   });
 });
@@ -767,6 +823,42 @@ router.get('/financials', requireDirector, (req, res) => {
     title: 'Financial Overview',
     stats: { totalDonatedLbs, totalGardeners, totalSubscribers, totalSubmissions, totalVolunteerHours, totalEvents },
     harvestTrends,
+    layout: 'director/layout'
+  });
+});
+
+// ── BOARD CALENDAR ──────────────────────────────────────────
+router.get('/calendar', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const now = new Date();
+  const month = parseInt(req.query.month) || (now.getMonth() + 1);
+  const year = parseInt(req.query.year) || now.getFullYear();
+
+  // Get meetings for the month
+  const monthStr = String(month).padStart(2, '0');
+  const meetings = db.prepare(`
+    SELECT id, title, meeting_date, meeting_time, meeting_type, status
+    FROM board_meetings
+    WHERE strftime('%Y-%m', meeting_date) = ?
+    ORDER BY meeting_date
+  `).all(`${year}-${monthStr}`);
+
+  // Get votes with deadlines in this month (use created_at as proxy)
+  const votes = db.prepare(`
+    SELECT id, motion_title, status, created_at
+    FROM board_votes
+    WHERE status IN ('pending', 'open')
+    AND strftime('%Y-%m', created_at) = ?
+  `).all(`${year}-${monthStr}`);
+
+  // COI filing deadlines (if it's January, remind about annual filing)
+  const coiReminder = month === 1;
+
+  res.render('director/calendar', {
+    title: 'Board Calendar',
+    month, year,
+    meetings, votes,
+    coiReminder,
     layout: 'director/layout'
   });
 });

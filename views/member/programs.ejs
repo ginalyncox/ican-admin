@@ -77,7 +77,33 @@ const programDetails = {
           <span class="badge badge--success">Active</span>
           &nbsp; Assigned: <%= new Date(p.assigned_at).toLocaleDateString() %>
         </p>
-        <% if (p.program === 'victory_garden') { %>
+        <% if (p.program === 'victory_garden' && typeof programStats !== 'undefined' && programStats.victory_garden) { %>
+          <div class="program-dashboard" style="margin-top: 0.75rem; border-color: #2D6A3F33;">
+            <div class="program-dashboard__stats">
+              <div class="program-dashboard__stat">
+                <span class="program-dashboard__stat-value"><%= Number(programStats.victory_garden.totalLbs).toFixed(1) %></span>
+                <span class="program-dashboard__stat-label">Lbs Harvested</span>
+              </div>
+              <div class="program-dashboard__stat">
+                <span class="program-dashboard__stat-value"><%= Number(programStats.victory_garden.totalHrs).toFixed(1) %></span>
+                <span class="program-dashboard__stat-label">Volunteer Hours</span>
+              </div>
+              <div class="program-dashboard__stat">
+                <span class="program-dashboard__stat-value"><%= programStats.victory_garden.harvestCount %></span>
+                <span class="program-dashboard__stat-label">Harvest Logs</span>
+              </div>
+              <div class="program-dashboard__stat">
+                <span class="program-dashboard__stat-value"><%= programStats.victory_garden.awardCount %></span>
+                <span class="program-dashboard__stat-label">Awards</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="/member/log-harvest" class="btn btn--primary btn--sm">Log Harvest</a>
+            <a href="/member/log-hours" class="btn btn--outline btn--sm">Log Hours</a>
+            <a href="/member/leaderboard" class="btn btn--ghost btn--sm">Leaderboard</a>
+          </div>
+        <% } else if (p.program === 'victory_garden') { %>
           <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <a href="/member/log-harvest" class="btn btn--primary btn--sm">Log Harvest</a>
             <a href="/member/log-hours" class="btn btn--outline btn--sm">Log Hours</a>

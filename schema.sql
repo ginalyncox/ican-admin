@@ -334,6 +334,41 @@ CREATE TABLE IF NOT EXISTS member_message_reads (
   UNIQUE(message_id, member_id)
 );
 
+-- Admin Activity Log
+CREATE TABLE IF NOT EXISTS activity_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id),
+  user_name TEXT,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id INTEGER,
+  entity_label TEXT,
+  details TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Volunteer Notes (staff notes on individual volunteers)
+CREATE TABLE IF NOT EXISTS volunteer_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  volunteer_id INTEGER NOT NULL REFERENCES gardeners(id) ON DELETE CASCADE,
+  author_id INTEGER REFERENCES users(id),
+  author_name TEXT,
+  note TEXT NOT NULL,
+  note_type TEXT DEFAULT 'general' CHECK(note_type IN ('general', 'phone_call', 'email', 'meeting', 'issue', 'follow_up')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Meeting RSVP (director responses to upcoming meetings)
+CREATE TABLE IF NOT EXISTS meeting_rsvps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  meeting_id INTEGER NOT NULL REFERENCES board_meetings(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES board_members(id) ON DELETE CASCADE,
+  response TEXT NOT NULL CHECK(response IN ('attending', 'remote', 'declined', 'tentative')),
+  note TEXT,
+  responded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(meeting_id, member_id)
+);
+
 -- Events
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

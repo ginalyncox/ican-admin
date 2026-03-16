@@ -275,6 +275,17 @@ router.get('/programs', requireMember, (req, res) => {
   const allKeys = Object.keys(PROGRAM_INFO);
   const availablePrograms = allKeys.filter(k => !activeKeys.includes(k) && !pendingKeys.includes(k));
 
+  // Program-specific stats
+  const programStats = {};
+  if (activeKeys.includes('victory_garden')) {
+    programStats.victory_garden = {
+      totalLbs: db.prepare('SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?').get(gid).c,
+      totalHrs: db.prepare('SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?').get(gid).c,
+      awardCount: db.prepare('SELECT COUNT(*) as c FROM garden_awards WHERE gardener_id = ?').get(gid).c,
+      harvestCount: db.prepare('SELECT COUNT(*) as c FROM garden_harvests WHERE gardener_id = ?').get(gid).c
+    };
+  }
+
   res.render('member/programs', {
     title: 'My Programs',
     activePrograms,
@@ -282,6 +293,7 @@ router.get('/programs', requireMember, (req, res) => {
     deniedApps,
     availablePrograms,
     programInfo: PROGRAM_INFO,
+    programStats,
     layout: 'member/layout'
   });
 });

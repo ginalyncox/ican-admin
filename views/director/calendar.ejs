@@ -1,0 +1,88 @@
+<%
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+  // Index events by day
+  const eventsByDay = {};
+  meetings.forEach(m => {
+    const day = parseInt(m.meeting_date.split('-')[2]);
+    if (!eventsByDay[day]) eventsByDay[day] = [];
+    eventsByDay[day].push({ type: 'meeting', label: m.title, id: m.id, time: m.meeting_time });
+  });
+  votes.forEach(v => {
+    const day = parseInt(v.created_at.split('-')[2]);
+    if (!eventsByDay[day]) eventsByDay[day] = [];
+    eventsByDay[day].push({ type: 'vote', label: v.motion_title, id: v.id });
+  });
+  if (coiReminder) {
+    if (!eventsByDay[31]) eventsByDay[31] = [];
+    eventsByDay[31].push({ type: 'coi', label: 'COI Filing Due' });
+  }
+%>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+  <h1 class="page-title">Board Calendar</h1>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <a href="/director/calendar?month=<%= prevMonth %>&year=<%= prevYear %>" class="btn btn--outline btn--sm">&larr;</a>
+    <span style="font-size: 1.1rem; font-weight: 600;"><%= monthNames[month-1] %> <%= year %></span>
+    <a href="/director/calendar?month=<%= nextMonth %>&year=<%= nextYear %>" class="btn btn--outline btn--sm">&rarr;</a>
+  </div>
+</div>
+
+<div class="board-calendar">
+  <% dayNames.forEach(d => { %>
+    <div class="board-calendar__header"><%= d %></div>
+  <% }); %>
+
+  <% /* Padding for days before the 1st */ %>
+  <% for (let i = 0; i < firstDayOfWeek; i++) { %>
+    <div class="board-calendar__day board-calendar__day--other"></div>
+  <% } %>
+
+  <% for (let d = 1; d <= daysInMonth; d++) { %>
+    <%
+      const dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const isToday = dateStr === todayStr;
+      const dayEvents = eventsByDay[d] || [];
+    %>
+    <div class="board-calendar__day<%= isToday ? ' board-calendar__day--today' : '' %>">
+      <div class="board-calendar__num"><%= d %></div>
+      <% dayEvents.forEach(ev => { %>
+        <% if (ev.type === 'meeting') { %>
+          <a href="/director/meetings/<%= ev.id %>" class="board-calendar__event board-calendar__event--meeting" title="<%= ev.label %><%= ev.time ? ' at ' + ev.time : '' %>"><%= ev.label %></a>
+        <% } else if (ev.type === 'vote') { %>
+          <a href="/director/votes" class="board-calendar__event board-calendar__event--vote" title="<%= ev.label %>"><%= ev.label %></a>
+        <% } else { %>
+          <a href="/director/coi" class="board-calendar__event board-calendar__event--coi" title="<%= ev.label %>"><%= ev.label %></a>
+        <% } %>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <% /* Padding for remaining days */ %>
+  <% const totalCells = firstDayOfWeek + daysInMonth; %>
+  <% const remainder = totalCells % 7; %>
+  <% if (remainder > 0) { for (let i = 0; i < (7 - remainder); i++) { %>
+    <div class="board-calendar__day board-calendar__day--other"></div>
+  <% } } %>
+</div>
+
+<div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.78rem; color: var(--color-muted);">
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="width: 12px; height: 12px; border-radius: 2px; background: var(--primary);"></span> Meeting
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="width: 12px; height: 12px; border-radius: 2px; background: #6366f1;"></span> Open Vote
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="width: 12px; height: 12px; border-radius: 2px; background: #f59e0b;"></span> COI Deadline
+  </div>
+</div>

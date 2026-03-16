@@ -65,6 +65,53 @@
 </div>
 <% } %>
 
+<!-- Staff Notes & Timeline -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Staff Notes</h2>
+  </div>
+  <div class="card__body">
+    <form method="POST" action="/admin/garden/gardeners/<%= gardener.id %>/notes" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+      <select name="note_type" class="form-control" style="width: auto; flex: 0 0 auto;">
+        <option value="general">General</option>
+        <option value="phone_call">Phone Call</option>
+        <option value="email">Email</option>
+        <option value="meeting">Meeting</option>
+        <option value="issue">Issue</option>
+        <option value="follow_up">Follow-Up</option>
+      </select>
+      <input type="text" name="note" class="form-control" placeholder="Add a note about this volunteer..." required style="flex: 1; min-width: 200px;">
+      <button type="submit" class="btn btn--primary btn--sm">Add Note</button>
+    </form>
+
+    <% if (typeof notes !== 'undefined' && notes.length > 0) { %>
+      <div class="notes-timeline">
+        <% notes.forEach(n => { %>
+          <%
+            const typeLabels = { general: 'Note', phone_call: 'Phone Call', email: 'Email', meeting: 'Meeting', issue: 'Issue', follow_up: 'Follow-Up' };
+          %>
+          <div class="note-item">
+            <div class="note-item__indicator note-item__indicator--<%= n.note_type %>"></div>
+            <div class="note-item__body">
+              <div class="note-item__meta">
+                <strong><%= n.author_name || 'Staff' %></strong> &middot;
+                <span><%= typeLabels[n.note_type] || 'Note' %></span> &middot;
+                <span><%= new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
+                <form method="POST" action="/admin/garden/gardeners/<%= gardener.id %>/notes/<%= n.id %>/delete" style="display: inline; margin-left: 0.5rem;">
+                  <button type="submit" class="btn btn--outline btn--xs" style="font-size: 0.7rem; padding: 0.1rem 0.4rem;" onclick="return confirm('Delete this note?')">&times;</button>
+                </form>
+              </div>
+              <div class="note-item__text"><%= n.note %></div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <p class="empty-state" style="margin: 0;">No notes yet. Add a note to track interactions with this volunteer.</p>
+    <% } %>
+  </div>
+</div>
+
 <div class="dashboard-grid">
   <div class="card">
     <div class="card__header"><h2 class="card__title">Harvest Log</h2></div>

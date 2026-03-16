@@ -1984,3 +1984,326 @@ textarea.form-input {
 .director-nav__link--portal:hover {
   opacity: 1;
 }
+
+/* ── Activity Feed ─────────────────────────────── */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-item__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 106, 63, 0.08);
+  border-radius: 6px;
+  color: var(--primary);
+  margin-top: 2px;
+}
+.activity-item__content {
+  flex: 1;
+  min-width: 0;
+}
+.activity-item__text {
+  display: block;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+.activity-item__details {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
+}
+.activity-item__time {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+/* ── Volunteer Notes ─────────────────────────────── */
+.notes-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.note-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.note-item:last-child { border-bottom: none; }
+.note-item__indicator {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-top: 6px;
+}
+.note-item__indicator--phone_call { background: #6366f1; }
+.note-item__indicator--email { background: #f59e0b; }
+.note-item__indicator--meeting { background: #10b981; }
+.note-item__indicator--issue { background: #ef4444; }
+.note-item__indicator--follow_up { background: #ec4899; }
+.note-item__body {
+  flex: 1;
+  min-width: 0;
+}
+.note-item__meta {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-bottom: 0.25rem;
+}
+.note-item__text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ── Bulk Actions Bar ─────────────────────────────── */
+.bulk-bar {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+.bulk-bar.active { display: flex; }
+.bulk-bar__count { font-weight: 600; }
+.bulk-bar .btn {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+}
+.bulk-bar .btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* ── Notifications Dropdown (Volunteer Portal) ──── */
+.notif-bell {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.3rem;
+}
+.notif-bell__count {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notif-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 100;
+}
+.notif-dropdown.open { display: block; }
+.notif-dropdown__header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.notif-dropdown__item {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.notif-dropdown__item:last-child { border-bottom: none; }
+.notif-dropdown__item--unread {
+  background: rgba(45, 106, 63, 0.04);
+}
+.notif-dropdown__empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+/* ── RSVP Buttons (Director Portal) ──────────────── */
+.rsvp-group {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.rsvp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rsvp-btn:hover { border-color: var(--primary); color: var(--primary); }
+.rsvp-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.rsvp-btn.active--remote {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+.rsvp-btn.active--tentative {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #fff;
+}
+.rsvp-btn.active--declined {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+/* ── Board Calendar View ─────────────────────────── */
+.board-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.board-calendar__header {
+  background: var(--sidebar-bg);
+  color: #fff;
+  padding: 0.5rem 0.25rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.board-calendar__day {
+  background: #fff;
+  min-height: 80px;
+  padding: 0.35rem;
+  font-size: 0.78rem;
+  position: relative;
+}
+.board-calendar__day--other {
+  background: var(--bg);
+  color: var(--color-muted);
+}
+.board-calendar__day--today {
+  background: rgba(45, 106, 63, 0.06);
+}
+.board-calendar__num {
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+.board-calendar__event {
+  display: block;
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  color: #fff;
+}
+.board-calendar__event--meeting { background: var(--primary); }
+.board-calendar__event--vote { background: #6366f1; }
+.board-calendar__event--coi { background: #f59e0b; color: #1a1a1a; }
+
+/* ── Program Dashboard Cards (Volunteer Portal) ──── */
+.program-dashboard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.program-dashboard__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.program-dashboard__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+.program-dashboard__title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.program-dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+.program-dashboard__stat {
+  text-align: center;
+  padding: 0.5rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+.program-dashboard__stat-value {
+  display: block;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+.program-dashboard__stat-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
+}

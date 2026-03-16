@@ -14,6 +14,47 @@
   </div>
 </div>
 
+<!-- RSVP Section -->
+<% if (meeting.status !== 'completed' && meeting.status !== 'cancelled') { %>
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">RSVP</h2>
+  </div>
+  <div class="card__body">
+    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+      <div>
+        <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.5rem;">Your Response:</p>
+        <div class="rsvp-group">
+          <form method="POST" action="/director/meetings/<%= meeting.id %>/rsvp" style="display: contents;">
+            <% const myResp = (typeof myRsvp !== 'undefined' && myRsvp) ? myRsvp.response : null; %>
+            <button name="response" value="attending" class="rsvp-btn <%= myResp === 'attending' ? 'active' : '' %>">Attending In-Person</button>
+            <button name="response" value="remote" class="rsvp-btn <%= myResp === 'remote' ? 'active active--remote' : '' %>">Attending Remotely</button>
+            <button name="response" value="tentative" class="rsvp-btn <%= myResp === 'tentative' ? 'active active--tentative' : '' %>">Tentative</button>
+            <button name="response" value="declined" class="rsvp-btn <%= myResp === 'declined' ? 'active active--declined' : '' %>">Can't Attend</button>
+          </form>
+        </div>
+      </div>
+      <% if (typeof rsvps !== 'undefined' && rsvps.length > 0) { %>
+      <div style="border-left: 1px solid var(--color-border); padding-left: 1.5rem;">
+        <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.5rem;">Responses (<%= rsvps.length %>):</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+          <% rsvps.forEach(r => { %>
+            <%
+              const colors = { attending: '#2D6A3F', remote: '#6366f1', tentative: '#f59e0b', declined: '#ef4444' };
+              const labels = { attending: 'In-Person', remote: 'Remote', tentative: 'Maybe', declined: 'Declined' };
+            %>
+            <span style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: <%= colors[r.response] %>18; color: <%= colors[r.response] %>;">
+              <%= r.first_name %> <%= r.last_name[0] %>. &mdash; <%= labels[r.response] %>
+            </span>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<% } %>
+
 <div class="director-grid">
   <!-- Agenda -->
   <div class="card">

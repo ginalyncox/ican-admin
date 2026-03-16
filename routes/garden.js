@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { PROGRAM_INFO } = require('../lib/constants');
+const { logActivity } = require('../lib/activity-log');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
@@ -268,6 +269,7 @@ router.post('/gardeners', requireRole('admin', 'editor'), (req, res) => {
         try { insertProg.run(result.lastInsertRowid, prog, req.session.userId || null); } catch (e) { /* ignore duplicates */ }
       }
     }
+    logActivity(db, { userId: req.session.userId, userName: req.session.userName || res.locals.user?.name, action: 'added volunteer', entityType: 'volunteer', entityId: result.lastInsertRowid, entityLabel: first_name + ' ' + last_name });
     req.session.flash = { type: 'success', message: 'Volunteer added.' };
   } catch (err) {
     req.session.flash = { type: 'error', message: 'Failed to add volunteer.' };
@@ -295,11 +297,44 @@ router.get('/gardeners/:id', requireAuth, (req, res) => {
 
   const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(req.params.id).map(p => p.program);
 
+  // Volunteer notes
+  let notes = [];
+  try {
+    notes = db.prepare('SELECT * FROM volunteer_notes WHERE volunteer_id = ? ORDER BY created_at DESC').all(req.params.id);
+  } catch (e) { /* table may not exist yet */ }
+
   res.render('garden/gardener-detail', {
     title: gardener.first_name + ' ' + gardener.last_name,
-    gardener, harvests, hours, awards, programs,
+    gardener, harvests, hours, awards, programs, notes,
     stats: { totalLbs, totalHrs }
   });
+});
+
+// Add volunteer note
+router.post('/gardeners/:id/notes', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const { note, note_type } = req.body;
+  if (!note || !note.trim()) {
+    req.session.flash = { type: 'error', message: 'Note cannot be empty.' };
+    return res.redirect('/admin/garden/gardeners/' + req.params.id);
+  }
+  try {
+    db.prepare('INSERT INTO volunteer_notes (volunteer_id, author_id, author_name, note, note_type) VALUES (?, ?, ?, ?, ?)').run(
+      req.params.id, req.session.userId, res.locals.user?.name || 'Staff', note.trim(), note_type || 'general'
+    );
+    req.session.flash = { type: 'success', message: 'Note added.' };
+  } catch (e) {
+    req.session.flash = { type: 'error', message: 'Failed to add note.' };
+  }
+  res.redirect('/admin/garden/gardeners/' + req.params.id);
+});
+
+// Delete volunteer note
+router.post('/gardeners/:id/notes/:noteId/delete', requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  db.prepare('DELETE FROM volunteer_notes WHERE id = ? AND volunteer_id = ?').run(req.params.noteId, req.params.id);
+  req.session.flash = { type: 'success', message: 'Note deleted.' };
+  res.redirect('/admin/garden/gardeners/' + req.params.id);
 });
 
 router.get('/gardeners/:id/edit', requireRole('admin', 'editor'), (req, res) => {
@@ -347,10 +382,55 @@ router.post('/gardeners/:id', requireRole('admin', 'editor'), (req, res) => {
 router.post('/gardeners/:id/delete', requireRole('admin'), (req, res) => {
   const db = req.app.locals.db;
   db.prepare("DELETE FROM gardeners WHERE id = ?").run(req.params.id);
+  logActivity(db, { userId: req.session.userId, userName: res.locals.user?.name, action: 'deleted volunteer', entityType: 'volunteer', entityId: req.params.id });
   req.session.flash = { type: 'success', message: 'Volunteer removed.' };
   res.redirect('/admin/garden/gardeners');
 });
 
+// ── BULK ACTIONS ────────────────────────────────────────────
+router.post('/gardeners/bulk/assign', requireRole('admin', 'editor'), (req, res) => {
+  const db = req.app.locals.db;
+  const ids = (req.body.ids || '').split(',').filter(Boolean).map(Number);
+  const program = req.body.program;
+  if (ids.length === 0 || !program) {
+    req.session.flash = { type: 'error', message: 'No volunteers selected.' };
+    return res.redirect('/admin/garden/gardeners');
+  }
+  const stmt = db.prepare('INSERT OR IGNORE INTO volunteer_programs (volunteer_id, program, assigned_by) VALUES (?, ?, ?)');
+  let count = 0;
+  for (const id of ids) {
+    try { const r = stmt.run(id, program, req.session.userId); if (r.changes) count++; } catch (e) { /* skip duplicates */ }
+  }
+  logActivity(db, { userId: req.session.userId, userName: res.locals.user?.name, action: 'bulk assigned ' + count + ' volunteers to', entityType: 'volunteer', entityLabel: PROGRAM_INFO[program]?.label || program });
+  req.session.flash = { type: 'success', message: count + ' volunteer(s) assigned to ' + (PROGRAM_INFO[program]?.label || program) + '.' };
+  res.redirect('/admin/garden/gardeners');
+});
+
+router.post('/gardeners/bulk/create-accounts', requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const ids = (req.body.ids || '').split(',').filter(Boolean).map(Number);
+  if (ids.length === 0) {
+    req.session.flash = { type: 'error', message: 'No volunteers selected.' };
+    return res.redirect('/admin/garden/gardeners');
+  }
+  let created = 0, skipped = 0;
+  for (const id of ids) {
+    const g = db.prepare('SELECT id, first_name, last_name, email FROM gardeners WHERE id = ?').get(id);
+    if (!g || !g.email) { skipped++; continue; }
+    // Check if account already exists
+    const existing = db.prepare('SELECT id FROM member_credentials WHERE gardener_id = ?').get(g.id);
+    if (existing) { skipped++; continue; }
+    const tempPassword = 'Welcome' + Math.floor(Math.random() * 9000 + 1000);
+    const hash = require('bcryptjs').hashSync(tempPassword, 10);
+    try {
+      db.prepare('INSERT INTO member_credentials (gardener_id, email, password_hash, must_change_password) VALUES (?, ?, ?, 1)').run(g.id, g.email, hash);
+      created++;
+    } catch (e) { skipped++; }
+  }
+  logActivity(db, { userId: req.session.userId, userName: res.locals.user?.name, action: 'bulk created ' + created + ' portal accounts', entityType: 'member_account', details: skipped > 0 ? skipped + ' skipped (no email or existing account)' : null });
+  req.session.flash = { type: 'success', message: created + ' portal account(s) created.' + (skipped > 0 ? ' ' + skipped + ' skipped.' : '') };
+  res.redirect('/admin/garden/gardeners');
+});
 
 // ── HARVESTS ────────────────────────────────────────────────
 router.get('/harvests', requireAuth, (req, res) => {
@@ -993,6 +1073,10 @@ router.post('/applications/:id/approve', requireAuth, (req, res) => {
   db.prepare("INSERT OR IGNORE INTO volunteer_programs (volunteer_id, program, assigned_by) VALUES (?, ?, ?)")
     .run(app.volunteer_id, app.program, req.session.userId);
 
+  const vol = db.prepare('SELECT first_name, last_name FROM gardeners WHERE id = ?').get(app.volunteer_id);
+  const label = vol ? vol.first_name + ' ' + vol.last_name : 'Volunteer #' + app.volunteer_id;
+  const progLabel = PROGRAM_INFO[app.program]?.label || app.program;
+  logActivity(db, { userId: req.session.userId, userName: req.session.userName || res.locals.user?.name, action: 'approved application for', entityType: 'application', entityId: app.id, entityLabel: label, details: progLabel });
   req.session.flash = { type: 'success', message: 'Application approved. Volunteer has been assigned to the program.' };
   res.redirect('/admin/garden/applications');
 });
@@ -1009,6 +1093,10 @@ router.post('/applications/:id/deny', requireAuth, (req, res) => {
   db.prepare("UPDATE program_applications SET status = 'denied', note = ?, reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?")
     .run(note, req.session.userId, app.id);
 
+  const vol = db.prepare('SELECT first_name, last_name FROM gardeners WHERE id = ?').get(app.volunteer_id);
+  const label = vol ? vol.first_name + ' ' + vol.last_name : 'Volunteer #' + app.volunteer_id;
+  const progLabel = PROGRAM_INFO[app.program]?.label || app.program;
+  logActivity(db, { userId: req.session.userId, userName: req.session.userName || res.locals.user?.name, action: 'denied application for', entityType: 'application', entityId: app.id, entityLabel: label, details: progLabel });
   req.session.flash = { type: 'success', message: 'Application denied.' };
   res.redirect('/admin/garden/applications');
 });

@@ -67,6 +67,26 @@ function setMemberLocals(req, res, next) {
     res.locals.unreadMessages = 0;
   }
 
+  // Application status notifications (recently approved/denied)
+  if (req.session.memberId && req.session.memberGardenerId) {
+    try {
+      const db = req.app.locals.db;
+      const recentApps = db.prepare(`
+        SELECT program, status, reviewed_at FROM program_applications
+        WHERE volunteer_id = ? AND status IN ('approved', 'denied') AND reviewed_at IS NOT NULL
+        ORDER BY reviewed_at DESC LIMIT 5
+      `).all(req.session.memberGardenerId);
+      res.locals.recentAppUpdates = recentApps;
+    } catch (e) {
+      res.locals.recentAppUpdates = [];
+    }
+  } else {
+    res.locals.recentAppUpdates = [];
+  }
+
+  // Total notification count (unread messages + recent app decisions)
+  res.locals.totalNotifications = (res.locals.unreadMessages || 0);
+
   // Flash messages for member portal
   res.locals.memberFlash = req.session.memberFlash || null;
   delete req.session.memberFlash;

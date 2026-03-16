@@ -26,9 +26,42 @@
           <a href="/member/leaderboard" class="member-nav__link <%= path === '/member/leaderboard' ? 'member-nav__link--active' : '' %>">Leaderboard</a>
           <a href="/member/awards" class="member-nav__link <%= path === '/member/awards' ? 'member-nav__link--active' : '' %>">My Awards</a>
         <% } %>
-        <a href="/member/mailbox" class="member-nav__link <%= path === '/member/mailbox' || (path && path.startsWith('/member/mailbox/')) ? 'member-nav__link--active' : '' %>">Mailbox<% if (typeof unreadMessages !== 'undefined' && unreadMessages > 0) { %> <span class="badge badge--danger" style="font-size: 0.65rem; padding: 0.1rem 0.35rem; vertical-align: super;"><%= unreadMessages %></span><% } %></a>
+        <a href="/member/mailbox" class="member-nav__link <%= path === '/member/mailbox' || (path && path.startsWith('/member/mailbox/')) ? 'member-nav__link--active' : '' %>">Mailbox</a>
         <a href="/member/profile" class="member-nav__link <%= path === '/member/profile' ? 'member-nav__link--active' : '' %>">Profile</a>
       </nav>
+
+      <!-- Notifications Bell -->
+      <div class="notif-bell" onclick="document.getElementById('notifDropdown').classList.toggle('open')" style="margin-right: 0.75rem;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5F3ED" stroke-width="2" stroke-linecap="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <% const notifTotal = (typeof unreadMessages !== 'undefined' ? unreadMessages : 0); %>
+        <% if (notifTotal > 0) { %>
+          <span class="notif-bell__count"><%= notifTotal > 9 ? '9+' : notifTotal %></span>
+        <% } %>
+        <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()">
+          <div class="notif-dropdown__header">Notifications</div>
+          <% if (notifTotal === 0 && (!recentAppUpdates || recentAppUpdates.length === 0)) { %>
+            <div class="notif-dropdown__empty">You're all caught up.</div>
+          <% } else { %>
+            <% if (typeof unreadMessages !== 'undefined' && unreadMessages > 0) { %>
+              <a href="/member/mailbox" class="notif-dropdown__item notif-dropdown__item--unread" style="display: block; text-decoration: none; color: inherit;">
+                <strong><%= unreadMessages %></strong> unread message<%= unreadMessages !== 1 ? 's' : '' %> in your mailbox
+              </a>
+            <% } %>
+            <%
+              const appProgramLabels = { victory_garden: 'Victory Garden', legislative: 'Legislative Action', outreach: 'Community Outreach', fundraising: 'Fundraising', communications: 'Communications', membership: 'Membership' };
+            %>
+            <% if (typeof recentAppUpdates !== 'undefined') { recentAppUpdates.forEach(app => { %>
+              <div class="notif-dropdown__item">
+                Your application for <strong><%= appProgramLabels[app.program] || app.program %></strong> was
+                <span style="color: <%= app.status === 'approved' ? '#2D6A3F' : '#ef4444' %>; font-weight: 600;"><%= app.status %></span>
+              </div>
+            <% }); } %>
+          <% } %>
+        </div>
+      </div>
       <div class="member-header__user">
         <% if (typeof hasDirectorAccess !== 'undefined' && hasDirectorAccess) { %>
           <a href="/director/login" class="member-nav__link member-nav__link--portal" title="Switch to Director Portal">
