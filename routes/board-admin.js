@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', requireAuth, (req, res) => {
   const db = req.app.locals.db;
   const members = db.prepare(`
-    SELECT * FROM board_members ORDER BY is_officer DESC, status ASC, last_name ASC
+    SELECT * FROM board_members ORDER BY officer_rank ASC, is_officer DESC, status ASC, last_name ASC
   `).all();
 
   res.render('board-admin', {
@@ -29,13 +29,14 @@ router.post('/add', requireAuth, requireRole('admin'), (req, res) => {
   try {
     const hash = bcrypt.hashSync(password, 10);
     db.prepare(`
-      INSERT INTO board_members (first_name, last_name, email, password_hash, title, phone, term_start, term_end, is_officer, officer_title)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO board_members (first_name, last_name, email, password_hash, title, phone, term_start, term_end, is_officer, officer_title, officer_rank)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       first_name, last_name, email, hash,
       title || 'Director', phone || null,
       term_start || null, term_end || null,
-      is_officer ? 1 : 0, officer_title || null
+      is_officer ? 1 : 0, officer_title || null,
+      is_officer ? (parseInt(req.body.officer_rank) || 99) : 99
     );
     req.session.flash = { type: 'success', message: `Board member ${first_name} ${last_name} added. They can log in at /director/login.` };
   } catch (err) {

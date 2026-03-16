@@ -148,18 +148,29 @@
       </div>
       <div class="form-group">
         <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-          <input type="checkbox" name="is_officer" value="1" id="isOfficerCheck" onchange="document.getElementById('officerTitleGroup').style.display = this.checked ? 'block' : 'none';">
+          <input type="checkbox" name="is_officer" value="1" id="isOfficerCheck" onchange="var show = this.checked ? 'block' : 'none'; document.getElementById('officerTitleGroup').style.display = show; document.getElementById('officerRankGroup').style.display = show; if(this.checked) autoSetRank();">
           This member is an officer
         </label>
       </div>
       <div class="form-group" id="officerTitleGroup" style="display:none;">
         <label for="officer_title">Officer Title</label>
-        <select id="officer_title" name="officer_title" class="form-control">
+        <select id="officer_title" name="officer_title" class="form-control" onchange="autoSetRank()">
           <option value="President">President</option>
           <option value="Vice President">Vice President</option>
           <option value="Secretary">Secretary</option>
           <option value="Treasurer">Treasurer</option>
         </select>
+      </div>
+      <div class="form-group" id="officerRankGroup" style="display:none;">
+        <label for="officer_rank">Display Order</label>
+        <select id="officer_rank" name="officer_rank" class="form-control">
+          <option value="1">1 — President</option>
+          <option value="2">2 — Vice President</option>
+          <option value="3">3 — Secretary</option>
+          <option value="4">4 — Treasurer</option>
+          <option value="5">5 — Other Officer</option>
+        </select>
+        <small class="text-muted">Controls sort order on the public website. Auto-set from officer title.</small>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn--outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
@@ -221,6 +232,13 @@
 </div>
 
 <script>
+// Auto-set officer rank from officer title
+function autoSetRank() {
+  var title = document.getElementById('officer_title').value;
+  var rankMap = { 'President': '1', 'Vice President': '2', 'Secretary': '3', 'Treasurer': '4' };
+  document.getElementById('officer_rank').value = rankMap[title] || '5';
+}
+
 // Fix lock form action on submit
 document.getElementById('lockForm').addEventListener('submit', function() {
   const id = document.getElementById('lockId').value;

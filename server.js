@@ -51,6 +51,9 @@ try {
 try {
   db.exec(`ALTER TABLE member_credentials ADD COLUMN onboarding_completed_at DATETIME`);
 } catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE board_members ADD COLUMN officer_rank INTEGER DEFAULT 99`);
+} catch (e) { /* column already exists */ }
 
 // Migrations — gardener volunteer profile columns
 const gardenerCols = [
@@ -158,6 +161,7 @@ app.use('/admin/settings', require('./routes/settings'));
 app.use('/admin/newsletter', require('./routes/newsletter'));
 app.use('/admin/events', require('./routes/events'));
 app.use('/admin/board', require('./routes/board-admin'));
+app.use('/admin/directory', require('./routes/directory'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');
@@ -211,7 +215,7 @@ app.get('/api/board', (req, res) => {
       CASE WHEN status = 'locked' THEN 1 ELSE 0 END as is_locked
     FROM board_members
     WHERE status IN ('active', 'locked')
-    ORDER BY is_officer DESC, last_name ASC
+    ORDER BY officer_rank ASC, is_officer DESC, last_name ASC
   `).all();
   res.json(members);
 });

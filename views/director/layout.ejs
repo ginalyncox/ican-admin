@@ -54,6 +54,12 @@
         </a>
       </nav>
       <div class="director-header__user">
+        <% if (typeof hasVolunteerAccess !== 'undefined' && hasVolunteerAccess) { %>
+          <a href="/member/login" class="director-nav__link director-nav__link--portal" title="Switch to Volunteer Portal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+            Volunteer Portal
+          </a>
+        <% } %>
         <span class="director-header__name"><%= director.name %></span>
         <% if (director.officerTitle) { %><span class="director-header__role"><%= director.officerTitle %></span><% } %>
         <a href="/director/logout" class="btn btn--outline btn--xs">Sign out</a>

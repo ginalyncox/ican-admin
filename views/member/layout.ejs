@@ -29,6 +29,12 @@
         <a href="/member/profile" class="member-nav__link <%= path === '/member/profile' ? 'member-nav__link--active' : '' %>">Profile</a>
       </nav>
       <div class="member-header__user">
+        <% if (typeof hasDirectorAccess !== 'undefined' && hasDirectorAccess) { %>
+          <a href="/director/login" class="member-nav__link member-nav__link--portal" title="Switch to Director Portal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Board Portal
+          </a>
+        <% } %>
         <span><%= member.name %></span>
         <a href="/member/logout" class="btn btn--outline btn--xs">Sign out</a>
       </div>

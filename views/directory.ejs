@@ -1,0 +1,64 @@
+<div class="page-header">
+  <h1 class="page-title">Directory</h1>
+</div>
+
+<form method="GET" action="/admin/directory" style="display:flex; gap:0.75rem; margin-bottom:1.25rem; align-items:center; flex-wrap:wrap;">
+  <input type="text" name="q" value="<%= search %>" placeholder="Search by name or email..." class="form-control" style="max-width:320px;">
+  <input type="hidden" name="filter" value="<%= filter %>" id="filterInput">
+  <button type="submit" class="btn btn--primary btn--sm">Search</button>
+  <% if (search) { %>
+    <a href="/admin/directory?filter=<%= filter %>" class="btn btn--outline btn--sm">Clear</a>
+  <% } %>
+</form>
+
+<div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=all" class="btn btn--sm <%= filter === 'all' ? 'btn--primary' : 'btn--outline' %>">All (<%= counts.all %>)</a>
+  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=volunteers" class="btn btn--sm <%= filter === 'volunteers' ? 'btn--primary' : 'btn--outline' %>">Volunteers (<%= counts.volunteers %>)</a>
+  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=directors" class="btn btn--sm <%= filter === 'directors' ? 'btn--primary' : 'btn--outline' %>">Directors (<%= counts.directors %>)</a>
+  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=subscribers" class="btn btn--sm <%= filter === 'subscribers' ? 'btn--primary' : 'btn--outline' %>">Subscribers (<%= counts.subscribers %>)</a>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (rows.length === 0) { %>
+      <div class="verify-empty">
+        <h3>No results</h3>
+        <p><%= search ? 'No matches for "' + search + '".' : 'No records in this category yet.' %></p>
+      </div>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Last Login</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach(r => { %>
+            <tr>
+              <td><strong><%= r.first_name %><%= r.last_name ? ' ' + r.last_name : '' %></strong></td>
+              <td><a href="mailto:<%= r.email %>"><%= r.email %></a></td>
+              <td class="text-muted"><%= r.phone || '—' %></td>
+              <td>
+                <% if (r.role === 'volunteer') { %>
+                  <span class="badge badge--garden">Volunteer</span>
+                <% } else if (r.role === 'director') { %>
+                  <span class="badge badge--meeting">Director</span>
+                <% } else { %>
+                  <span class="badge badge--general">Subscriber</span>
+                <% } %>
+              </td>
+              <td class="text-muted" style="font-size:0.8rem;">
+                <%= r.last_login ? new Date(r.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—' %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+      <p class="text-muted" style="margin-top:0.75rem; font-size:0.85rem;"><%= rows.length %> result<%= rows.length !== 1 ? 's' : '' %></p>
+    <% } %>
+  </div>
+</div>
