@@ -1,0 +1,58 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title"><%= message.subject %></h1>
+      <p class="page-header__subtitle">
+        Sent by <%= message.sender_name || 'Unknown' %> on <%= new Date(message.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %>
+      </p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/messages" class="btn btn--outline btn--sm">&larr; Messages</a>
+      <form method="POST" action="/admin/messages/<%= message.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this message?')">
+        <button type="submit" class="btn btn--sm" style="color:#c0392b; border:1px solid #c0392b; background:transparent;">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Message</h2></div>
+    <div class="card__body">
+      <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+        <span class="badge"><%= message.message_type %></span>
+        <% if (message.target_program) { %>
+          <span class="badge badge--warning"><%= message.target_program %></span>
+        <% } %>
+      </p>
+      <div style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6;"><%= message.body %></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Read Receipts</h2>
+      <span class="text-muted" style="font-size: 0.85rem;"><%= reads.length %>/<%= totalMembers %> read</span>
+    </div>
+    <div class="card__body">
+      <% if (reads.length === 0) { %>
+        <p class="empty-state">No one has read this message yet.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Member</th><th>Read At</th></tr></thead>
+          <tbody>
+            <% reads.forEach(r => { %>
+              <tr>
+                <td>
+                  <strong><%= r.first_name %> <%= r.last_name %></strong>
+                  <br><span class="text-muted" style="font-size: 0.8rem;"><%= r.email %></span>
+                </td>
+                <td class="text-muted" style="font-size: 0.85rem;"><%= new Date(r.read_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>

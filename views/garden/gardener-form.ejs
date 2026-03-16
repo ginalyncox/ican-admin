@@ -65,6 +65,84 @@
       </div>
 
       <hr style="margin: 1rem 0; border-color: var(--color-border);">
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Volunteer Profile</h3>
+
+      <div class="form-field">
+        <label class="form-label" for="address">Street Address</label>
+        <input class="form-input" type="text" id="address" name="address" value="<%= gardener.address || '' %>">
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="city">City</label>
+          <input class="form-input" type="text" id="city" name="city" value="<%= gardener.city || '' %>">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="state">State</label>
+          <input class="form-input" type="text" id="state" name="state" value="<%= gardener.state || '' %>" maxlength="2" placeholder="IA">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="zip">ZIP</label>
+          <input class="form-input" type="text" id="zip" name="zip" value="<%= gardener.zip || '' %>" maxlength="10">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="date_of_birth">Date of Birth</label>
+          <input class="form-input" type="date" id="date_of_birth" name="date_of_birth" value="<%= gardener.date_of_birth || '' %>">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="tshirt_size">T-Shirt Size</label>
+          <select class="form-select" id="tshirt_size" name="tshirt_size">
+            <option value="">— Select —</option>
+            <% ['XS','S','M','L','XL','2XL','3XL'].forEach(sz => { %>
+              <option value="<%= sz %>" <%= (gardener.tshirt_size || '') === sz ? 'selected' : '' %>><%= sz %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+
+      <h4 style="font-size: 0.9rem; margin: 1rem 0 0.5rem; color: var(--color-muted);">Emergency Contact</h4>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label" for="emergency_contact_name">Name</label>
+          <input class="form-input" type="text" id="emergency_contact_name" name="emergency_contact_name" value="<%= gardener.emergency_contact_name || '' %>">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="emergency_contact_phone">Phone</label>
+          <input class="form-input" type="tel" id="emergency_contact_phone" name="emergency_contact_phone" value="<%= gardener.emergency_contact_phone || '' %>">
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="how_heard">How Did They Hear About Us?</label>
+        <input class="form-input" type="text" id="how_heard" name="how_heard" value="<%= gardener.how_heard || '' %>">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="skills">Skills &amp; Interests</label>
+        <textarea class="form-input" id="skills" name="skills" rows="2" placeholder="Gardening, event planning, writing..."><%= gardener.skills || '' %></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="availability">Availability</label>
+        <textarea class="form-input" id="availability" name="availability" rows="2" placeholder="Weekends, evenings, etc."><%= gardener.availability || '' %></textarea>
+      </div>
+
+      <h4 style="font-size: 0.9rem; margin: 1rem 0 0.5rem; color: var(--color-muted);">Consents &amp; Waivers</h4>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer; font-size:0.9rem;">
+          <input type="checkbox" name="background_check_consent" value="1" <%= gardener.background_check_consent ? 'checked' : '' %>>
+          Background Check Consent
+        </label>
+        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer; font-size:0.9rem;">
+          <input type="checkbox" name="photo_release_consent" value="1" <%= gardener.photo_release_consent ? 'checked' : '' %>>
+          Photo Release Consent
+        </label>
+        <label style="display:flex; align-items:center; gap:0.5rem; font-weight:normal; cursor:pointer; font-size:0.9rem;">
+          <input type="checkbox" name="liability_waiver_signed" value="1" <%= gardener.liability_waiver_signed ? 'checked' : '' %>>
+          Liability Waiver Signed
+        </label>
+      </div>
+
+      <hr style="margin: 1rem 0; border-color: var(--color-border);">
       <div class="form-field">
         <label class="form-label">Volunteer Programs</label>
         <p style="font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0.75rem;">Assign this volunteer to one or more programs.</p>

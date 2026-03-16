@@ -3,6 +3,26 @@
   <p class="page-header__subtitle">Your volunteer dashboard</p>
 </div>
 
+<% if (pendingApplications && pendingApplications.length > 0) { %>
+<div class="card" style="margin-bottom: 1.5rem; border-left: 3px solid var(--accent);">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Pending Applications
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0.75rem;">Your applications are being reviewed by a coordinator.</p>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <% pendingApplications.forEach(pa => { %>
+        <% const info = programInfo[pa.program] || { label: pa.program, color: '#666' }; %>
+        <span class="badge" style="background: <%= info.color %>; color: #fff; padding: 0.35rem 0.75rem;"><%= info.label %></span>
+      <% }); %>
+    </div>
+  </div>
+</div>
+<% } %>
+
 <!-- Program Cards -->
 <div class="portal-grid" style="margin-bottom: 1.5rem;">
   <% if (programs.includes('victory_garden')) { %>
@@ -33,6 +53,17 @@
           <%= gardener.site_name %><%= gardener.plot_number ? ' &middot; Plot ' + gardener.plot_number : '' %>
         </p>
       <% } %>
+      <details style="margin-bottom: 0.75rem;">
+        <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+          <li>Log all harvests promptly using the Log Harvest button</li>
+          <li>Record volunteer hours after each garden work session</li>
+          <li>Donate surplus produce to approved community partners</li>
+          <li>Keep your plot maintained and free of weeds</li>
+          <li>Attend scheduled garden workdays and seasonal events</li>
+          <li>Follow organic gardening practices — no synthetic pesticides</li>
+        </ul>
+      </details>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="/member/log-harvest" class="btn btn--primary btn--sm">Log Harvest</a>
         <a href="/member/log-hours" class="btn btn--outline btn--sm">Log Hours</a>
@@ -51,9 +82,16 @@
       </h2>
     </div>
     <div class="card__body">
-      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
-        Help advance cannabis policy in Iowa through grassroots advocacy.
-      </p>
+      <details style="margin-bottom: 0;">
+        <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+          <li>Contact your local legislators about cannabis reform bills</li>
+          <li>Attend town halls and public hearings when scheduled</li>
+          <li>Distribute ICAN-approved talking points to community members</li>
+          <li>Report back on meetings and conversations with officials</li>
+          <li>Help organize letter-writing and phone-call campaigns</li>
+        </ul>
+      </details>
     </div>
   </div>
   <% } %>
@@ -67,9 +105,16 @@
       </h2>
     </div>
     <div class="card__body">
-      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
-        Engage neighbors, attend events, and spread the word about ICAN's mission.
-      </p>
+      <details style="margin-bottom: 0;">
+        <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+          <li>Staff ICAN booths at farmers markets and community events</li>
+          <li>Distribute brochures and educational materials to the public</li>
+          <li>Organize or attend neighborhood informational sessions</li>
+          <li>Build relationships with local businesses and organizations</li>
+          <li>Collect contact info from interested community members</li>
+        </ul>
+      </details>
     </div>
   </div>
   <% } %>
@@ -83,9 +128,16 @@
       </h2>
     </div>
     <div class="card__body">
-      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
-        Help raise funds through events, campaigns, and donor outreach.
-      </p>
+      <details style="margin-bottom: 0;">
+        <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+          <li>Help plan and execute fundraising events</li>
+          <li>Reach out to potential donors and sponsors</li>
+          <li>Assist with online crowdfunding campaigns</li>
+          <li>Track donations and send thank-you notes</li>
+          <li>Brainstorm new fundraising ideas with the team</li>
+        </ul>
+      </details>
     </div>
   </div>
   <% } %>
@@ -99,9 +151,16 @@
       </h2>
     </div>
     <div class="card__body">
-      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
-        Support newsletters, social media, and public messaging for ICAN.
-      </p>
+      <details style="margin-bottom: 0;">
+        <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+          <li>Write or edit articles for the ICAN newsletter</li>
+          <li>Manage and create content for social media accounts</li>
+          <li>Draft press releases and public statements</li>
+          <li>Photograph events and volunteer activities</li>
+          <li>Help maintain the ICAN website content</li>
+        </ul>
+      </details>
     </div>
   </div>
   <% } %>
@@ -115,19 +174,28 @@
       </h2>
     </div>
     <div class="card__body">
-      <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0;">
-        Help grow ICAN's member base through recruitment and retention.
-      </p>
+      <details style="margin-bottom: 0;">
+        <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+          <li>Welcome and orient new ICAN members</li>
+          <li>Follow up with lapsed members to encourage renewal</li>
+          <li>Organize member appreciation events</li>
+          <li>Maintain accurate membership records and contact info</li>
+          <li>Recruit new members at events and through personal networks</li>
+        </ul>
+      </details>
     </div>
   </div>
   <% } %>
 </div>
 
-<% if (programs.length === 0) { %>
+<% if (programs.length === 0 && (!pendingApplications || pendingApplications.length === 0)) { %>
 <div class="card" style="margin-bottom: 1.5rem;">
   <div class="card__body" style="text-align: center; padding: 2rem;">
     <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: 0.5rem;">No programs assigned yet.</p>
-    <p style="font-size: 0.85rem; color: var(--color-muted);">Your coordinator will assign you to volunteer programs. Check back soon!</p>
+    <p style="font-size: 0.85rem; color: var(--color-muted);">
+      <a href="/member/programs" style="color: var(--primary);">Apply for programs</a> or check back after a coordinator reviews your application.
+    </p>
   </div>
 </div>
 <% } %>

@@ -48,6 +48,25 @@ function setMemberLocals(req, res, next) {
     res.locals.hasDirectorAccess = false;
   }
 
+  // Unread message count for mailbox badge
+  if (req.session.memberId && req.session.memberGardenerId) {
+    try {
+      const db = req.app.locals.db;
+      const memberProgs = (res.locals.memberPrograms || []);
+      const progPlaceholders = memberProgs.length > 0 ? memberProgs.map(() => '?').join(',') : "''";
+      const unread = db.prepare(`
+        SELECT COUNT(*) as c FROM member_messages m
+        WHERE (m.target_program IS NULL OR m.target_program IN (${progPlaceholders}))
+        AND m.id NOT IN (SELECT message_id FROM member_message_reads WHERE member_id = ?)
+      `).get(...memberProgs, req.session.memberId);
+      res.locals.unreadMessages = unread ? unread.c : 0;
+    } catch (e) {
+      res.locals.unreadMessages = 0;
+    }
+  } else {
+    res.locals.unreadMessages = 0;
+  }
+
   // Flash messages for member portal
   res.locals.memberFlash = req.session.memberFlash || null;
   delete req.session.memberFlash;

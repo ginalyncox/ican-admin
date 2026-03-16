@@ -88,6 +88,27 @@ try {
   }
 } catch (e) { console.log('Submissions migration note:', e.message); }
 
+// Migration: fix subscribers CHECK constraint to allow 'volunteer' source
+try {
+  const subInfo = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'subscribers'").get();
+  if (subInfo && subInfo.sql && !subInfo.sql.includes('volunteer')) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS subscribers_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT,
+        source TEXT DEFAULT 'website' CHECK(source IN ('website', 'manual', 'import', 'volunteer')),
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'unsubscribed')),
+        subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      INSERT INTO subscribers_new SELECT * FROM subscribers;
+      DROP TABLE subscribers;
+      ALTER TABLE subscribers_new RENAME TO subscribers;
+    `);
+    console.log('Migrated subscribers table: added volunteer to CHECK constraint');
+  }
+} catch (e) { console.log('Subscribers migration note:', e.message); }
+
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
@@ -162,6 +183,7 @@ app.use('/admin/newsletter', require('./routes/newsletter'));
 app.use('/admin/events', require('./routes/events'));
 app.use('/admin/board', require('./routes/board-admin'));
 app.use('/admin/directory', require('./routes/directory'));
+app.use('/admin/messages', require('./routes/messages'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');

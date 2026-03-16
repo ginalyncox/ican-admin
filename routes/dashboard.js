@@ -20,9 +20,23 @@ router.get('/', requireAuth, (req, res) => {
     SELECT * FROM submissions ORDER BY created_at DESC LIMIT 5
   `).all();
 
-  // Victory Garden quick stats
-  const activeGardeners = db.prepare("SELECT COUNT(*) as count FROM gardeners WHERE status = 'active'").get().count;
+  // Volunteer/member stats
+  const activeVolunteers = db.prepare("SELECT COUNT(*) as count FROM gardeners WHERE status = 'active'").get().count;
+  const totalVolunteers = db.prepare("SELECT COUNT(*) as count FROM gardeners").get().count;
   const pendingVerifications = db.prepare("SELECT COUNT(*) as count FROM garden_harvests WHERE donation_status = 'pending' AND donated = 1").get().count;
+
+  // Pending program applications
+  let pendingApplications = 0;
+  try {
+    pendingApplications = db.prepare("SELECT COUNT(*) as count FROM program_applications WHERE status = 'pending'").get().count;
+  } catch (e) { /* table may not exist yet */ }
+
+  // Program enrollment counts
+  let programCounts = {};
+  try {
+    const programs = db.prepare('SELECT program, COUNT(*) as count FROM volunteer_programs GROUP BY program').all();
+    for (const p of programs) { programCounts[p.program] = p.count; }
+  } catch (e) { /* table may not exist yet */ }
 
   // Upcoming events count
   const upcomingEvents = db.prepare("SELECT COUNT(*) as count FROM events WHERE event_date >= date('now')").get().count;
@@ -44,9 +58,15 @@ router.get('/', requireAuth, (req, res) => {
     memberPortalUsers = db.prepare('SELECT COUNT(*) as count FROM member_credentials').get().count;
   } catch (e) { /* table may not exist yet */ }
 
+  // Unread messages count
+  let unreadMessages = 0;
+  try {
+    unreadMessages = db.prepare('SELECT COUNT(*) as count FROM member_messages').get().count;
+  } catch (e) { /* table may not exist */ }
+
   res.render('dashboard', {
     title: 'Dashboard',
-    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeGardeners, pendingVerifications, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings },
+    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, unreadMessages },
     recentPosts,
     recentSubmissions
   });

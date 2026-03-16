@@ -1,27 +1,81 @@
 <div class="page-header">
   <h1 class="page-header__title">My Programs</h1>
-  <p class="page-header__subtitle">Your assigned volunteer programs</p>
+  <p class="page-header__subtitle">Your volunteer programs and applications</p>
 </div>
 
-<% if (programs.length === 0) { %>
-<div class="card">
-  <div class="card__body" style="text-align: center; padding: 2rem;">
-    <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: 0.5rem;">No programs assigned yet.</p>
-    <p style="font-size: 0.85rem; color: var(--color-muted);">Your coordinator will assign you to volunteer programs. Check back soon!</p>
-  </div>
-</div>
-<% } else { %>
+<%
+const programDetails = {
+  victory_garden: [
+    'Log all harvests promptly using the Log Harvest button',
+    'Record volunteer hours after each garden work session',
+    'Donate surplus produce to approved community partners',
+    'Keep your plot maintained and free of weeds',
+    'Attend scheduled garden workdays and seasonal events',
+    'Follow organic gardening practices — no synthetic pesticides'
+  ],
+  legislative: [
+    'Contact your local legislators about cannabis reform bills',
+    'Attend town halls and public hearings when scheduled',
+    'Distribute ICAN-approved talking points to community members',
+    'Report back on meetings and conversations with officials',
+    'Help organize letter-writing and phone-call campaigns'
+  ],
+  outreach: [
+    'Staff ICAN booths at farmers markets and community events',
+    'Distribute brochures and educational materials to the public',
+    'Organize or attend neighborhood informational sessions',
+    'Build relationships with local businesses and organizations',
+    'Collect contact info from interested community members'
+  ],
+  fundraising: [
+    'Help plan and execute fundraising events',
+    'Reach out to potential donors and sponsors',
+    'Assist with online crowdfunding campaigns',
+    'Track donations and send thank-you notes',
+    'Brainstorm new fundraising ideas with the team'
+  ],
+  communications: [
+    'Write or edit articles for the ICAN newsletter',
+    'Manage and create content for social media accounts',
+    'Draft press releases and public statements',
+    'Photograph events and volunteer activities',
+    'Help maintain the ICAN website content'
+  ],
+  membership: [
+    'Welcome and orient new ICAN members',
+    'Follow up with lapsed members to encourage renewal',
+    'Organize member appreciation events',
+    'Maintain accurate membership records and contact info',
+    'Recruit new members at events and through personal networks'
+  ]
+};
+%>
+
+<% if (activePrograms.length > 0) { %>
+<h3 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--text);">Active Programs</h3>
 <div class="portal-grid" style="margin-bottom: 1.5rem;">
-  <% programs.forEach(p => { %>
+  <% activePrograms.forEach(p => { %>
     <% const info = programInfo[p.program] || { label: p.program, color: 'var(--text)', description: '' }; %>
+    <% const details = programDetails[p.program] || []; %>
     <div class="card">
       <div class="card__header" style="border-left: 3px solid <%= info.color %>;">
         <h2 class="card__title"><%= info.label %></h2>
       </div>
       <div class="card__body">
         <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0.75rem;"><%= info.description %></p>
+        <% if (details.length > 0) { %>
+        <details style="margin-bottom: 0.75rem;">
+          <summary style="font-size: 0.9rem; color: var(--color-muted); cursor: pointer; padding: 0.25rem 0;">Volunteer Instructions</summary>
+          <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0.5rem 0 0 1.25rem; padding: 0; line-height: 1.6;">
+            <% details.forEach(d => { %>
+              <li><%= d %></li>
+            <% }); %>
+          </ul>
+        </details>
+        <% } %>
         <p style="font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0;">
-          Assigned: <%= new Date(p.assigned_at).toLocaleDateString() %>
+          <span class="badge badge--success">Active</span>
+          &nbsp; Assigned: <%= new Date(p.assigned_at).toLocaleDateString() %>
         </p>
         <% if (p.program === 'victory_garden') { %>
           <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -33,5 +87,56 @@
       </div>
     </div>
   <% }) %>
+</div>
+<% } %>
+
+<% if (pendingApps.length > 0) { %>
+<h3 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--text);">Pending Applications</h3>
+<div class="portal-grid" style="margin-bottom: 1.5rem;">
+  <% pendingApps.forEach(pa => { %>
+    <% const info = programInfo[pa.program] || { label: pa.program, color: 'var(--text)', description: '' }; %>
+    <div class="card" style="opacity: 0.85;">
+      <div class="card__header" style="border-left: 3px solid var(--accent);">
+        <h2 class="card__title"><%= info.label %></h2>
+      </div>
+      <div class="card__body">
+        <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 0.75rem;"><%= info.description %></p>
+        <p style="font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0;">
+          <span class="badge badge--warning">Pending Review</span>
+          &nbsp; Applied: <%= new Date(pa.created_at).toLocaleDateString() %>
+        </p>
+      </div>
+    </div>
+  <% }) %>
+</div>
+<% } %>
+
+<% if (availablePrograms.length > 0) { %>
+<h3 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--text);">Available Programs</h3>
+<p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1rem;">Apply for additional volunteer programs below.</p>
+<div class="portal-grid" style="margin-bottom: 1.5rem;">
+  <% availablePrograms.forEach(key => { %>
+    <% const info = programInfo[key]; %>
+    <div class="card">
+      <div class="card__header" style="border-left: 3px solid <%= info.color %>;">
+        <h2 class="card__title"><%= info.label %></h2>
+      </div>
+      <div class="card__body">
+        <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 1rem;"><%= info.description %></p>
+        <form method="POST" action="/member/apply-program">
+          <input type="hidden" name="program" value="<%= key %>">
+          <button type="submit" class="btn btn--primary btn--sm">Apply</button>
+        </form>
+      </div>
+    </div>
+  <% }) %>
+</div>
+<% } %>
+
+<% if (activePrograms.length === 0 && pendingApps.length === 0 && availablePrograms.length === 0) { %>
+<div class="card">
+  <div class="card__body" style="text-align: center; padding: 2rem;">
+    <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: 0;">You're enrolled in all available programs!</p>
+  </div>
 </div>
 <% } %>

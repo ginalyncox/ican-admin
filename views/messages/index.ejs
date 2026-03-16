@@ -1,0 +1,45 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Messages</h1>
+      <p class="page-header__subtitle"><%= messages.length %> message<%= messages.length !== 1 ? 's' : '' %> sent</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/messages/compose" class="btn btn--primary btn--sm">Compose</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (messages.length === 0) { %>
+      <div class="verify-empty">
+        <h3>No messages yet</h3>
+        <p>Send your first message to volunteers.</p>
+      </div>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Type</th>
+            <th>Sent By</th>
+            <th>Date</th>
+            <th>Read</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% messages.forEach(m => { %>
+            <tr>
+              <td><a href="/admin/messages/<%= m.id %>" style="color: var(--primary); font-weight: 500;"><%= m.subject %></a></td>
+              <td><span class="badge"><%= m.message_type %></span></td>
+              <td class="text-muted"><%= m.sender_name || '—' %></td>
+              <td class="text-muted" style="font-size: 0.85rem;"><%= new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
+              <td><%= m.read_count %>/<%= totalMembers %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

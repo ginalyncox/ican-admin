@@ -1,0 +1,39 @@
+<div class="page-header">
+  <h1 class="page-header__title">Mailbox</h1>
+  <p class="page-header__subtitle">Messages from ICAN staff</p>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (messages.length === 0) { %>
+      <div style="text-align: center; padding: 2rem;">
+        <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: 0;">No messages yet.</p>
+      </div>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Subject</th>
+            <th>Type</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% messages.forEach(m => { %>
+            <tr style="<%= !m.read_at ? 'font-weight: 600; background: rgba(45,106,63,0.04);' : '' %>">
+              <td style="width: 1.5rem;">
+                <% if (!m.read_at) { %>
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>
+                <% } %>
+              </td>
+              <td><a href="/member/mailbox/<%= m.id %>" style="color: var(--primary);"><%= m.subject %></a></td>
+              <td><span class="badge"><%= m.message_type %></span></td>
+              <td class="text-muted" style="font-size: 0.85rem;"><%= new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

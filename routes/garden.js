@@ -64,6 +64,9 @@ router.get('/', requireAuth, (req, res) => {
   // All seasons for dropdown
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC, start_date DESC").all();
 
+  // Pending application count
+  const pendingAppCount = db.prepare("SELECT COUNT(*) as c FROM program_applications WHERE status = 'pending'").get().c;
+
   res.render('garden/dashboard', {
     title: 'Victory Garden',
     activeSeason,
@@ -71,7 +74,8 @@ router.get('/', requireAuth, (req, res) => {
     stats: { totalGardeners, totalSites, totalHarvestLbs, totalVolunteerHrs, totalDonatedLbs },
     topHarvesters,
     topVolunteers,
-    recentHarvests
+    recentHarvests,
+    pendingAppCount
   });
 });
 
@@ -228,18 +232,34 @@ router.get('/gardeners/new', requireRole('admin', 'editor'), (req, res) => {
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
   res.render('garden/gardener-form', {
     title: 'New Volunteer',
-    gardener: { id: null, first_name: '', last_name: '', email: '', phone: '', site_id: '', plot_number: '', season_id: '', status: 'active', notes: '' },
+    gardener: { id: null, first_name: '', last_name: '', email: '', phone: '', site_id: '', plot_number: '', season_id: '', status: 'active', notes: '',
+      address: '', city: '', state: '', zip: '', date_of_birth: '', emergency_contact_name: '', emergency_contact_phone: '',
+      tshirt_size: '', how_heard: '', skills: '', availability: '', background_check_consent: 0, photo_release_consent: 0, liability_waiver_signed: 0 },
     sites, seasons, programs: [], isNew: true
   });
 });
 
 router.post('/gardeners', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
-  const { first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes } = req.body;
+  const { first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes,
+    address, city, state, zip, date_of_birth, emergency_contact_name, emergency_contact_phone,
+    tshirt_size, how_heard, skills, availability } = req.body;
+  const background_check_consent = req.body.background_check_consent ? 1 : 0;
+  const photo_release_consent = req.body.photo_release_consent ? 1 : 0;
+  const liability_waiver_signed = req.body.liability_waiver_signed ? 1 : 0;
   const programValues = Array.isArray(req.body.programs) ? req.body.programs : (req.body.programs ? [req.body.programs] : []);
   try {
-    const result = db.prepare(`INSERT INTO gardeners (first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(first_name, last_name, email || null, phone || null, site_id || null, plot_number || null, season_id || null, status || 'active', notes || null);
+    const result = db.prepare(`INSERT INTO gardeners (first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes,
+      address, city, state, zip, date_of_birth, emergency_contact_name, emergency_contact_phone,
+      tshirt_size, how_heard, skills, availability, background_check_consent, photo_release_consent, liability_waiver_signed)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      first_name, last_name, email || null, phone || null, site_id || null, plot_number || null, season_id || null, status || 'active', notes || null,
+      address || null, city || null, state || null, zip || null, date_of_birth || null, emergency_contact_name || null, emergency_contact_phone || null,
+      tshirt_size || null, how_heard || null, skills || null, availability || null, background_check_consent, photo_release_consent, liability_waiver_signed);
+    // Auto-subscribe volunteer to newsletter
+    if (email) {
+      try { db.prepare("INSERT OR IGNORE INTO subscribers (email, name, source) VALUES (?, ?, 'volunteer')").run(email, [first_name, last_name].filter(Boolean).join(' ') || null); } catch (e) { /* ignore */ }
+    }
     // Save program assignments
     if (programValues.length > 0 && result.lastInsertRowid) {
       const insertProg = db.prepare('INSERT INTO volunteer_programs (volunteer_id, program, assigned_by) VALUES (?, ?, ?)');
@@ -293,12 +313,21 @@ router.get('/gardeners/:id/edit', requireRole('admin', 'editor'), (req, res) => 
 
 router.post('/gardeners/:id', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
-  const { first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes } = req.body;
+  const { first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes,
+    address, city, state, zip, date_of_birth, emergency_contact_name, emergency_contact_phone,
+    tshirt_size, how_heard, skills, availability } = req.body;
+  const background_check_consent = req.body.background_check_consent ? 1 : 0;
+  const photo_release_consent = req.body.photo_release_consent ? 1 : 0;
+  const liability_waiver_signed = req.body.liability_waiver_signed ? 1 : 0;
   const programValues = req.body.programs || [];
   const selectedPrograms = Array.isArray(programValues) ? programValues : [programValues];
   try {
-    db.prepare(`UPDATE gardeners SET first_name = ?, last_name = ?, email = ?, phone = ?, site_id = ?, plot_number = ?, season_id = ?, status = ?, notes = ? WHERE id = ?`)
-      .run(first_name, last_name, email || null, phone || null, site_id || null, plot_number || null, season_id || null, status, notes || null, req.params.id);
+    db.prepare(`UPDATE gardeners SET first_name = ?, last_name = ?, email = ?, phone = ?, site_id = ?, plot_number = ?, season_id = ?, status = ?, notes = ?,
+      address = ?, city = ?, state = ?, zip = ?, date_of_birth = ?, emergency_contact_name = ?, emergency_contact_phone = ?,
+      tshirt_size = ?, how_heard = ?, skills = ?, availability = ?, background_check_consent = ?, photo_release_consent = ?, liability_waiver_signed = ? WHERE id = ?`)
+      .run(first_name, last_name, email || null, phone || null, site_id || null, plot_number || null, season_id || null, status, notes || null,
+        address || null, city || null, state || null, zip || null, date_of_birth || null, emergency_contact_name || null, emergency_contact_phone || null,
+        tshirt_size || null, how_heard || null, skills || null, availability || null, background_check_consent, photo_release_consent, liability_waiver_signed, req.params.id);
 
     // Update program assignments
     db.prepare('DELETE FROM volunteer_programs WHERE volunteer_id = ?').run(req.params.id);
@@ -765,6 +794,9 @@ router.post('/members', requireRole('admin'), (req, res) => {
   try {
     const hash = bcrypt.hashSync(password, 10);
     db.prepare("INSERT INTO member_credentials (gardener_id, email, password_hash) VALUES (?, ?, ?)").run(gardener_id, email, hash);
+    // Auto-subscribe to newsletter
+    const g = db.prepare('SELECT first_name, last_name FROM gardeners WHERE id = ?').get(gardener_id);
+    try { db.prepare("INSERT OR IGNORE INTO subscribers (email, name, source) VALUES (?, ?, 'volunteer')").run(email, g ? [g.first_name, g.last_name].filter(Boolean).join(' ') : null); } catch (e) { /* ignore */ }
     req.session.flash = { type: 'success', message: 'Member login created.' };
   } catch (err) {
     req.session.flash = { type: 'error', message: err.message.includes('UNIQUE') ? 'That gardener or email already has an account.' : 'Failed to create member login.' };
@@ -913,6 +945,80 @@ router.get('/awards/:id/certificate', requireAuth, (req, res) => {
   `).get(req.params.id);
   if (!award) { req.session.flash = { type: 'error', message: 'Award not found.' }; return res.redirect('/admin/garden/awards'); }
   res.render('garden/certificate', { title: 'Certificate', award, layout: false });
+});
+
+
+// ── PROGRAM APPLICATIONS (Admin Review) ──────────────────────
+router.get('/applications', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const filter = req.query.filter || 'pending';
+
+  const applications = db.prepare(`
+    SELECT pa.*, g.first_name, g.last_name, g.email, g.phone
+    FROM program_applications pa
+    JOIN gardeners g ON pa.volunteer_id = g.id
+    ${filter !== 'all' ? "WHERE pa.status = ?" : ''}
+    ORDER BY pa.created_at DESC
+  `).all(...(filter !== 'all' ? [filter] : []));
+
+  const counts = {
+    all: db.prepare("SELECT COUNT(*) as c FROM program_applications").get().c,
+    pending: db.prepare("SELECT COUNT(*) as c FROM program_applications WHERE status = 'pending'").get().c,
+    approved: db.prepare("SELECT COUNT(*) as c FROM program_applications WHERE status = 'approved'").get().c,
+    denied: db.prepare("SELECT COUNT(*) as c FROM program_applications WHERE status = 'denied'").get().c
+  };
+
+  const programInfo = {
+    victory_garden: { label: 'Victory Garden', color: '#2D6A3F' },
+    legislative: { label: 'Legislative Action', color: '#6366f1' },
+    outreach: { label: 'Community Outreach', color: '#f59e0b' },
+    fundraising: { label: 'Fundraising', color: '#10b981' },
+    communications: { label: 'Communications', color: '#8b5cf6' },
+    membership: { label: 'Membership', color: '#ec4899' }
+  };
+
+  res.render('garden/applications', {
+    title: 'Program Applications',
+    applications,
+    counts,
+    filter,
+    programInfo
+  });
+});
+
+router.post('/applications/:id/approve', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const app = db.prepare("SELECT * FROM program_applications WHERE id = ?").get(req.params.id);
+  if (!app || app.status !== 'pending') {
+    req.session.flash = { type: 'error', message: 'Application not found or already reviewed.' };
+    return res.redirect('/admin/garden/applications');
+  }
+
+  db.prepare("UPDATE program_applications SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?")
+    .run(req.session.userId, app.id);
+
+  // Insert into volunteer_programs (skip if already assigned)
+  db.prepare("INSERT OR IGNORE INTO volunteer_programs (volunteer_id, program, assigned_by) VALUES (?, ?, ?)")
+    .run(app.volunteer_id, app.program, req.session.userId);
+
+  req.session.flash = { type: 'success', message: 'Application approved. Volunteer has been assigned to the program.' };
+  res.redirect('/admin/garden/applications');
+});
+
+router.post('/applications/:id/deny', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const app = db.prepare("SELECT * FROM program_applications WHERE id = ?").get(req.params.id);
+  if (!app || app.status !== 'pending') {
+    req.session.flash = { type: 'error', message: 'Application not found or already reviewed.' };
+    return res.redirect('/admin/garden/applications');
+  }
+
+  const note = req.body.note || null;
+  db.prepare("UPDATE program_applications SET status = 'denied', note = ?, reviewed_by = ?, reviewed_at = datetime('now') WHERE id = ?")
+    .run(note, req.session.userId, app.id);
+
+  req.session.flash = { type: 'success', message: 'Application denied.' };
+  res.redirect('/admin/garden/applications');
 });
 
 

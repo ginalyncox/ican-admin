@@ -1,0 +1,47 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Compose Message</h1>
+      <p class="page-header__subtitle">Send a message to all volunteer portal members</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/messages" class="btn btn--outline btn--sm">&larr; Messages</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <form method="POST" action="/admin/messages/send">
+      <div class="form-group">
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" name="subject" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label for="message_type">Type</label>
+        <select id="message_type" name="message_type" class="form-control">
+          <option value="general">General</option>
+          <option value="announcement">Announcement</option>
+          <option value="program">Program Update</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="target_program">Target Program (optional — leave blank for all members)</label>
+        <select id="target_program" name="target_program" class="form-control">
+          <option value="">All Members</option>
+          <option value="victory_garden">Victory Garden</option>
+          <option value="legislative">Legislative Action</option>
+          <option value="outreach">Community Outreach</option>
+          <option value="fundraising">Fundraising</option>
+          <option value="communications">Communications</option>
+          <option value="membership">Membership</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="body">Message Body</label>
+        <textarea id="body" name="body" class="form-control" rows="10" required></textarea>
+      </div>
+      <button type="submit" class="btn btn--primary">Send Message</button>
+    </form>
+  </div>
+</div>

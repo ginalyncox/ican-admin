@@ -3,6 +3,10 @@
   <p class="page-subtitle">Let's get you set up, <%= member.name %>. Just a few quick steps.</p>
 </div>
 
+<% const personalDone = gardener.phone && gardener.email && gardener.emergency_contact_name; %>
+<% const prefsDone = !!gardener.availability; %>
+<% const programsDone = appliedPrograms.length > 0; %>
+
 <!-- Progress Steps -->
 <div class="onboarding-progress">
   <div class="onboarding-step <%= step === 'password' ? 'onboarding-step--active' : (cred.must_change_password ? '' : 'onboarding-step--done') %>">
@@ -10,18 +14,23 @@
     <div class="onboarding-step__label">Set Password</div>
   </div>
   <div class="onboarding-step__line <%= !cred.must_change_password ? 'onboarding-step__line--done' : '' %>"></div>
-  <div class="onboarding-step <%= step === 'personal' ? 'onboarding-step--active' : (gardener.phone && gardener.email && gardener.emergency_contact_name ? 'onboarding-step--done' : '') %>">
-    <div class="onboarding-step__number"><% if (gardener.phone && gardener.email && gardener.emergency_contact_name) { %>&#10003;<% } else { %>2<% } %></div>
+  <div class="onboarding-step <%= step === 'personal' ? 'onboarding-step--active' : (personalDone ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (personalDone) { %>&#10003;<% } else { %>2<% } %></div>
     <div class="onboarding-step__label">Personal Info</div>
   </div>
-  <div class="onboarding-step__line <%= (gardener.phone && gardener.email && gardener.emergency_contact_name) ? 'onboarding-step__line--done' : '' %>"></div>
-  <div class="onboarding-step <%= step === 'preferences' ? 'onboarding-step--active' : (gardener.availability ? 'onboarding-step--done' : '') %>">
-    <div class="onboarding-step__number"><% if (gardener.availability) { %>&#10003;<% } else { %>3<% } %></div>
+  <div class="onboarding-step__line <%= personalDone ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'preferences' ? 'onboarding-step--active' : (prefsDone ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (prefsDone) { %>&#10003;<% } else { %>3<% } %></div>
     <div class="onboarding-step__label">Preferences</div>
   </div>
-  <div class="onboarding-step__line <%= gardener.availability ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step__line <%= prefsDone ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'programs' ? 'onboarding-step--active' : (programsDone ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (programsDone) { %>&#10003;<% } else { %>4<% } %></div>
+    <div class="onboarding-step__label">Programs</div>
+  </div>
+  <div class="onboarding-step__line <%= programsDone ? 'onboarding-step__line--done' : '' %>"></div>
   <div class="onboarding-step <%= step === 'welcome' ? 'onboarding-step--active' : '' %>">
-    <div class="onboarding-step__number">4</div>
+    <div class="onboarding-step__number">5</div>
     <div class="onboarding-step__label">Get Started</div>
   </div>
 </div>
@@ -193,7 +202,37 @@
 </div>
 <% } %>
 
-<!-- Step 4: Welcome & Finish -->
+<!-- Step 4: Program Interests -->
+<% if (step === 'programs') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+      Step 4: Choose Your Programs
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Select the volunteer programs you're interested in. Your application will be reviewed by a coordinator.</p>
+    <form method="POST" action="/member/onboarding/programs">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <% Object.entries(programInfo).forEach(([key, info]) => { %>
+          <label style="display:flex; align-items:flex-start; gap:0.75rem; padding:1rem; border:2px solid var(--color-border); border-radius:8px; cursor:pointer; transition: border-color 0.15s;" onmouseover="this.style.borderColor='<%= info.color %>'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='var(--color-border)'" onclick="var cb=this.querySelector('input'); setTimeout(function(){if(cb.checked) cb.closest('label').style.borderColor='<%= info.color %>'; else cb.closest('label').style.borderColor='var(--color-border)';}, 0);">
+            <input type="checkbox" name="programs" value="<%= key %>" <%= appliedPrograms.includes(key) ? 'checked' : '' %> style="margin-top:2px;">
+            <div>
+              <strong style="color: <%= info.color %>;"><%= info.label %></strong>
+              <p style="margin:0.25rem 0 0; font-size:0.85rem; color: var(--color-muted); line-height:1.4;"><%= info.description %></p>
+            </div>
+          </label>
+        <% }) %>
+      </div>
+      <p style="font-size:0.85rem; color: var(--color-muted); margin-bottom:1.25rem;">You can apply for additional programs at any time from your portal.</p>
+      <button type="submit" class="btn btn--primary">Submit Applications &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 5: Welcome & Finish -->
 <% if (step === 'welcome') { %>
 <div class="card onboarding-card">
   <div class="card__header">
@@ -205,19 +244,15 @@
   <div class="card__body">
     <div style="padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15); margin-bottom:1.5rem;">
       <h3 style="margin:0 0 0.75rem; font-size:1.05rem; color: var(--primary);">Welcome to the ICAN Volunteer Portal!</h3>
-      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">Here's what you can do:</p>
+      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">Your program applications have been submitted. A coordinator will review them soon. Here's what you can do:</p>
       <ul style="margin:0; padding-left:1.25rem; font-size:0.9rem; color: var(--color-muted); line-height:1.8;">
-        <li><strong>Dashboard</strong> &mdash; See your assigned programs and activity at a glance</li>
-        <li><strong>My Programs</strong> &mdash; View details about your volunteer programs</li>
+        <li><strong>Dashboard</strong> &mdash; See your assigned programs and pending applications</li>
+        <li><strong>My Programs</strong> &mdash; View program details and apply for more</li>
         <li><strong>Log Activity</strong> &mdash; Record harvests, hours, and other contributions</li>
         <li><strong>Leaderboard</strong> &mdash; See how you rank among fellow volunteers</li>
         <li><strong>Profile</strong> &mdash; Keep your contact info current</li>
       </ul>
     </div>
-
-    <p style="margin-bottom:1.5rem; font-size:0.9rem; color: var(--color-muted);">
-      Your coordinator will assign you to volunteer programs. If you have questions, email <a href="mailto:hello@iowacannabisaction.org">hello@iowacannabisaction.org</a>.
-    </p>
 
     <form method="POST" action="/member/onboarding/complete">
       <button type="submit" class="btn btn--primary">Enter My Portal</button>

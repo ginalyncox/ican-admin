@@ -50,6 +50,11 @@ router.post('/send', requireRole('admin', 'editor'), (req, res) => {
   // Log the send
   db.prepare('INSERT INTO newsletter_sends (subject, body, recipient_count, sent_by) VALUES (?, ?, ?, ?)').run(subject, body, recipientCount, req.session.userId);
 
+  // Also create a member_messages entry so members see it in their mailbox
+  try {
+    db.prepare("INSERT INTO member_messages (subject, body, message_type, sent_by) VALUES (?, ?, 'newsletter', ?)").run(subject, body, req.session.userId);
+  } catch (e) { /* ignore */ }
+
   // Generate the recipient list as a downloadable reference
   // In production, this would integrate with an email service (Mailchimp, SendGrid, etc.)
   req.session.flash = {

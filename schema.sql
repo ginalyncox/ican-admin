@@ -286,6 +286,19 @@ CREATE TABLE IF NOT EXISTS volunteer_programs (
   UNIQUE(volunteer_id, program)
 );
 
+-- Program Applications (volunteer requests to join programs)
+CREATE TABLE IF NOT EXISTS program_applications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  volunteer_id INTEGER NOT NULL REFERENCES gardeners(id) ON DELETE CASCADE,
+  program TEXT NOT NULL CHECK(program IN ('victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership')),
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'denied')),
+  note TEXT,
+  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(volunteer_id, program, status)
+);
+
 -- Events
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

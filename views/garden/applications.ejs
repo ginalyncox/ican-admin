@@ -1,0 +1,80 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Program Applications</h1>
+      <p class="page-header__subtitle"><%= counts.pending %> pending review</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/garden" class="btn btn--outline btn--sm">&larr; Garden Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+  <a href="/admin/garden/applications?filter=pending" class="btn btn--sm <%= filter === 'pending' ? 'btn--primary' : 'btn--outline' %>">Pending (<%= counts.pending %>)</a>
+  <a href="/admin/garden/applications?filter=approved" class="btn btn--sm <%= filter === 'approved' ? 'btn--primary' : 'btn--outline' %>">Approved (<%= counts.approved %>)</a>
+  <a href="/admin/garden/applications?filter=denied" class="btn btn--sm <%= filter === 'denied' ? 'btn--primary' : 'btn--outline' %>">Denied (<%= counts.denied %>)</a>
+  <a href="/admin/garden/applications?filter=all" class="btn btn--sm <%= filter === 'all' ? 'btn--primary' : 'btn--outline' %>">All (<%= counts.all %>)</a>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <% if (applications.length === 0) { %>
+      <div class="verify-empty">
+        <h3>No applications</h3>
+        <p>No <%= filter !== 'all' ? filter : '' %> applications found.</p>
+      </div>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Volunteer</th>
+            <th>Program</th>
+            <th>Applied</th>
+            <th>Status</th>
+            <% if (filter === 'pending' || filter === 'all') { %><th>Actions</th><% } %>
+          </tr>
+        </thead>
+        <tbody>
+          <% applications.forEach(app => { %>
+            <% const info = programInfo[app.program] || { label: app.program, color: '#666' }; %>
+            <tr>
+              <td>
+                <strong><%= app.first_name %> <%= app.last_name %></strong>
+                <% if (app.email) { %><br><span class="text-muted" style="font-size:0.8rem;"><%= app.email %></span><% } %>
+              </td>
+              <td><span class="badge" style="background: <%= info.color %>; color: #fff;"><%= info.label %></span></td>
+              <td class="text-muted" style="font-size:0.85rem;"><%= new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
+              <td>
+                <% if (app.status === 'pending') { %>
+                  <span class="badge badge--warning">Pending</span>
+                <% } else if (app.status === 'approved') { %>
+                  <span class="badge badge--success">Approved</span>
+                <% } else { %>
+                  <span class="badge badge--danger">Denied</span>
+                <% } %>
+              </td>
+              <% if (filter === 'pending' || filter === 'all') { %>
+              <td>
+                <% if (app.status === 'pending') { %>
+                  <div style="display:flex; gap:0.5rem;">
+                    <form method="POST" action="/admin/garden/applications/<%= app.id %>/approve" style="display:inline;">
+                      <button type="submit" class="btn btn--primary btn--sm">Approve</button>
+                    </form>
+                    <form method="POST" action="/admin/garden/applications/<%= app.id %>/deny" style="display:inline;">
+                      <button type="submit" class="btn btn--outline btn--sm" style="color:#c0392b; border-color:#c0392b;">Deny</button>
+                    </form>
+                  </div>
+                <% } else { %>
+                  <span class="text-muted">—</span>
+                <% } %>
+              </td>
+              <% } %>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+      <p class="text-muted" style="margin-top:0.75rem; font-size:0.85rem;"><%= applications.length %> application<%= applications.length !== 1 ? 's' : '' %></p>
+    <% } %>
+  </div>
+</div>

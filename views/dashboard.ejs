@@ -3,30 +3,33 @@
   <p class="page-header__subtitle">Welcome back, <%= user.name %></p>
 </div>
 
+<!-- Organization Overview -->
 <div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-card__icon stat-card__icon--posts">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  <a href="/admin/garden/gardeners" class="stat-card stat-card--link">
+    <div class="stat-card__icon stat-card__icon--subscribers">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </div>
     <div class="stat-card__info">
-      <span class="stat-card__value"><%= stats.totalPosts %></span>
-      <span class="stat-card__label">Total Posts</span>
+      <span class="stat-card__value"><%= stats.activeVolunteers %></span>
+      <span class="stat-card__label">Active Volunteers</span>
     </div>
-  </div>
+  </a>
 
-  <div class="stat-card">
-    <div class="stat-card__icon stat-card__icon--published">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <% if (stats.pendingApplications > 0) { %>
+  <a href="/admin/garden/applications" class="stat-card stat-card--attention stat-card--link">
+    <div class="stat-card__icon stat-card__icon--pending">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
     </div>
     <div class="stat-card__info">
-      <span class="stat-card__value"><%= stats.publishedPosts %></span>
-      <span class="stat-card__label">Published</span>
+      <span class="stat-card__value"><%= stats.pendingApplications %></span>
+      <span class="stat-card__label">Pending Applications</span>
     </div>
-  </div>
+  </a>
+  <% } %>
 
   <div class="stat-card">
     <div class="stat-card__icon stat-card__icon--submissions">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
     </div>
     <div class="stat-card__info">
       <span class="stat-card__value"><%= stats.unreadSubmissions %></span>
@@ -36,23 +39,13 @@
 
   <div class="stat-card">
     <div class="stat-card__icon stat-card__icon--subscribers">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
     </div>
     <div class="stat-card__info">
       <span class="stat-card__value"><%= stats.totalSubscribers %></span>
       <span class="stat-card__label">Subscribers</span>
     </div>
   </div>
-
-  <a href="/admin/garden" class="stat-card stat-card--garden stat-card--link">
-    <div class="stat-card__icon stat-card__icon--gardeners">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
-    </div>
-    <div class="stat-card__info">
-      <span class="stat-card__value"><%= stats.activeGardeners %></span>
-      <span class="stat-card__label">Active Gardeners</span>
-    </div>
-  </a>
 
   <% if (stats.pendingVerifications > 0) { %>
   <a href="/admin/garden/verify" class="stat-card stat-card--attention stat-card--link">
@@ -65,6 +58,35 @@
     </div>
   </a>
   <% } %>
+</div>
+
+<!-- Program Enrollment Overview -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Program Enrollment</h2>
+    <a href="/admin/garden/applications" class="card__link">Review Applications</a>
+  </div>
+  <div class="card__body">
+    <% const programInfo = [
+      { key: 'victory_garden', label: 'Victory Garden', color: '#2D6A3F', icon: '🌱' },
+      { key: 'legislative', label: 'Legislative Action', color: '#6366f1', icon: '🏛️' },
+      { key: 'outreach', label: 'Community Outreach', color: '#f59e0b', icon: '📢' },
+      { key: 'fundraising', label: 'Fundraising', color: '#10b981', icon: '💰' },
+      { key: 'communications', label: 'Communications', color: '#8b5cf6', icon: '✉️' },
+      { key: 'membership', label: 'Membership', color: '#ec4899', icon: '👥' }
+    ]; %>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+      <% programInfo.forEach(p => { %>
+        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: var(--radius); border: 1px solid var(--color-border);">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: <%= p.color %>15; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;"><%= p.icon %></div>
+          <div>
+            <div style="font-weight: 600; font-size: 0.85rem;"><%= p.label %></div>
+            <div style="font-size: 0.8rem; color: var(--color-muted);"><%= (stats.programCounts[p.key] || 0) %> volunteer<%= (stats.programCounts[p.key] || 0) !== 1 ? 's' : '' %></div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
 </div>
 
 <!-- Portal Management -->
@@ -93,8 +115,8 @@
         </div>
         <div class="portal-card__info">
           <h3>Volunteer Portal</h3>
-          <p><%= stats.memberPortalUsers %> volunteer account<%= stats.memberPortalUsers !== 1 ? 's' : '' %></p>
-          <p class="text-muted" style="font-size:0.8rem;"><%= stats.activeGardeners %> active volunteers</p>
+          <p><%= stats.memberPortalUsers %> portal account<%= stats.memberPortalUsers !== 1 ? 's' : '' %></p>
+          <p class="text-muted" style="font-size:0.8rem;"><%= stats.activeVolunteers %> active volunteers</p>
         </div>
         <span class="portal-card__action">Manage &rarr;</span>
       </a>
@@ -110,6 +132,23 @@
         </div>
         <span class="portal-card__action" style="opacity:0.4;">Current</span>
       </a>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Quick Actions</h2>
+  </div>
+  <div class="card__body">
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="/admin/garden/gardeners/new" class="btn btn--primary btn--sm">Add Volunteer</a>
+      <a href="/admin/garden/members/new" class="btn btn--outline btn--sm">Create Member Login</a>
+      <a href="/admin/messages/compose" class="btn btn--outline btn--sm">Send Message</a>
+      <a href="/admin/newsletter/compose" class="btn btn--outline btn--sm">Compose Newsletter</a>
+      <a href="/admin/events/new" class="btn btn--outline btn--sm">Create Event</a>
+      <a href="/admin/posts/new" class="btn btn--outline btn--sm">Write Post</a>
     </div>
   </div>
 </div>

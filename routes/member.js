@@ -70,7 +70,7 @@ router.get('/onboarding', requireMember, (req, res) => {
     return res.redirect('/member');
   }
 
-  // Determine current step (4 steps now)
+  // Determine current step (5 steps now)
   let step = 'password';
   if (!cred.must_change_password) {
     step = 'personal';
@@ -79,16 +79,37 @@ router.get('/onboarding', requireMember, (req, res) => {
       step = 'preferences';
       // Preferences complete when availability is set
       if (gardener.availability) {
-        step = 'welcome';
+        step = 'programs';
+        // Programs step complete when at least one application exists
+        const hasApplied = db.prepare('SELECT COUNT(*) as c FROM program_applications WHERE volunteer_id = ?').get(gardener.id).c;
+        if (hasApplied > 0) {
+          step = 'welcome';
+        }
       }
     }
   }
+
+  // Program info for step 4
+  const programInfo = {
+    victory_garden: { label: 'Victory Garden', color: 'var(--primary)', description: 'Grow food for Iowans in need. Log harvests, track volunteer hours, and compete on the seasonal leaderboard. Our flagship community program.' },
+    legislative: { label: 'Legislative Action', color: '#6366f1', description: 'Help advance cannabis policy in Iowa. Attend lobby days, write legislators, and support grassroots advocacy campaigns.' },
+    outreach: { label: 'Community Outreach', color: '#f59e0b', description: 'Be the face of ICAN in your community. Staff event booths, give presentations, and build relationships with local organizations.' },
+    fundraising: { label: 'Fundraising', color: '#10b981', description: 'Help sustain ICAN\'s mission. Organize events, coordinate donor campaigns, and assist with grant writing.' },
+    communications: { label: 'Communications', color: '#8b5cf6', description: 'Shape ICAN\'s public voice. Write newsletter content, manage social media posts, and create marketing materials.' },
+    membership: { label: 'Membership', color: '#ec4899', description: 'Grow our volunteer base. Recruit new members, plan onboarding events, and help with retention outreach.' }
+  };
+
+  // Get existing applications for this volunteer
+  const existingApps = db.prepare('SELECT program, status FROM program_applications WHERE volunteer_id = ?').all(gardener.id);
+  const appliedPrograms = existingApps.map(a => a.program);
 
   res.render('member/onboarding', {
     title: 'Welcome — Get Started',
     gardener,
     cred,
     step,
+    programInfo,
+    appliedPrograms,
     layout: 'member/layout'
   });
 });
@@ -157,11 +178,40 @@ router.post('/onboarding/preferences', requireMember, (req, res) => {
   res.redirect('/member/onboarding');
 });
 
-// Onboarding Step 4: Complete onboarding
+// Onboarding Step 4: Program Interests
+router.post('/onboarding/programs', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  let programs = req.body.programs || [];
+  if (typeof programs === 'string') programs = [programs];
+
+  if (programs.length === 0) {
+    req.session.memberFlash = { type: 'error', message: 'Please select at least one program you\'re interested in.' };
+    return res.redirect('/member/onboarding');
+  }
+
+  const validPrograms = ['victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership'];
+  const insert = db.prepare('INSERT OR IGNORE INTO program_applications (volunteer_id, program, status) VALUES (?, ?, \'pending\')');
+  for (const prog of programs) {
+    if (validPrograms.includes(prog)) {
+      insert.run(gid, prog);
+    }
+  }
+
+  req.session.memberFlash = { type: 'success', message: 'Program interests submitted! Your applications are pending review.' };
+  res.redirect('/member/onboarding');
+});
+
+// Onboarding Step 5: Complete onboarding
 router.post('/onboarding/complete', requireMember, (req, res) => {
   const db = req.app.locals.db;
 
   db.prepare("UPDATE member_credentials SET onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(req.session.memberId);
+  // Auto-subscribe to newsletter
+  const cred = db.prepare('SELECT mc.email, g.first_name, g.last_name FROM member_credentials mc JOIN gardeners g ON mc.gardener_id = g.id WHERE mc.id = ?').get(req.session.memberId);
+  if (cred && cred.email) {
+    try { db.prepare("INSERT OR IGNORE INTO subscribers (email, name, source) VALUES (?, ?, 'volunteer')").run(cred.email, [cred.first_name, cred.last_name].filter(Boolean).join(' ') || null); } catch (e) { /* ignore */ }
+  }
   req.session.memberOnboardingCompleted = 1;
   req.session.memberFlash = { type: 'success', message: 'Welcome! Your onboarding is complete.' };
   res.redirect('/member');
@@ -183,6 +233,9 @@ router.get('/', requireMember, (req, res) => {
   // Get assigned programs
   const programs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(p => p.program);
 
+  // Get pending applications
+  const pendingApplications = db.prepare("SELECT program, created_at FROM program_applications WHERE volunteer_id = ? AND status = 'pending' ORDER BY created_at DESC").all(gid);
+
   // Only compute garden stats if in victory_garden program
   let stats = { totalLbs: 0, totalHrs: 0, totalDonatedLbs: 0, awardCount: 0, harvestRank: 0, hoursRank: 0, totalGardeners: 0 };
   let recentHarvests = [];
@@ -200,10 +253,21 @@ router.get('/', requireMember, (req, res) => {
     awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(gid);
   }
 
+  const programInfo = {
+    victory_garden: { label: 'Victory Garden', color: 'var(--primary)' },
+    legislative: { label: 'Legislative Action', color: '#6366f1' },
+    outreach: { label: 'Community Outreach', color: '#f59e0b' },
+    fundraising: { label: 'Fundraising', color: '#10b981' },
+    communications: { label: 'Communications', color: '#8b5cf6' },
+    membership: { label: 'Membership', color: '#ec4899' }
+  };
+
   res.render('member/dashboard', {
     title: 'My Dashboard',
     gardener,
     programs,
+    pendingApplications,
+    programInfo,
     stats,
     recentHarvests,
     recentHours,
@@ -216,7 +280,10 @@ router.get('/', requireMember, (req, res) => {
 router.get('/programs', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
-  const programs = db.prepare('SELECT program, assigned_at FROM volunteer_programs WHERE volunteer_id = ? ORDER BY assigned_at').all(gid);
+
+  const activePrograms = db.prepare('SELECT program, assigned_at FROM volunteer_programs WHERE volunteer_id = ? ORDER BY assigned_at').all(gid);
+  const pendingApps = db.prepare("SELECT program, created_at FROM program_applications WHERE volunteer_id = ? AND status = 'pending'").all(gid);
+  const deniedApps = db.prepare("SELECT program, created_at, note FROM program_applications WHERE volunteer_id = ? AND status = 'denied'").all(gid);
 
   const programInfo = {
     victory_garden: { label: 'Victory Garden', color: 'var(--primary)', description: 'Grow food, log harvests, track volunteer hours, and compete on the leaderboard.' },
@@ -227,12 +294,52 @@ router.get('/programs', requireMember, (req, res) => {
     membership: { label: 'Membership', color: '#ec4899', description: 'Help grow ICAN\'s member base through recruitment and retention.' }
   };
 
+  // Determine which programs are available to apply for
+  const activeKeys = activePrograms.map(p => p.program);
+  const pendingKeys = pendingApps.map(p => p.program);
+  const allKeys = Object.keys(programInfo);
+  const availablePrograms = allKeys.filter(k => !activeKeys.includes(k) && !pendingKeys.includes(k));
+
   res.render('member/programs', {
     title: 'My Programs',
-    programs,
+    activePrograms,
+    pendingApps,
+    deniedApps,
+    availablePrograms,
     programInfo,
     layout: 'member/layout'
   });
+});
+
+// ── APPLY FOR PROGRAM (post-onboarding) ─────────────────────
+router.post('/apply-program', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const program = req.body.program;
+
+  const validPrograms = ['victory_garden', 'legislative', 'outreach', 'fundraising', 'communications', 'membership'];
+  if (!program || !validPrograms.includes(program)) {
+    req.session.memberFlash = { type: 'error', message: 'Invalid program.' };
+    return res.redirect('/member/programs');
+  }
+
+  // Check if already assigned
+  const existing = db.prepare('SELECT id FROM volunteer_programs WHERE volunteer_id = ? AND program = ?').get(gid, program);
+  if (existing) {
+    req.session.memberFlash = { type: 'error', message: 'You are already assigned to this program.' };
+    return res.redirect('/member/programs');
+  }
+
+  // Check if already has a pending application
+  const pendingApp = db.prepare("SELECT id FROM program_applications WHERE volunteer_id = ? AND program = ? AND status = 'pending'").get(gid, program);
+  if (pendingApp) {
+    req.session.memberFlash = { type: 'error', message: 'You already have a pending application for this program.' };
+    return res.redirect('/member/programs');
+  }
+
+  db.prepare("INSERT INTO program_applications (volunteer_id, program, status) VALUES (?, ?, 'pending')").run(gid, program);
+  req.session.memberFlash = { type: 'success', message: 'Application submitted! A coordinator will review it soon.' };
+  res.redirect('/member/programs');
 });
 
 // ── LEADERBOARD ─────────────────────────────────────────────
@@ -414,6 +521,47 @@ router.post('/change-password', requireMember, (req, res) => {
   db.prepare('UPDATE member_credentials SET password_hash = ? WHERE id = ?').run(hash, req.session.memberId);
   req.session.memberFlash = { type: 'success', message: 'Password updated.' };
   res.redirect('/member/profile');
+});
+
+// ── MAILBOX ─────────────────────────────────────────────────
+router.get('/mailbox', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const memberId = req.session.memberId;
+  // Get member's programs for targeted messages
+  const gid = req.session.memberGardenerId;
+  const memberProgs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(r => r.program);
+  // Get all messages: general ones + program-targeted ones matching member's programs
+  const messages = db.prepare(`
+    SELECT m.*, mr.read_at
+    FROM member_messages m
+    LEFT JOIN member_message_reads mr ON mr.message_id = m.id AND mr.member_id = ?
+    WHERE m.target_program IS NULL OR m.target_program IN (${memberProgs.map(() => '?').join(',') || "''"})
+    ORDER BY m.created_at DESC
+  `).all(memberId, ...memberProgs);
+  res.render('member/mailbox', { title: 'Mailbox', messages, layout: 'member/layout' });
+});
+
+router.get('/mailbox/:id', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const memberId = req.session.memberId;
+  const message = db.prepare('SELECT * FROM member_messages WHERE id = ?').get(req.params.id);
+  if (!message) {
+    req.session.memberFlash = { type: 'error', message: 'Message not found.' };
+    return res.redirect('/member/mailbox');
+  }
+  // Mark as read
+  try {
+    db.prepare('INSERT OR IGNORE INTO member_message_reads (message_id, member_id) VALUES (?, ?)').run(message.id, memberId);
+  } catch (e) { /* already read */ }
+  res.render('member/mailbox-detail', { title: message.subject, message, layout: 'member/layout' });
+});
+
+router.post('/mailbox/:id/read', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    db.prepare('INSERT OR IGNORE INTO member_message_reads (message_id, member_id) VALUES (?, ?)').run(req.params.id, req.session.memberId);
+  } catch (e) { /* already read */ }
+  res.json({ success: true });
 });
 
 module.exports = router;

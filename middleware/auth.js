@@ -30,6 +30,15 @@ function setLocals(req, res, next) {
     role: req.session.userRole
   } : null;
   res.locals.path = req.originalUrl.split('?')[0];
+
+  // Sidebar badge counts (only for authenticated admin users)
+  if (req.session.userId && req.app.locals.db) {
+    try {
+      const db = req.app.locals.db;
+      res.locals.pendingAppCount = db.prepare("SELECT COUNT(*) as c FROM program_applications WHERE status = 'pending'").get().c;
+      res.locals.unreadCount = db.prepare("SELECT COUNT(*) as c FROM submissions WHERE read = 0").get().c;
+    } catch (e) { /* tables may not exist yet */ }
+  }
   next();
 }
 

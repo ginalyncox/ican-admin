@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
-  source TEXT DEFAULT 'website' CHECK(source IN ('website', 'manual', 'import')),
+  source TEXT DEFAULT 'website' CHECK(source IN ('website', 'manual', 'import', 'volunteer')),
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'unsubscribed')),
   subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -284,6 +284,25 @@ CREATE TABLE IF NOT EXISTS volunteer_programs (
   assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   assigned_by INTEGER REFERENCES users(id),
   UNIQUE(volunteer_id, program)
+);
+
+-- Internal messages (admin → members)
+CREATE TABLE IF NOT EXISTS member_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  message_type TEXT DEFAULT 'general' CHECK(message_type IN ('general', 'newsletter', 'announcement', 'program')),
+  target_program TEXT,
+  sent_by INTEGER REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS member_message_reads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER NOT NULL REFERENCES member_messages(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES member_credentials(id) ON DELETE CASCADE,
+  read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(message_id, member_id)
 );
 
 -- Events
