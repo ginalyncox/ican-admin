@@ -1801,3 +1801,142 @@ textarea.form-input {
   .director-vote-card__footer { flex-direction: column; align-items: flex-start; }
   .modal-content { max-width: 100%; margin: 0.5rem; }
 }
+
+/* ── Onboarding Progress Stepper ─────────────────────────── */
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0 auto 2rem;
+  max-width: 700px;
+  padding: 1.5rem 1rem;
+}
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.onboarding-step__number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  background: #e0e0e0;
+  color: #888;
+  transition: all 0.2s;
+}
+.onboarding-step--active .onboarding-step__number {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(45,106,63,0.15);
+}
+.onboarding-step--done .onboarding-step__number {
+  background: var(--success);
+  color: #fff;
+}
+.onboarding-step__label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+.onboarding-step--active .onboarding-step__label {
+  color: var(--primary);
+  font-weight: 600;
+}
+.onboarding-step--done .onboarding-step__label {
+  color: var(--success);
+}
+.onboarding-step__line {
+  flex: 1;
+  height: 2px;
+  background: #e0e0e0;
+  min-width: 30px;
+  margin: 0 0.25rem;
+  margin-bottom: 1.2rem;
+  transition: background 0.2s;
+}
+.onboarding-step__line--done {
+  background: var(--success);
+}
+
+/* Onboarding card */
+.onboarding-card {
+  max-width: 680px;
+  margin: 0 auto;
+}
+.onboarding-card .card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.onboarding-card .card__title svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+/* Onboarding checkbox */
+.onboarding-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  user-select: none;
+}
+.onboarding-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+/* Onboarding document list */
+.onboarding-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.onboarding-doc-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8f8f6;
+  border: 1px solid #e8e6e0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, background 0.2s;
+}
+.onboarding-doc-item:hover {
+  border-color: var(--primary);
+  background: rgba(45,106,63,0.04);
+}
+.onboarding-doc-item svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.onboarding-doc-item div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Onboarding badge in admin */
+.badge--onboarding { background: #fff3cd; color: #856404; }
+.badge--onboarded { background: var(--success-light); color: var(--success); }
+
+@media (max-width: 600px) {
+  .onboarding-progress { gap: 0; padding: 1rem 0.5rem; }
+  .onboarding-step__label { font-size: 0.65rem; }
+  .onboarding-step__number { width: 30px; height: 30px; font-size: 0.75rem; }
+  .onboarding-step__line { min-width: 16px; }
+}

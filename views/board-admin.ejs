@@ -23,6 +23,7 @@
             <th>Title</th>
             <th>Term</th>
             <th>Status</th>
+            <th>Onboarding</th>
             <th>Last Login</th>
             <th></th>
           </tr>
@@ -52,6 +53,13 @@
                 </span>
                 <% if (m.status === 'locked' && m.locked_reason) { %>
                   <br><span class="text-muted" style="font-size:0.75rem;" title="<%= m.locked_reason %>">Reason: <%= m.locked_reason.length > 30 ? m.locked_reason.substring(0, 30) + '...' : m.locked_reason %></span>
+                <% } %>
+              </td>
+              <td>
+                <% if (m.onboarding_completed) { %>
+                  <span class="badge badge--onboarded">Complete</span>
+                <% } else { %>
+                  <span class="badge badge--onboarding">Pending</span>
                 <% } %>
               </td>
               <td class="text-muted" style="font-size:0.8rem;"><%= m.last_login ? new Date(m.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Never' %></td>
@@ -118,7 +126,7 @@
       <div class="form-group">
         <label for="password">Temporary Password</label>
         <input type="text" id="password" name="password" class="form-control" required value="changeme123" placeholder="Temporary password">
-        <small class="text-muted">The director should change this after first login.</small>
+        <small class="text-muted">The director will be guided through onboarding (password change, profile, COI) on first login.</small>
       </div>
       <div class="form-group">
         <label for="title">Title</label>

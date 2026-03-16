@@ -1,5 +1,13 @@
 function requireDirector(req, res, next) {
   if (req.session && req.session.directorId) {
+    // If onboarding not completed, redirect (but allow onboarding routes + logout)
+    const onboardingPaths = ['/director/onboarding', '/director/logout'];
+    const currentPath = req.originalUrl.split('?')[0];
+    const isOnboardingRoute = onboardingPaths.some(p => currentPath.startsWith(p));
+
+    if (!isOnboardingRoute && (req.session.directorMustChangePassword || !req.session.directorOnboardingCompleted)) {
+      return res.redirect('/director/onboarding');
+    }
     return next();
   }
   res.redirect('/director/login');

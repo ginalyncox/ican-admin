@@ -74,6 +74,13 @@ router.post('/login', (req, res) => {
   req.session.directorTitle = member.title;
   req.session.directorIsOfficer = member.is_officer;
   req.session.directorOfficerTitle = member.officer_title;
+  req.session.directorMustChangePassword = member.must_change_password;
+  req.session.directorOnboardingCompleted = member.onboarding_completed;
+
+  // Redirect to onboarding if not completed
+  if (member.must_change_password || !member.onboarding_completed) {
+    return res.redirect('/director/onboarding');
+  }
 
   res.redirect('/director');
 });
@@ -87,6 +94,121 @@ router.get('/logout', (req, res) => {
   delete req.session.directorIsOfficer;
   delete req.session.directorOfficerTitle;
   res.redirect('/director/login');
+});
+
+// ── ONBOARDING ──────────────────────────────────────────────
+router.get('/onboarding', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const member = db.prepare('SELECT * FROM board_members WHERE id = ?').get(mid);
+  const currentYear = new Date().getFullYear();
+
+  // Determine current step
+  let step = 'password'; // Step 1: change password
+  if (!member.must_change_password) {
+    step = 'profile'; // Step 2: complete profile
+    if (member.phone && member.bio) {
+      step = 'coi'; // Step 3: file COI
+      const coiFiled = db.prepare('SELECT id FROM coi_disclosures WHERE member_id = ? AND disclosure_year = ?').get(mid, currentYear);
+      if (coiFiled) {
+        step = 'documents'; // Step 4: review key documents
+      }
+    }
+  }
+
+  // If already completed, go to dashboard
+  if (member.onboarding_completed) {
+    return res.redirect('/director');
+  }
+
+  // Get key documents for step 4
+  const keyDocs = db.prepare(`
+    SELECT id, title, category, original_name FROM board_documents
+    WHERE category IN ('bylaws', 'policy', 'compliance')
+    ORDER BY category, title
+  `).all();
+
+  res.render('director/onboarding', {
+    title: 'Welcome — Get Started',
+    member,
+    step,
+    currentYear,
+    keyDocs,
+    layout: 'director/layout'
+  });
+});
+
+// Onboarding Step 1: Change password
+router.post('/onboarding/password', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const { new_password, confirm_password } = req.body;
+
+  if (!new_password || !confirm_password) {
+    req.session.directorFlash = { type: 'error', message: 'Both password fields are required.' };
+    return res.redirect('/director/onboarding');
+  }
+  if (new_password !== confirm_password) {
+    req.session.directorFlash = { type: 'error', message: 'Passwords do not match.' };
+    return res.redirect('/director/onboarding');
+  }
+  if (new_password.length < 8) {
+    req.session.directorFlash = { type: 'error', message: 'Password must be at least 8 characters.' };
+    return res.redirect('/director/onboarding');
+  }
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE board_members SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, mid);
+  req.session.directorMustChangePassword = 0;
+  req.session.directorFlash = { type: 'success', message: 'Password updated. Now let\'s complete your profile.' };
+  res.redirect('/director/onboarding');
+});
+
+// Onboarding Step 2: Complete profile
+router.post('/onboarding/profile', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const { phone, bio } = req.body;
+
+  if (!phone || !bio) {
+    req.session.directorFlash = { type: 'error', message: 'Phone number and bio are required to continue.' };
+    return res.redirect('/director/onboarding');
+  }
+
+  db.prepare('UPDATE board_members SET phone = ?, bio = ? WHERE id = ?').run(phone, bio, mid);
+  req.session.directorFlash = { type: 'success', message: 'Profile saved. Next, please file your Conflict of Interest disclosure.' };
+  res.redirect('/director/onboarding');
+});
+
+// Onboarding Step 3: COI disclosure
+router.post('/onboarding/coi', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const { has_conflict, description, organization, nature_of_interest, mitigation_plan } = req.body;
+  const currentYear = new Date().getFullYear();
+
+  try {
+    db.prepare(`
+      INSERT INTO coi_disclosures (member_id, disclosure_year, has_conflict, description, organization, nature_of_interest, mitigation_plan)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(mid, currentYear, has_conflict ? 1 : 0, description || null, organization || null, nature_of_interest || null, mitigation_plan || null);
+
+    req.session.directorFlash = { type: 'success', message: 'COI disclosure filed. Last step — review key board documents.' };
+  } catch (err) {
+    req.session.directorFlash = { type: 'error', message: 'Failed to submit disclosure. Please try again.' };
+  }
+  res.redirect('/director/onboarding');
+});
+
+// Onboarding Step 4: Complete onboarding
+router.post('/onboarding/complete', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+
+  db.prepare("UPDATE board_members SET onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(mid);
+  req.session.directorOnboardingCompleted = 1;
+  req.session.directorFlash = { type: 'success', message: 'Welcome aboard! Your onboarding is complete. You now have full access to the Board Portal.' };
+  res.redirect('/director');
 });
 
 // ── DASHBOARD ───────────────────────────────────────────────

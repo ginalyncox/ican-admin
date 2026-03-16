@@ -40,6 +40,13 @@ router.post('/login', (req, res) => {
   req.session.memberGardenerId = cred.gardener_id;
   req.session.memberName = cred.first_name + ' ' + cred.last_name;
   req.session.memberEmail = cred.email;
+  req.session.memberMustChangePassword = cred.must_change_password;
+  req.session.memberOnboardingCompleted = cred.onboarding_completed;
+
+  // Redirect to onboarding if not completed
+  if (cred.must_change_password || !cred.onboarding_completed) {
+    return res.redirect('/member/onboarding');
+  }
 
   res.redirect('/member');
 });
@@ -50,6 +57,86 @@ router.get('/logout', (req, res) => {
   delete req.session.memberName;
   delete req.session.memberEmail;
   res.redirect('/member/login');
+});
+
+// ── ONBOARDING ──────────────────────────────────────────────
+router.get('/onboarding', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const cred = db.prepare('SELECT * FROM member_credentials WHERE id = ?').get(req.session.memberId);
+  const gardener = db.prepare('SELECT * FROM gardeners WHERE id = ?').get(req.session.memberGardenerId);
+
+  // If already completed, go to dashboard
+  if (cred.onboarding_completed) {
+    return res.redirect('/member');
+  }
+
+  // Determine current step
+  let step = 'password';
+  if (!cred.must_change_password) {
+    step = 'profile';
+    if (gardener.phone && gardener.email) {
+      step = 'welcome';
+    }
+  }
+
+  res.render('member/onboarding', {
+    title: 'Welcome — Get Started',
+    gardener,
+    cred,
+    step,
+    layout: 'member/layout'
+  });
+});
+
+// Onboarding Step 1: Change password
+router.post('/onboarding/password', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const { new_password, confirm_password } = req.body;
+
+  if (!new_password || !confirm_password) {
+    req.session.memberFlash = { type: 'error', message: 'Both password fields are required.' };
+    return res.redirect('/member/onboarding');
+  }
+  if (new_password !== confirm_password) {
+    req.session.memberFlash = { type: 'error', message: 'Passwords do not match.' };
+    return res.redirect('/member/onboarding');
+  }
+  if (new_password.length < 8) {
+    req.session.memberFlash = { type: 'error', message: 'Password must be at least 8 characters.' };
+    return res.redirect('/member/onboarding');
+  }
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE member_credentials SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.session.memberId);
+  req.session.memberMustChangePassword = 0;
+  req.session.memberFlash = { type: 'success', message: 'Password set. Let\'s complete your profile.' };
+  res.redirect('/member/onboarding');
+});
+
+// Onboarding Step 2: Complete profile
+router.post('/onboarding/profile', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { email: gardenerEmail, phone } = req.body;
+
+  if (!phone || !gardenerEmail) {
+    req.session.memberFlash = { type: 'error', message: 'Phone and email are required.' };
+    return res.redirect('/member/onboarding');
+  }
+
+  db.prepare('UPDATE gardeners SET email = ?, phone = ? WHERE id = ?').run(gardenerEmail, phone, gid);
+  req.session.memberFlash = { type: 'success', message: 'Profile saved. Almost done!' };
+  res.redirect('/member/onboarding');
+});
+
+// Onboarding Step 3: Complete onboarding
+router.post('/onboarding/complete', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+
+  db.prepare("UPDATE member_credentials SET onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(req.session.memberId);
+  req.session.memberOnboardingCompleted = 1;
+  req.session.memberFlash = { type: 'success', message: 'Welcome! Your onboarding is complete. Start logging your garden activity!' };
+  res.redirect('/member');
 });
 
 // ── MY DASHBOARD ────────────────────────────────────────────

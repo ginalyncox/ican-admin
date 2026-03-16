@@ -1,0 +1,113 @@
+<div class="page-header">
+  <h1 class="page-title">Welcome to ICAN!</h1>
+  <p class="page-subtitle">Let's get you set up, <%= member.name %>. Just a few quick steps.</p>
+</div>
+
+<!-- Progress Steps -->
+<div class="onboarding-progress">
+  <div class="onboarding-step <%= step === 'password' ? 'onboarding-step--active' : (cred.must_change_password ? '' : 'onboarding-step--done') %>">
+    <div class="onboarding-step__number"><% if (cred.must_change_password) { %>1<% } else { %>&#10003;<% } %></div>
+    <div class="onboarding-step__label">Set Password</div>
+  </div>
+  <div class="onboarding-step__line <%= !cred.must_change_password ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'profile' ? 'onboarding-step--active' : (gardener.phone && gardener.email ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (gardener.phone && gardener.email) { %>&#10003;<% } else { %>2<% } %></div>
+    <div class="onboarding-step__label">Your Profile</div>
+  </div>
+  <div class="onboarding-step__line <%= (gardener.phone && gardener.email) ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'welcome' ? 'onboarding-step--active' : '' %>">
+    <div class="onboarding-step__number">3</div>
+    <div class="onboarding-step__label">Get Started</div>
+  </div>
+</div>
+
+<!-- Step 1: Change Password -->
+<% if (step === 'password') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Step 1: Create Your Password
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Your account was created with a temporary password. Please choose a secure password that only you know.</p>
+    <form method="POST" action="/member/onboarding/password">
+      <div class="form-group">
+        <label for="new_password">New Password</label>
+        <input type="password" id="new_password" name="new_password" class="form-control" required minlength="8" placeholder="At least 8 characters">
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required minlength="8" placeholder="Type it again">
+      </div>
+      <button type="submit" class="btn btn--primary">Set Password &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 2: Complete Profile -->
+<% if (step === 'profile') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Step 2: Complete Your Profile
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">We need your contact info so garden coordinators can reach you.</p>
+    <form method="POST" action="/member/onboarding/profile">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" class="form-control" value="<%= gardener.first_name %> <%= gardener.last_name %>" disabled>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email <span style="color:#c0392b;">*</span></label>
+        <input type="email" id="email" name="email" class="form-control" required value="<%= gardener.email || '' %>" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone Number <span style="color:#c0392b;">*</span></label>
+        <input type="tel" id="phone" name="phone" class="form-control" required value="<%= gardener.phone || '' %>" placeholder="(515) 555-0100">
+      </div>
+      <button type="submit" class="btn btn--primary">Save Profile &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 3: Welcome & Finish -->
+<% if (step === 'welcome') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      You're All Set!
+    </h2>
+  </div>
+  <div class="card__body">
+    <div style="padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15); margin-bottom:1.5rem;">
+      <h3 style="margin:0 0 0.75rem; font-size:1.05rem; color: var(--primary);">Welcome to the Victory Garden Program!</h3>
+      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">Here's what you can do in your Member Portal:</p>
+      <ul style="margin:0; padding-left:1.25rem; font-size:0.9rem; color: var(--color-muted); line-height:1.8;">
+        <li><strong>Log Harvests</strong> &mdash; Record what you've grown and donated</li>
+        <li><strong>Log Volunteer Hours</strong> &mdash; Track your time in the garden</li>
+        <li><strong>View Leaderboard</strong> &mdash; See how you rank among fellow gardeners</li>
+        <li><strong>Earn Awards</strong> &mdash; Recognition for your contributions</li>
+        <li><strong>Update Profile</strong> &mdash; Keep your contact info current</li>
+      </ul>
+    </div>
+
+    <p style="margin-bottom:1.5rem; font-size:0.9rem; color: var(--color-muted);">
+      If you have questions, reach out to your garden coordinator or email <a href="mailto:hello@iowacannabisaction.org">hello@iowacannabisaction.org</a>.
+    </p>
+
+    <form method="POST" action="/member/onboarding/complete">
+      <button type="submit" class="btn btn--primary">Enter My Portal</button>
+    </form>
+  </div>
+</div>
+<% } %>

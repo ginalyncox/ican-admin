@@ -1,0 +1,182 @@
+<div class="page-header">
+  <h1 class="page-title">Welcome to the Board Portal</h1>
+  <p class="page-subtitle">Let's get you set up, <%= director.name %>. Just a few quick steps.</p>
+</div>
+
+<!-- Progress Steps -->
+<div class="onboarding-progress">
+  <div class="onboarding-step <%= step === 'password' ? 'onboarding-step--active' : (member.must_change_password ? '' : 'onboarding-step--done') %>">
+    <div class="onboarding-step__number"><% if (member.must_change_password) { %>1<% } else { %>&#10003;<% } %></div>
+    <div class="onboarding-step__label">Set Password</div>
+  </div>
+  <div class="onboarding-step__line <%= !member.must_change_password ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'profile' ? 'onboarding-step--active' : (member.phone && member.bio ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (member.phone && member.bio) { %>&#10003;<% } else { %>2<% } %></div>
+    <div class="onboarding-step__label">Your Profile</div>
+  </div>
+  <div class="onboarding-step__line <%= (member.phone && member.bio) ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'coi' ? 'onboarding-step--active' : (step === 'documents' ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (step === 'documents') { %>&#10003;<% } else { %>3<% } %></div>
+    <div class="onboarding-step__label">COI Disclosure</div>
+  </div>
+  <div class="onboarding-step__line <%= step === 'documents' ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'documents' ? 'onboarding-step--active' : '' %>">
+    <div class="onboarding-step__number">4</div>
+    <div class="onboarding-step__label">Review & Finish</div>
+  </div>
+</div>
+
+<!-- Step 1: Change Password -->
+<% if (step === 'password') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Step 1: Create Your Password
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Your account was created with a temporary password. Please choose a secure password that only you know.</p>
+    <form method="POST" action="/director/onboarding/password">
+      <div class="form-group">
+        <label for="new_password">New Password</label>
+        <input type="password" id="new_password" name="new_password" class="form-control" required minlength="8" placeholder="At least 8 characters">
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required minlength="8" placeholder="Type it again">
+      </div>
+      <button type="submit" class="btn btn--primary">Set Password &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 2: Complete Profile -->
+<% if (step === 'profile') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Step 2: Complete Your Profile
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Your contact info and bio will be visible to other board members and on the public website.</p>
+    <form method="POST" action="/director/onboarding/profile">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" class="form-control" value="<%= member.first_name %> <%= member.last_name %>" disabled>
+        </div>
+        <div class="form-group">
+          <label>Position</label>
+          <input type="text" class="form-control" value="<%= member.is_officer && member.officer_title ? member.officer_title : member.title %>" disabled>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone Number <span style="color:#c0392b;">*</span></label>
+        <input type="tel" id="phone" name="phone" class="form-control" required value="<%= member.phone || '' %>" placeholder="(515) 555-0100">
+      </div>
+      <div class="form-group">
+        <label for="bio">Bio <span style="color:#c0392b;">*</span></label>
+        <textarea id="bio" name="bio" class="form-control" rows="4" required placeholder="Tell other board members and the public a bit about yourself — your background, why you joined ICAN, etc."><%= member.bio || '' %></textarea>
+        <small class="text-muted">This will appear on the public Board of Directors page.</small>
+      </div>
+      <button type="submit" class="btn btn--primary">Save Profile &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 3: COI Disclosure -->
+<% if (step === 'coi') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Step 3: Conflict of Interest Disclosure
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">As a board member of a 501(c)(4) organization, you are required to disclose any potential conflicts of interest annually. This is a legal requirement.</p>
+    <form method="POST" action="/director/onboarding/coi">
+      <div class="form-group">
+        <label class="onboarding-checkbox-label">
+          <input type="checkbox" name="has_conflict" value="1" id="coi_has_conflict" onchange="document.getElementById('coi_details').style.display = this.checked ? 'block' : 'none';">
+          I have a potential conflict of interest to disclose
+        </label>
+      </div>
+
+      <div id="coi_details" style="display:none;">
+        <div class="form-group">
+          <label for="organization">Organization / Entity</label>
+          <input type="text" id="organization" name="organization" class="form-control" placeholder="Name of the organization">
+        </div>
+        <div class="form-group">
+          <label for="nature_of_interest">Nature of Interest</label>
+          <textarea id="nature_of_interest" name="nature_of_interest" class="form-control" rows="2" placeholder="Describe the nature of your interest (financial, personal, etc.)"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="2" placeholder="Provide details about the conflict"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="mitigation_plan">Mitigation Plan</label>
+          <textarea id="mitigation_plan" name="mitigation_plan" class="form-control" rows="2" placeholder="How will you manage this conflict? (e.g., recuse from related votes)"></textarea>
+        </div>
+      </div>
+
+      <p style="margin:1rem 0; font-size:0.85rem; color: var(--color-muted);">
+        By submitting this form, I certify that the information provided is accurate and complete for the year <%= currentYear %>.
+      </p>
+      <button type="submit" class="btn btn--primary">Submit Disclosure &amp; Continue</button>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 4: Review Documents & Finish -->
+<% if (step === 'documents') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Step 4: Review Key Documents &amp; Finish
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Please review these important governing documents. You can always access them later from the Documents section.</p>
+
+    <% if (keyDocs.length > 0) { %>
+      <div class="onboarding-doc-list">
+        <% keyDocs.forEach(function(doc) { %>
+          <a href="/director/documents/<%= doc.id %>/download" class="onboarding-doc-item" target="_blank">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div>
+              <strong><%= doc.title %></strong>
+              <span class="badge badge--<%= doc.category %>"><%= doc.category %></span>
+            </div>
+          </a>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <p class="text-muted" style="margin-bottom:1rem;">No governing documents have been uploaded yet. Your administrator will add these soon.</p>
+    <% } %>
+
+    <div style="margin-top:2rem; padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15);">
+      <h3 style="margin:0 0 0.5rem; font-size:1rem;">You're all set!</h3>
+      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">By completing this onboarding, you confirm that you:</p>
+      <ul style="margin:0 0 1rem; padding-left:1.25rem; font-size:0.9rem; color: var(--color-muted);">
+        <li>Set a secure personal password</li>
+        <li>Provided your contact information and bio</li>
+        <li>Filed your annual Conflict of Interest disclosure</li>
+        <li>Are aware of the key governing documents</li>
+      </ul>
+      <form method="POST" action="/director/onboarding/complete">
+        <button type="submit" class="btn btn--primary">Complete Onboarding &amp; Enter Portal</button>
+      </form>
+    </div>
+  </div>
+</div>
+<% } %>

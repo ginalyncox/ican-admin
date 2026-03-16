@@ -31,6 +31,24 @@ try {
 try {
   db.exec(`ALTER TABLE board_members ADD COLUMN locked_reason TEXT`);
 } catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE board_members ADD COLUMN must_change_password INTEGER DEFAULT 1`);
+} catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE board_members ADD COLUMN onboarding_completed INTEGER DEFAULT 0`);
+} catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE board_members ADD COLUMN onboarding_completed_at DATETIME`);
+} catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE member_credentials ADD COLUMN must_change_password INTEGER DEFAULT 1`);
+} catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE member_credentials ADD COLUMN onboarding_completed INTEGER DEFAULT 0`);
+} catch (e) { /* column already exists */ }
+try {
+  db.exec(`ALTER TABLE member_credentials ADD COLUMN onboarding_completed_at DATETIME`);
+} catch (e) { /* column already exists */ }
 
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;

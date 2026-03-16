@@ -124,6 +124,9 @@ CREATE TABLE IF NOT EXISTS member_credentials (
   gardener_id INTEGER UNIQUE REFERENCES gardeners(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  must_change_password INTEGER DEFAULT 1,
+  onboarding_completed INTEGER DEFAULT 0,
+  onboarding_completed_at DATETIME,
   last_login DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -178,6 +181,9 @@ CREATE TABLE IF NOT EXISTS board_members (
   status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'emeritus', 'locked')),
   locked_at DATETIME,
   locked_reason TEXT,
+  must_change_password INTEGER DEFAULT 1,
+  onboarding_completed INTEGER DEFAULT 0,
+  onboarding_completed_at DATETIME,
   last_login DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
