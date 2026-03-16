@@ -227,21 +227,29 @@ router.get('/gardeners/new', requireRole('admin', 'editor'), (req, res) => {
   const sites = db.prepare("SELECT * FROM garden_sites WHERE status = 'active' ORDER BY name").all();
   const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
   res.render('garden/gardener-form', {
-    title: 'New Gardener',
+    title: 'New Volunteer',
     gardener: { id: null, first_name: '', last_name: '', email: '', phone: '', site_id: '', plot_number: '', season_id: '', status: 'active', notes: '' },
-    sites, seasons, isNew: true
+    sites, seasons, programs: [], isNew: true
   });
 });
 
 router.post('/gardeners', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
   const { first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes } = req.body;
+  const programValues = Array.isArray(req.body.programs) ? req.body.programs : (req.body.programs ? [req.body.programs] : []);
   try {
-    db.prepare(`INSERT INTO gardeners (first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes)
+    const result = db.prepare(`INSERT INTO gardeners (first_name, last_name, email, phone, site_id, plot_number, season_id, status, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(first_name, last_name, email || null, phone || null, site_id || null, plot_number || null, season_id || null, status || 'active', notes || null);
-    req.session.flash = { type: 'success', message: 'Gardener added.' };
+    // Save program assignments
+    if (programValues.length > 0 && result.lastInsertRowid) {
+      const insertProg = db.prepare('INSERT INTO volunteer_programs (volunteer_id, program, assigned_by) VALUES (?, ?, ?)');
+      for (const prog of programValues) {
+        try { insertProg.run(result.lastInsertRowid, prog, req.session.userId || null); } catch (e) { /* ignore duplicates */ }
+      }
+    }
+    req.session.flash = { type: 'success', message: 'Volunteer added.' };
   } catch (err) {
-    req.session.flash = { type: 'error', message: 'Failed to add gardener.' };
+    req.session.flash = { type: 'error', message: 'Failed to add volunteer.' };
   }
   res.redirect('/admin/garden/gardeners');
 });

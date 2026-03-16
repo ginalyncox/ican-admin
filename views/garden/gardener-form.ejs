@@ -1,5 +1,5 @@
 <div class="page-header">
-  <h1 class="page-header__title"><%= isNew ? 'Add Gardener' : 'Edit Gardener' %></h1>
+  <h1 class="page-header__title"><%= isNew ? 'Add Volunteer' : 'Edit Volunteer' %></h1>
 </div>
 
 <div class="card" style="max-width: 640px;">
@@ -64,7 +64,6 @@
         <textarea class="form-input" id="notes" name="notes" rows="3"><%= gardener.notes || '' %></textarea>
       </div>
 
-      <% if (!isNew) { %>
       <hr style="margin: 1rem 0; border-color: var(--color-border);">
       <div class="form-field">
         <label class="form-label">Volunteer Programs</label>
@@ -86,10 +85,9 @@
           <% }) %>
         </div>
       </div>
-      <% } %>
 
       <div class="form-actions">
-        <button type="submit" class="btn btn--primary"><%= isNew ? 'Add Gardener' : 'Update Gardener' %></button>
+        <button type="submit" class="btn btn--primary"><%= isNew ? 'Add Volunteer' : 'Update Volunteer' %></button>
         <a href="/admin/garden/gardeners" class="btn btn--outline">Cancel</a>
       </div>
     </form>

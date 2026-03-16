@@ -1,9 +1,9 @@
 <div class="page-header">
   <div class="page-header__row">
-    <h1 class="page-header__title">Gardeners</h1>
+    <h1 class="page-header__title">Volunteers</h1>
     <div class="page-header__actions">
       <a href="/admin/garden/export/gardeners" class="btn btn--outline btn--sm">Export CSV</a>
-      <a href="/admin/garden/gardeners/new" class="btn btn--primary">Add Gardener</a>
+      <a href="/admin/garden/gardeners/new" class="btn btn--primary">Add Volunteer</a>
     </div>
   </div>
 </div>
@@ -26,7 +26,7 @@
 </div>
 
 <% if (gardeners.length === 0) { %>
-  <div class="card"><div class="card__body"><p class="empty-state">No gardeners found. <a href="/admin/garden/gardeners/new">Add your first gardener</a></p></div></div>
+  <div class="card"><div class="card__body"><p class="empty-state">No volunteers found. <a href="/admin/garden/gardeners/new">Add your first volunteer</a></p></div></div>
 <% } else { %>
   <div class="card"><div class="card__body">
     <table class="table">
