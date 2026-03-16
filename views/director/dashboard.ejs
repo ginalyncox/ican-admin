@@ -1,0 +1,132 @@
+<div class="page-header">
+  <h1 class="page-title">Board Dashboard</h1>
+  <p class="page-subtitle">Welcome back, <%= director.name %></p>
+</div>
+
+<!-- Quick Stats -->
+<div class="stats-grid stats-grid--4">
+  <div class="stat-card">
+    <div class="stat-card__label">My Attendance</div>
+    <div class="stat-card__value"><%= attendanceRate %>%</div>
+    <div class="stat-card__detail"><%= myAttendance %> of <%= totalMeetings %> meetings</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Open Votes</div>
+    <div class="stat-card__value"><%= openVotes.length %></div>
+    <div class="stat-card__detail"><a href="/director/votes">View all &rarr;</a></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Board Members</div>
+    <div class="stat-card__value"><%= boardCount %></div>
+    <div class="stat-card__detail"><a href="/director/roster">View roster &rarr;</a></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">COI Status (<%= currentYear %>)</div>
+    <div class="stat-card__value"><%= myCoi ? '✓ Filed' : '⚠ Needed' %></div>
+    <div class="stat-card__detail"><a href="/director/coi"><%= myCoi ? 'View disclosure' : 'File now' %> &rarr;</a></div>
+  </div>
+</div>
+
+<!-- Two column grid -->
+<div class="director-grid">
+  <!-- Next Meeting -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Next Meeting</h2>
+    </div>
+    <div class="card__body">
+      <% if (nextMeeting) { %>
+        <div class="director-meeting-preview">
+          <div class="director-meeting-preview__date">
+            <div class="director-meeting-preview__day"><%= new Date(nextMeeting.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { day: 'numeric' }) %></div>
+            <div class="director-meeting-preview__month"><%= new Date(nextMeeting.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' }) %></div>
+          </div>
+          <div class="director-meeting-preview__info">
+            <h3><a href="/director/meetings/<%= nextMeeting.id %>"><%= nextMeeting.title %></a></h3>
+            <% if (nextMeeting.meeting_time) { %><p><%= nextMeeting.meeting_time %></p><% } %>
+            <% if (nextMeeting.location) { %><p><%= nextMeeting.location %></p><% } %>
+            <span class="badge badge--<%= nextMeeting.meeting_type %>"><%= nextMeeting.meeting_type %></span>
+          </div>
+        </div>
+      <% } else { %>
+        <p class="text-muted">No upcoming meetings scheduled.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Open Votes -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Open Votes</h2>
+      <a href="/director/votes" class="btn btn--outline btn--sm">View all</a>
+    </div>
+    <div class="card__body">
+      <% if (openVotes.length === 0) { %>
+        <p class="text-muted">No open votes at this time.</p>
+      <% } else { %>
+        <% openVotes.slice(0, 3).forEach(v => { %>
+          <div class="director-vote-item">
+            <div class="director-vote-item__title"><%= v.motion_title %></div>
+            <div class="director-vote-item__meta">
+              <span class="badge badge--<%= v.motion_type %>"><%= v.motion_type %></span>
+              <span class="text-muted"><%= v.votes_for %>F / <%= v.votes_against %>A / <%= v.votes_abstain %>Ab</span>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Recent Meetings -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Recent Meetings</h2>
+      <a href="/director/meetings" class="btn btn--outline btn--sm">View all</a>
+    </div>
+    <div class="card__body">
+      <% if (recentMeetings.length === 0) { %>
+        <p class="text-muted">No meetings recorded yet.</p>
+      <% } else { %>
+        <table class="table">
+          <tbody>
+            <% recentMeetings.forEach(m => { %>
+              <tr>
+                <td><a href="/director/meetings/<%= m.id %>"><%= m.title %></a></td>
+                <td><%= new Date(m.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
+                <td>
+                  <span class="badge badge--<%= m.status === 'completed' ? 'garden' : m.status === 'cancelled' ? 'social' : 'meeting' %>"><%= m.status %></span>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Recent Documents -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Recent Documents</h2>
+      <a href="/director/documents" class="btn btn--outline btn--sm">View all</a>
+    </div>
+    <div class="card__body">
+      <% if (recentDocs.length === 0) { %>
+        <p class="text-muted">No documents uploaded yet.</p>
+      <% } else { %>
+        <% recentDocs.forEach(d => { %>
+          <div class="director-doc-item">
+            <div class="director-doc-item__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="director-doc-item__info">
+              <a href="/director/documents/<%= d.id %>/download"><%= d.title %></a>
+              <span class="text-muted"><%= d.uploaded_by_name %> &middot; <%= new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></span>
+            </div>
+            <span class="badge badge--<%= d.category %>"><%= d.category %></span>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,139 @@
+<div class="page-header">
+  <h1 class="page-title">Votes & Resolutions</h1>
+  <button class="btn btn--primary" onclick="document.getElementById('newMotionModal').style.display='flex'">New Motion</button>
+</div>
+
+<!-- Open Votes -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Open Votes</h2>
+    <span class="badge badge--meeting"><%= openVotes.length %> open</span>
+  </div>
+  <div class="card__body">
+    <% if (openVotes.length === 0) { %>
+      <div class="verify-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <h3>No open votes</h3>
+        <p>All motions have been resolved.</p>
+      </div>
+    <% } else { %>
+      <% openVotes.forEach(v => { %>
+        <div class="director-vote-card">
+          <div class="director-vote-card__header">
+            <div>
+              <h3><%= v.motion_title %></h3>
+              <span class="badge badge--<%= v.motion_type %>"><%= v.motion_type %></span>
+              <% if (v.meeting_title) { %><span class="text-muted" style="font-size:0.8rem;"> &middot; <%= v.meeting_title %></span><% } %>
+            </div>
+            <% if (v.introduced_by_name) { %><span class="text-muted" style="font-size:0.8rem;">by <%= v.introduced_by_name %></span><% } %>
+          </div>
+          <div class="director-vote-card__body">
+            <p><%= v.motion_text %></p>
+          </div>
+          <div class="director-vote-card__footer">
+            <div class="director-vote-tally">
+              <span class="director-vote-tally__for"><%= v.votes_for %> For</span>
+              <span class="director-vote-tally__against"><%= v.votes_against %> Against</span>
+              <span class="director-vote-tally__abstain"><%= v.votes_abstain %> Abstain</span>
+            </div>
+            <div class="director-vote-card__actions">
+              <% if (!myVotes[v.id]) { %>
+                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;">
+                  <input type="hidden" name="vote" value="for">
+                  <button type="submit" class="btn btn--sm" style="background:#2D6A3F;color:#fff;">Vote For</button>
+                </form>
+                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;">
+                  <input type="hidden" name="vote" value="against">
+                  <button type="submit" class="btn btn--sm" style="background:#c0392b;color:#fff;">Vote Against</button>
+                </form>
+                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;">
+                  <input type="hidden" name="vote" value="abstain">
+                  <button type="submit" class="btn btn--outline btn--sm">Abstain</button>
+                </form>
+              <% } else { %>
+                <span class="badge badge--garden">You voted: <%= myVotes[v.id] %></span>
+              <% } %>
+              <form method="POST" action="/director/votes/<%= v.id %>/close" style="display:inline; margin-left:0.5rem;">
+                <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Close this vote? The result will be calculated based on current tallies.')">Close Vote</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } %>
+  </div>
+</div>
+
+<!-- Closed Votes -->
+<div class="card">
+  <div class="card__header">
+    <h2 class="card__title">Resolved</h2>
+  </div>
+  <div class="card__body">
+    <% if (closedVotes.length === 0) { %>
+      <p class="text-muted">No resolved votes yet.</p>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Motion</th>
+            <th>Type</th>
+            <th>For</th>
+            <th>Against</th>
+            <th>Abstain</th>
+            <th>Result</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% closedVotes.forEach(v => { %>
+            <tr>
+              <td><strong><%= v.motion_title %></strong></td>
+              <td><span class="badge badge--<%= v.motion_type %>"><%= v.motion_type %></span></td>
+              <td><%= v.votes_for %></td>
+              <td><%= v.votes_against %></td>
+              <td><%= v.votes_abstain %></td>
+              <td><span class="badge badge--<%= v.status === 'passed' ? 'garden' : v.status === 'failed' ? 'social' : 'meeting' %>"><%= v.status %></span></td>
+              <td class="text-muted"><%= v.voted_at ? new Date(v.voted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+
+<!-- New Motion Modal -->
+<div id="newMotionModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Introduce a Motion</h2>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').style.display='none'">&times;</button>
+    </div>
+    <form method="POST" action="/director/votes">
+      <div class="form-group">
+        <label for="motion_title">Motion Title</label>
+        <input type="text" id="motion_title" name="motion_title" class="form-control" required placeholder="e.g., Approve 2026 Budget">
+      </div>
+      <div class="form-group">
+        <label for="motion_text">Full Motion Text</label>
+        <textarea id="motion_text" name="motion_text" class="form-control" rows="5" required placeholder="The full text of the motion..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="motion_type">Type</label>
+        <select id="motion_type" name="motion_type" class="form-control">
+          <option value="resolution">Resolution</option>
+          <option value="policy">Policy</option>
+          <option value="budget">Budget</option>
+          <option value="appointment">Appointment</option>
+          <option value="amendment">Amendment</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn--outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">Introduce Motion</button>
+      </div>
+    </form>
+  </div>
+</div>

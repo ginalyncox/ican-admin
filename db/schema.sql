@@ -159,6 +159,115 @@ CREATE TABLE IF NOT EXISTS newsletter_sends (
   sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ── Board of Directors ─────────────────────────────────────
+
+-- Board Members (directors with portal access)
+CREATE TABLE IF NOT EXISTS board_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  title TEXT DEFAULT 'Director',
+  phone TEXT,
+  bio TEXT,
+  term_start DATE,
+  term_end DATE,
+  is_officer INTEGER DEFAULT 0,
+  officer_title TEXT,
+  status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'emeritus')),
+  last_login DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Board Meetings
+CREATE TABLE IF NOT EXISTS board_meetings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  meeting_date DATE NOT NULL,
+  meeting_time TEXT,
+  location TEXT,
+  meeting_type TEXT DEFAULT 'regular' CHECK(meeting_type IN ('regular', 'special', 'annual', 'committee', 'emergency')),
+  status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
+  agenda TEXT,
+  minutes TEXT,
+  minutes_approved INTEGER DEFAULT 0,
+  minutes_approved_date DATE,
+  quorum_present INTEGER DEFAULT 0,
+  attendees TEXT,
+  created_by INTEGER REFERENCES board_members(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Board Documents (shared document repository)
+CREATE TABLE IF NOT EXISTS board_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT DEFAULT 'general' CHECK(category IN ('general', 'bylaws', 'policy', 'financial', 'legal', 'minutes', 'resolution', 'report', 'compliance')),
+  filename TEXT NOT NULL,
+  original_name TEXT,
+  file_size INTEGER DEFAULT 0,
+  uploaded_by INTEGER REFERENCES board_members(id),
+  is_confidential INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Board Votes (motions & resolutions)
+CREATE TABLE IF NOT EXISTS board_votes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  meeting_id INTEGER REFERENCES board_meetings(id),
+  motion_title TEXT NOT NULL,
+  motion_text TEXT NOT NULL,
+  motion_type TEXT DEFAULT 'resolution' CHECK(motion_type IN ('resolution', 'policy', 'budget', 'appointment', 'amendment', 'other')),
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'open', 'passed', 'failed', 'tabled', 'withdrawn')),
+  votes_for INTEGER DEFAULT 0,
+  votes_against INTEGER DEFAULT 0,
+  votes_abstain INTEGER DEFAULT 0,
+  result_notes TEXT,
+  introduced_by INTEGER REFERENCES board_members(id),
+  voted_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Individual Vote Records
+CREATE TABLE IF NOT EXISTS board_vote_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  vote_id INTEGER REFERENCES board_votes(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES board_members(id),
+  vote TEXT NOT NULL CHECK(vote IN ('for', 'against', 'abstain', 'absent')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(vote_id, member_id)
+);
+
+-- Conflict of Interest Disclosures
+CREATE TABLE IF NOT EXISTS coi_disclosures (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  member_id INTEGER REFERENCES board_members(id),
+  disclosure_year INTEGER NOT NULL,
+  has_conflict INTEGER DEFAULT 0,
+  description TEXT,
+  organization TEXT,
+  nature_of_interest TEXT,
+  mitigation_plan TEXT,
+  status TEXT DEFAULT 'submitted' CHECK(status IN ('submitted', 'reviewed', 'acknowledged')),
+  reviewed_by INTEGER REFERENCES board_members(id),
+  reviewed_at DATETIME,
+  signed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Board Meeting Attendance
+CREATE TABLE IF NOT EXISTS board_attendance (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  meeting_id INTEGER REFERENCES board_meetings(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES board_members(id),
+  status TEXT DEFAULT 'present' CHECK(status IN ('present', 'absent', 'excused', 'remote')),
+  arrived_at TEXT,
+  left_at TEXT,
+  UNIQUE(meeting_id, member_id)
+);
+
 -- Events
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

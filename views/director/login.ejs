@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Director Login — ICAN Board Portal</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z' fill='%232D6A3F'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/admin/static/admin.css">
+</head>
+<body class="director-login-body">
+  <div class="director-login-card">
+    <div class="director-login-header">
+      <svg viewBox="0 0 32 32" fill="none" width="40" height="40">
+        <path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z" fill="#2D6A3F" opacity="0.9"/>
+        <path d="M16 8 L16 24" stroke="#F5F3ED" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M16 14 L12 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M16 14 L20 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <h1>ICAN Board Portal</h1>
+      <p>Board of Directors Login</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert alert--error" style="margin-bottom: 1rem;"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/director/login" class="login-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-control" required autofocus placeholder="director@iowacannabisaction.org">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" required placeholder="Your password">
+      </div>
+      <button type="submit" class="btn btn--primary" style="width: 100%;">Sign In</button>
+    </form>
+
+    <div class="director-login-footer">
+      <a href="/">Back to main site</a>
+    </div>
+  </div>
+</body>
+</html>

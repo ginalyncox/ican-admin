@@ -30,9 +30,23 @@ router.get('/', requireAuth, (req, res) => {
   // Newsletter sends count
   const totalNewsletterSends = db.prepare('SELECT COUNT(*) as count FROM newsletter_sends').get().count;
 
+  // Board & Portal stats
+  let activeBoardMembers = 0;
+  let memberPortalUsers = 0;
+  let openBoardVotes = 0;
+  let upcomingBoardMeetings = 0;
+  try {
+    activeBoardMembers = db.prepare("SELECT COUNT(*) as count FROM board_members WHERE status = 'active'").get().count;
+    openBoardVotes = db.prepare("SELECT COUNT(*) as count FROM board_votes WHERE status IN ('pending', 'open')").get().count;
+    upcomingBoardMeetings = db.prepare("SELECT COUNT(*) as count FROM board_meetings WHERE meeting_date >= date('now') AND status != 'cancelled'").get().count;
+  } catch (e) { /* tables may not exist yet */ }
+  try {
+    memberPortalUsers = db.prepare('SELECT COUNT(*) as count FROM member_credentials').get().count;
+  } catch (e) { /* table may not exist yet */ }
+
   res.render('dashboard', {
     title: 'Dashboard',
-    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeGardeners, pendingVerifications, upcomingEvents, totalNewsletterSends },
+    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeGardeners, pendingVerifications, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings },
     recentPosts,
     recentSubmissions
   });

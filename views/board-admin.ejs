@@ -1,0 +1,182 @@
+<div class="page-header">
+  <h1 class="page-title">Board Members</h1>
+  <button class="btn btn--primary" onclick="document.getElementById('addMemberModal').style.display='flex'">Add Board Member</button>
+</div>
+
+<p class="text-muted" style="margin-bottom: 1.5rem;">
+  Manage board of directors. Members log in at <strong>/director/login</strong> to access the Board Portal.
+</p>
+
+<div class="card">
+  <div class="card__body">
+    <% if (members.length === 0) { %>
+      <div class="verify-empty">
+        <h3>No board members yet</h3>
+        <p>Add your first board member to get started.</p>
+      </div>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Title</th>
+            <th>Term</th>
+            <th>Status</th>
+            <th>Last Login</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(m => { %>
+            <tr>
+              <td>
+                <strong><%= m.first_name %> <%= m.last_name %></strong>
+                <% if (m.is_officer && m.officer_title) { %><br><span class="text-muted" style="font-size:0.8rem;"><%= m.officer_title %></span><% } %>
+              </td>
+              <td><%= m.email %></td>
+              <td><%= m.title %></td>
+              <td class="text-muted" style="font-size:0.8rem;">
+                <% if (m.term_start) { %>
+                  <%= m.term_start %> — <%= m.term_end || 'Present' %>
+                <% } else { %>
+                  —
+                <% } %>
+              </td>
+              <td><span class="badge badge--<%= m.status === 'active' ? 'garden' : m.status === 'emeritus' ? 'meeting' : 'general' %>"><%= m.status %></span></td>
+              <td class="text-muted" style="font-size:0.8rem;"><%= m.last_login ? new Date(m.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Never' %></td>
+              <td class="table__actions">
+                <% if (m.status === 'active') { %>
+                  <form method="POST" action="/admin/board/<%= m.id %>/status" style="display:inline;">
+                    <input type="hidden" name="status" value="inactive">
+                    <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Deactivate this board member?')">Deactivate</button>
+                  </form>
+                <% } else { %>
+                  <form method="POST" action="/admin/board/<%= m.id %>/status" style="display:inline;">
+                    <input type="hidden" name="status" value="active">
+                    <button type="submit" class="btn btn--outline btn--sm">Activate</button>
+                  </form>
+                <% } %>
+                <button class="btn btn--outline btn--sm" onclick="
+                  document.getElementById('resetId').value = '<%= m.id %>';
+                  document.getElementById('resetName').textContent = '<%= m.first_name %> <%= m.last_name %>';
+                  document.getElementById('resetModal').style.display = 'flex';
+                ">Reset PW</button>
+                <form method="POST" action="/admin/board/<%= m.id %>/delete" style="display:inline;">
+                  <button type="submit" class="btn btn--outline btn--sm" style="color:var(--danger);" onclick="return confirm('Permanently remove this board member?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+
+<!-- Add Board Member Modal -->
+<div id="addMemberModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add Board Member</h2>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').style.display='none'">&times;</button>
+    </div>
+    <form method="POST" action="/admin/board/add">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-control" required placeholder="director@email.com">
+      </div>
+      <div class="form-group">
+        <label for="password">Temporary Password</label>
+        <input type="text" id="password" name="password" class="form-control" required value="changeme123" placeholder="Temporary password">
+        <small class="text-muted">The director should change this after first login.</small>
+      </div>
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" class="form-control" value="Director">
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone (optional)</label>
+        <input type="tel" id="phone" name="phone" class="form-control">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="term_start">Term Start</label>
+          <input type="date" id="term_start" name="term_start" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="term_end">Term End</label>
+          <input type="date" id="term_end" name="term_end" class="form-control">
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+          <input type="checkbox" name="is_officer" value="1" id="isOfficerCheck" onchange="document.getElementById('officerTitleGroup').style.display = this.checked ? 'block' : 'none';">
+          This member is an officer
+        </label>
+      </div>
+      <div class="form-group" id="officerTitleGroup" style="display:none;">
+        <label for="officer_title">Officer Title</label>
+        <select id="officer_title" name="officer_title" class="form-control">
+          <option value="President">President</option>
+          <option value="Vice President">Vice President</option>
+          <option value="Secretary">Secretary</option>
+          <option value="Treasurer">Treasurer</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn--outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">Add Board Member</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Reset Password for <span id="resetName"></span></h2>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').style.display='none'">&times;</button>
+    </div>
+    <form method="POST" id="resetForm" action="/admin/board/0/reset-password">
+      <input type="hidden" id="resetId" name="id" value="">
+      <div class="form-group">
+        <label for="new_password">New Password</label>
+        <input type="text" id="new_password" name="new_password" class="form-control" required minlength="8" value="changeme123">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn--outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">Reset Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Fix reset form action when modal opens
+document.getElementById('resetModal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+const resetForm = document.getElementById('resetForm');
+const origAction = resetForm.action;
+document.getElementById('resetModal').addEventListener('show', function() {
+  const id = document.getElementById('resetId').value;
+  resetForm.action = '/admin/board/' + id + '/reset-password';
+});
+// Update on submit
+resetForm.addEventListener('submit', function() {
+  const id = document.getElementById('resetId').value;
+  this.action = '/admin/board/' + id + '/reset-password';
+});
+</script>

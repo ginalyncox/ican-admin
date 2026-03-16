@@ -67,6 +67,53 @@
   <% } %>
 </div>
 
+<!-- Portal Management -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Portal Management</h2>
+  </div>
+  <div class="card__body">
+    <div class="portal-grid">
+      <a href="/admin/board" class="portal-card">
+        <div class="portal-card__icon" style="background: rgba(45, 106, 63, 0.1); color: var(--primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="portal-card__info">
+          <h3>Director Portal</h3>
+          <p><%= stats.activeBoardMembers %> board member<%= stats.activeBoardMembers !== 1 ? 's' : '' %></p>
+          <% if (stats.openBoardVotes > 0) { %><span class="badge badge--legislative"><%= stats.openBoardVotes %> open vote<%= stats.openBoardVotes !== 1 ? 's' : '' %></span><% } %>
+          <% if (stats.upcomingBoardMeetings > 0) { %><span class="badge badge--meeting"><%= stats.upcomingBoardMeetings %> upcoming meeting<%= stats.upcomingBoardMeetings !== 1 ? 's' : '' %></span><% } %>
+        </div>
+        <span class="portal-card__action">Manage &rarr;</span>
+      </a>
+
+      <a href="/admin/garden/members" class="portal-card">
+        <div class="portal-card__icon" style="background: rgba(184, 134, 43, 0.1); color: var(--accent);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+        </div>
+        <div class="portal-card__info">
+          <h3>Member Portal</h3>
+          <p><%= stats.memberPortalUsers %> gardener account<%= stats.memberPortalUsers !== 1 ? 's' : '' %></p>
+          <p class="text-muted" style="font-size:0.8rem;"><%= stats.activeGardeners %> active gardeners</p>
+        </div>
+        <span class="portal-card__action">Manage &rarr;</span>
+      </a>
+
+      <a href="/admin" class="portal-card portal-card--current">
+        <div class="portal-card__icon" style="background: rgba(30, 36, 24, 0.08); color: var(--text);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09"/></svg>
+        </div>
+        <div class="portal-card__info">
+          <h3>Staff Admin</h3>
+          <p>You are here</p>
+          <p class="text-muted" style="font-size:0.8rem;">Manages all portals & content</p>
+        </div>
+        <span class="portal-card__action" style="opacity:0.4;">Current</span>
+      </a>
+    </div>
+  </div>
+</div>
+
 <div class="dashboard-grid">
   <div class="card">
     <div class="card__header">

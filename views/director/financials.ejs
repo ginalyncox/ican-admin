@@ -1,0 +1,84 @@
+<div class="page-header">
+  <h1 class="page-title">Financial Overview</h1>
+  <p class="page-subtitle">Organization metrics and program data for board review</p>
+</div>
+
+<!-- Key Metrics -->
+<div class="stats-grid stats-grid--3">
+  <div class="stat-card">
+    <div class="stat-card__label">Verified Donations</div>
+    <div class="stat-card__value"><%= Number(stats.totalDonatedLbs).toLocaleString() %> lbs</div>
+    <div class="stat-card__detail">Produce donated through Victory Garden</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Volunteer Hours</div>
+    <div class="stat-card__value"><%= Number(stats.totalVolunteerHours).toLocaleString() %></div>
+    <div class="stat-card__detail">Total hours logged by gardeners</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Events (Past Year)</div>
+    <div class="stat-card__value"><%= stats.totalEvents %></div>
+    <div class="stat-card__detail">Events hosted in the last 12 months</div>
+  </div>
+</div>
+
+<div class="stats-grid stats-grid--3" style="margin-top: 1rem;">
+  <div class="stat-card">
+    <div class="stat-card__label">Active Gardeners</div>
+    <div class="stat-card__value"><%= stats.totalGardeners %></div>
+    <div class="stat-card__detail">Participating in Victory Garden</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Email Subscribers</div>
+    <div class="stat-card__value"><%= stats.totalSubscribers %></div>
+    <div class="stat-card__detail">Active newsletter subscribers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Form Submissions</div>
+    <div class="stat-card__value"><%= stats.totalSubmissions %></div>
+    <div class="stat-card__detail">Contact, volunteer & newsletter forms</div>
+  </div>
+</div>
+
+<!-- Harvest Trend -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Harvest Trends (Last 6 Months)</h2>
+  </div>
+  <div class="card__body">
+    <% if (harvestTrends.length === 0) { %>
+      <p class="text-muted">No harvest data available yet.</p>
+    <% } else { %>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Total Pounds</th>
+            <th>Harvests</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% harvestTrends.forEach(t => { %>
+            <tr>
+              <td><%= t.month %></td>
+              <td><strong><%= Number(t.total_lbs).toLocaleString() %> lbs</strong></td>
+              <td><%= t.harvests %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+
+<!-- Note about financials -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__body" style="text-align:center; padding:2rem;">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <p style="margin-top:0.75rem; color:var(--text-muted);">
+      Detailed financial statements, budgets, and tax filings are available in the
+      <a href="/director/documents?category=financial">Financial Documents</a> section.
+      Contact the Treasurer for additional financial inquiries.
+    </p>
+  </div>
+</div>

@@ -1,0 +1,39 @@
+<div class="page-header">
+  <h1 class="page-title">Board Roster</h1>
+</div>
+
+<div class="director-roster">
+  <% members.forEach(m => { %>
+    <div class="director-roster-card">
+      <div class="director-roster-card__avatar">
+        <span><%= m.first_name.charAt(0) %><%= m.last_name.charAt(0) %></span>
+      </div>
+      <div class="director-roster-card__info">
+        <h3><%= m.first_name %> <%= m.last_name %></h3>
+        <p class="director-roster-card__title">
+          <% if (m.is_officer && m.officer_title) { %>
+            <strong><%= m.officer_title %></strong>
+          <% } else { %>
+            <%= m.title %>
+          <% } %>
+        </p>
+        <% if (m.email) { %><p class="text-muted" style="font-size:0.85rem;"><%= m.email %></p><% } %>
+        <% if (m.phone) { %><p class="text-muted" style="font-size:0.85rem;"><%= m.phone %></p><% } %>
+        <% if (m.bio) { %><p style="font-size:0.85rem; margin-top:0.5rem;"><%= m.bio %></p><% } %>
+      </div>
+      <div class="director-roster-card__meta">
+        <% if (m.term_start || m.term_end) { %>
+          <div class="text-muted" style="font-size:0.8rem;">
+            Term: <%= m.term_start ? new Date(m.term_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '' %>
+            <% if (m.term_end) { %> — <%= new Date(m.term_end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) %><% } %>
+          </div>
+        <% } %>
+        <div class="text-muted" style="font-size:0.8rem;">
+          Attendance: <%= m.meetings_attended %> / <%= m.total_meetings %> meetings
+          (<%= m.total_meetings > 0 ? Math.round((m.meetings_attended / m.total_meetings) * 100) : 100 %>%)
+        </div>
+        <span class="badge badge--<%= m.status === 'active' ? 'garden' : m.status === 'emeritus' ? 'meeting' : 'general' %>"><%= m.status %></span>
+      </div>
+    </div>
+  <% }); %>
+</div>

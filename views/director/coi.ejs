@@ -1,0 +1,155 @@
+<div class="page-header">
+  <h1 class="page-title">Conflict of Interest Disclosures</h1>
+  <% if (!currentYearFiled) { %>
+    <button class="btn btn--primary" onclick="document.getElementById('coiModal').style.display='flex'">File <%= currentYear %> Disclosure</button>
+  <% } %>
+</div>
+
+<!-- Status Banner -->
+<% if (!currentYearFiled) { %>
+  <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
+    <strong>Action needed:</strong> You have not yet filed your conflict of interest disclosure for <%= currentYear %>. All board members must file an annual COI disclosure.
+  </div>
+<% } else { %>
+  <div class="alert alert--success" style="margin-bottom: 1.5rem;">
+    Your <%= currentYear %> conflict of interest disclosure is on file.
+  </div>
+<% } %>
+
+<div class="director-grid">
+  <!-- My Disclosures -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">My Disclosures</h2>
+    </div>
+    <div class="card__body">
+      <% if (myDisclosures.length === 0) { %>
+        <p class="text-muted">No disclosures on file.</p>
+      <% } else { %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Conflict?</th>
+              <th>Status</th>
+              <th>Filed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% myDisclosures.forEach(d => { %>
+              <tr>
+                <td><strong><%= d.disclosure_year %></strong></td>
+                <td>
+                  <% if (d.has_conflict) { %>
+                    <span class="badge badge--legislative">Yes</span>
+                  <% } else { %>
+                    <span class="badge badge--garden">None</span>
+                  <% } %>
+                </td>
+                <td><span class="badge badge--<%= d.status === 'acknowledged' ? 'garden' : d.status === 'reviewed' ? 'meeting' : 'general' %>"><%= d.status %></span></td>
+                <td class="text-muted"><%= new Date(d.signed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
+              </tr>
+              <% if (d.has_conflict && d.description) { %>
+                <tr>
+                  <td colspan="4" style="padding-top:0;">
+                    <div style="background:var(--warning-light); padding:0.75rem; border-radius:var(--radius-sm); font-size:0.85rem;">
+                      <strong>Organization:</strong> <%= d.organization || 'N/A' %><br>
+                      <strong>Nature:</strong> <%= d.nature_of_interest || 'N/A' %><br>
+                      <strong>Description:</strong> <%= d.description %><br>
+                      <% if (d.mitigation_plan) { %><strong>Mitigation:</strong> <%= d.mitigation_plan %><% } %>
+                    </div>
+                  </td>
+                </tr>
+              <% } %>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Board Disclosure Status -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title"><%= currentYear %> Board Status</h2>
+    </div>
+    <div class="card__body">
+      <% if (allDisclosures.length === 0) { %>
+        <p class="text-muted">No disclosures filed for <%= currentYear %> yet.</p>
+      <% } else { %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Director</th>
+              <th>Conflict?</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% allDisclosures.forEach(d => { %>
+              <tr>
+                <td><%= d.member_name %></td>
+                <td>
+                  <% if (d.has_conflict) { %>
+                    <span class="badge badge--legislative">Yes</span>
+                  <% } else { %>
+                    <span class="badge badge--garden">None</span>
+                  <% } %>
+                </td>
+                <td><span class="badge badge--<%= d.status === 'acknowledged' ? 'garden' : d.status === 'reviewed' ? 'meeting' : 'general' %>"><%= d.status %></span></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- File COI Modal -->
+<div id="coiModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>File COI Disclosure — <%= currentYear %></h2>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').style.display='none'">&times;</button>
+    </div>
+    <form method="POST" action="/director/coi">
+      <input type="hidden" name="disclosure_year" value="<%= currentYear %>">
+
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:0.5rem;">
+          <input type="checkbox" name="has_conflict" value="1" id="hasConflict" onchange="document.getElementById('conflictDetails').style.display = this.checked ? 'block' : 'none';">
+          I have a potential conflict of interest to disclose
+        </label>
+      </div>
+
+      <div id="conflictDetails" style="display:none;">
+        <div class="form-group">
+          <label for="organization">Organization / Entity</label>
+          <input type="text" id="organization" name="organization" class="form-control" placeholder="Name of the organization">
+        </div>
+        <div class="form-group">
+          <label for="nature_of_interest">Nature of Interest</label>
+          <input type="text" id="nature_of_interest" name="nature_of_interest" class="form-control" placeholder="e.g., Board member, financial interest, family relationship">
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="3" placeholder="Describe the potential conflict..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="mitigation_plan">Mitigation Plan (optional)</label>
+          <textarea id="mitigation_plan" name="mitigation_plan" class="form-control" rows="2" placeholder="How this conflict will be managed..."></textarea>
+        </div>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+        By submitting this form, I certify that I have read the ICAN Conflict of Interest Policy and that the information provided is true and complete to the best of my knowledge.
+      </p>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn--outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn--primary">Submit Disclosure</button>
+      </div>
+    </form>
+  </div>
+</div>

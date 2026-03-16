@@ -1,0 +1,163 @@
+<div class="page-header">
+  <div>
+    <a href="/director/meetings" class="text-muted" style="font-size: 0.85rem;">&larr; All Meetings</a>
+    <h1 class="page-title"><%= meeting.title %></h1>
+    <p class="page-subtitle">
+      <%= new Date(meeting.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>
+      <% if (meeting.meeting_time) { %> &middot; <%= meeting.meeting_time %><% } %>
+      <% if (meeting.location) { %> &middot; <%= meeting.location %><% } %>
+    </p>
+  </div>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <span class="badge badge--<%= meeting.meeting_type %>" style="font-size:0.85rem;"><%= meeting.meeting_type %></span>
+    <span class="badge badge--<%= meeting.status === 'completed' ? 'garden' : meeting.status === 'cancelled' ? 'social' : 'meeting' %>" style="font-size:0.85rem;"><%= meeting.status %></span>
+  </div>
+</div>
+
+<div class="director-grid">
+  <!-- Agenda -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Agenda</h2>
+    </div>
+    <div class="card__body">
+      <% if (meeting.agenda) { %>
+        <pre class="director-preformatted"><%= meeting.agenda %></pre>
+      <% } else { %>
+        <p class="text-muted">No agenda provided.</p>
+      <% } %>
+      <form method="POST" action="/director/meetings/<%= meeting.id %>/update" style="margin-top: 1rem;">
+        <div class="form-group">
+          <label>Update Agenda</label>
+          <textarea name="agenda" class="form-control" rows="6" placeholder="Enter agenda items..."><%= meeting.agenda || '' %></textarea>
+        </div>
+        <button type="submit" class="btn btn--outline btn--sm">Save Agenda</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Attendance -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Attendance</h2>
+      <% if (meeting.quorum_present > 0) { %>
+        <span class="badge badge--garden"><%= meeting.quorum_present %> present</span>
+      <% } %>
+    </div>
+    <div class="card__body">
+      <form method="POST" action="/director/meetings/<%= meeting.id %>/attendance">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Director</th>
+              <th>Title</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% allMembers.forEach(m => {
+              const att = attendance.find(a => a.member_id === m.id);
+              const currentStatus = att ? att.status : 'absent';
+            %>
+              <tr>
+                <td><strong><%= m.first_name %> <%= m.last_name %></strong></td>
+                <td class="text-muted"><%= m.officer_title || m.title %></td>
+                <td>
+                  <select name="attendance_<%= m.id %>" class="form-control form-control--inline">
+                    <option value="present" <%= currentStatus === 'present' ? 'selected' : '' %>>Present</option>
+                    <option value="remote" <%= currentStatus === 'remote' ? 'selected' : '' %>>Remote</option>
+                    <option value="excused" <%= currentStatus === 'excused' ? 'selected' : '' %>>Excused</option>
+                    <option value="absent" <%= currentStatus === 'absent' ? 'selected' : '' %>>Absent</option>
+                  </select>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+        <button type="submit" class="btn btn--primary btn--sm" style="margin-top: 0.75rem;">Save Attendance</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Minutes -->
+  <div class="card" style="grid-column: 1 / -1;">
+    <div class="card__header">
+      <h2 class="card__title">Meeting Minutes</h2>
+      <% if (meeting.minutes_approved) { %>
+        <span class="badge badge--garden">Approved <%= meeting.minutes_approved_date ? new Date(meeting.minutes_approved_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %></span>
+      <% } %>
+    </div>
+    <div class="card__body">
+      <form method="POST" action="/director/meetings/<%= meeting.id %>/update">
+        <div class="form-group">
+          <textarea name="minutes" class="form-control" rows="12" placeholder="Enter meeting minutes..."><%= meeting.minutes || '' %></textarea>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button type="submit" class="btn btn--primary btn--sm">Save Minutes</button>
+          <% if (meeting.minutes && !meeting.minutes_approved) { %>
+            <button type="button" class="btn btn--outline btn--sm" onclick="if(confirm('Approve these minutes? This marks them as the official record.')) { document.getElementById('approveMinutesForm').submit(); }">
+              Approve Minutes
+            </button>
+          <% } %>
+        </div>
+      </form>
+      <form id="approveMinutesForm" method="POST" action="/director/meetings/<%= meeting.id %>/approve-minutes" style="display:none;"></form>
+    </div>
+  </div>
+
+  <!-- Votes from this meeting -->
+  <% if (votes.length > 0) { %>
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="card__header">
+        <h2 class="card__title">Motions & Votes</h2>
+      </div>
+      <div class="card__body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Motion</th>
+              <th>Type</th>
+              <th>For</th>
+              <th>Against</th>
+              <th>Abstain</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% votes.forEach(v => { %>
+              <tr>
+                <td><strong><%= v.motion_title %></strong></td>
+                <td><span class="badge badge--<%= v.motion_type %>"><%= v.motion_type %></span></td>
+                <td><%= v.votes_for %></td>
+                <td><%= v.votes_against %></td>
+                <td><%= v.votes_abstain %></td>
+                <td><span class="badge badge--<%= v.status === 'passed' ? 'garden' : v.status === 'failed' ? 'social' : 'meeting' %>"><%= v.status %></span></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<!-- Meeting Status Control -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Meeting Controls</h2>
+  </div>
+  <div class="card__body">
+    <form method="POST" action="/director/meetings/<%= meeting.id %>/update" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <input type="hidden" name="status" value="completed">
+      <% if (meeting.status !== 'completed') { %>
+        <button type="submit" class="btn btn--primary btn--sm">Mark Completed</button>
+      <% } %>
+    </form>
+    <% if (meeting.status !== 'cancelled') { %>
+      <form method="POST" action="/director/meetings/<%= meeting.id %>/update" style="margin-top:0.5rem;">
+        <input type="hidden" name="status" value="cancelled">
+        <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Cancel this meeting?')">Cancel Meeting</button>
+      </form>
+    <% } %>
+  </div>
+</div>

@@ -96,6 +96,7 @@ app.use('/admin/garden', require('./routes/garden'));
 app.use('/admin/settings', require('./routes/settings'));
 app.use('/admin/newsletter', require('./routes/newsletter'));
 app.use('/admin/events', require('./routes/events'));
+app.use('/admin/board', require('./routes/board-admin'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');
@@ -153,6 +154,10 @@ app.get('/admin/api/subscribers/export', requireAuth, (req, res) => {
 // Member portal
 const { setMemberLocals } = require('./middleware/member-auth');
 app.use('/member', setMemberLocals, require('./routes/member'));
+
+// Director portal (Board of Directors)
+const { setDirectorLocals } = require('./middleware/director-auth');
+app.use('/director', setDirectorLocals, require('./routes/director'));
 
 // Redirect root to admin
 app.get('/', (req, res) => res.redirect('/admin'));
