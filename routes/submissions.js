@@ -119,4 +119,73 @@ router.post('/:id/create-member', requireAuth, requireRole('admin'), (req, res) 
   res.redirect('/admin/submissions?type=volunteer');
 });
 
+// Convert board application submission to director account
+router.post('/:id/create-director', requireAuth, requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const submission = db.prepare('SELECT * FROM submissions WHERE id = ?').get(req.params.id);
+
+  if (!submission) {
+    req.session.flash = { type: 'error', message: 'Submission not found.' };
+    return res.redirect('/admin/submissions');
+  }
+
+  const data = JSON.parse(submission.data);
+  const firstName = data.first_name || data.name?.split(' ')[0] || 'Applicant';
+  const lastName = data.last_name || data.name?.split(' ').slice(1).join(' ') || '';
+  const email = data.email;
+  const phone = data.phone || null;
+
+  if (!email) {
+    req.session.flash = { type: 'error', message: 'No email address found in application. Cannot create account.' };
+    return res.redirect('/admin/submissions?type=board_application');
+  }
+
+  // Check if board member with this email already exists
+  const existing = db.prepare('SELECT id FROM board_members WHERE email = ?').get(email);
+  if (existing) {
+    req.session.flash = { type: 'error', message: `A board member with email ${email} already exists.` };
+    return res.redirect('/admin/submissions?type=board_application');
+  }
+
+  try {
+    const tempPassword = 'Board' + Math.floor(1000 + Math.random() * 9000);
+    const hash = bcrypt.hashSync(tempPassword, 10);
+
+    // Build bio from application data
+    const bioParts = [];
+    if (data.occupation) bioParts.push('Occupation: ' + data.occupation);
+    if (data.city_county) bioParts.push('Location: ' + data.city_county);
+    if (data.experience) bioParts.push('Experience: ' + data.experience);
+    if (data.why_serve) bioParts.push('Motivation: ' + data.why_serve);
+    const bio = bioParts.join('. ').substring(0, 500) || null;
+
+    // Create board member with onboarding required
+    db.prepare(`
+      INSERT INTO board_members (
+        first_name, last_name, email, password_hash, title, phone, bio,
+        term_start, is_officer, status, must_change_password, onboarding_completed
+      ) VALUES (?, ?, ?, ?, 'Director', ?, ?, date('now'), 0, 'active', 1, 0)
+    `).run(
+      firstName, lastName, email, hash, phone, bio
+    );
+
+    // Mark submission as read
+    db.prepare('UPDATE submissions SET read = 1 WHERE id = ?').run(req.params.id);
+
+    req.session.flash = {
+      type: 'success',
+      message: `Director account created for ${firstName} ${lastName}. Temp password: ${tempPassword} — They will complete onboarding (password change, profile, COI) on first login at /director/login.`
+    };
+  } catch (err) {
+    console.error('Create director error:', err);
+    if (err.message.includes('UNIQUE')) {
+      req.session.flash = { type: 'error', message: `A board member with email ${email} already exists.` };
+    } else {
+      req.session.flash = { type: 'error', message: 'Failed to create director account: ' + err.message };
+    }
+  }
+
+  res.redirect('/admin/submissions?type=board_application');
+});
+
 module.exports = router;

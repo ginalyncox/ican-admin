@@ -394,6 +394,7 @@ a:hover { color: var(--primary-dark); }
 .badge--contact { background: #e8edf5; color: #3b6cb3; }
 .badge--newsletter { background: var(--success-light); color: var(--success); }
 .badge--volunteer { background: #f0e8f5; color: #7b3fa0; }
+.badge--board_application { background: #fdf3e2; color: #b8862b; }
 .badge--category { background: rgba(184, 134, 43, 0.12); color: var(--accent); }
 .badge--source { background: var(--border-light); color: var(--text-muted); }
 

@@ -131,12 +131,16 @@ const { requireAuth } = require('./middleware/auth');
 app.post('/admin/api/webhook', (req, res) => {
   const payload = req.body;
 
-  let formType = 'contact';
-  const subject = (payload.subject || '').toLowerCase();
-  if (subject.includes('newsletter') || subject.includes('subscriber')) {
-    formType = 'newsletter';
-  } else if (subject.includes('volunteer')) {
-    formType = 'volunteer';
+  let formType = payload.form_type || 'contact';
+  if (formType === 'contact') {
+    const subject = (payload.subject || '').toLowerCase();
+    if (subject.includes('newsletter') || subject.includes('subscriber')) {
+      formType = 'newsletter';
+    } else if (subject.includes('volunteer')) {
+      formType = 'volunteer';
+    } else if (subject.includes('board') && subject.includes('application')) {
+      formType = 'board_application';
+    }
   }
 
   db.prepare('INSERT INTO submissions (form_type, data) VALUES (?, ?)').run(formType, JSON.stringify(payload));
