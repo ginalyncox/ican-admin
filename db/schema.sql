@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS posts (
 
 CREATE TABLE IF NOT EXISTS submissions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  form_type TEXT NOT NULL CHECK(form_type IN ('newsletter', 'contact', 'volunteer')),
+  form_type TEXT NOT NULL CHECK(form_type IN ('newsletter', 'contact', 'volunteer', 'board_application')),
   data TEXT NOT NULL,
   read INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP

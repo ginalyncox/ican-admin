@@ -3,7 +3,7 @@ const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const ejsLayouts = require('express-ejs-layouts');
 const path = require('path');
-const Database = require('better-sqlite3');
+const Database = require('libsql');
 const fs = require('fs');
 
 const app = express();
@@ -13,12 +13,22 @@ const isProd = process.env.NODE_ENV === 'production';
 // Trust proxy in production (Render)
 if (isProd) app.set('trust proxy', 1);
 
-// Database setup
+// Database setup — Turso (persistent cloud) or local SQLite (fallback for dev)
 const dbPath = path.join(__dirname, 'db', 'ican.db');
 const schemaPath = path.join(__dirname, 'db', 'schema.sql');
 
-// Ensure DB exists and schema is applied
-const db = new Database(dbPath);
+let db;
+if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  // Connect to Turso cloud database (persistent storage)
+  db = new Database(process.env.TURSO_DATABASE_URL, {
+    authToken: process.env.TURSO_AUTH_TOKEN
+  });
+  console.log('Connected to Turso cloud database');
+} else {
+  // Local SQLite file (ephemeral on Render free tier)
+  db = new Database(dbPath);
+  console.log('Using local SQLite database');
+}
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 const schema = fs.readFileSync(schemaPath, 'utf8');
@@ -49,6 +59,27 @@ try {
 try {
   db.exec(`ALTER TABLE member_credentials ADD COLUMN onboarding_completed_at DATETIME`);
 } catch (e) { /* column already exists */ }
+
+// Migration: fix submissions CHECK constraint to allow board_application
+try {
+  // SQLite doesn't support ALTER CHECK, so recreate if the old constraint exists
+  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'submissions'").get();
+  if (tableInfo && tableInfo.sql && !tableInfo.sql.includes('board_application')) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS submissions_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        form_type TEXT NOT NULL CHECK(form_type IN ('newsletter', 'contact', 'volunteer', 'board_application')),
+        data TEXT NOT NULL,
+        read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      INSERT INTO submissions_new SELECT * FROM submissions;
+      DROP TABLE submissions;
+      ALTER TABLE submissions_new RENAME TO submissions;
+    `);
+    console.log('Migrated submissions table: added board_application to CHECK constraint');
+  }
+} catch (e) { console.log('Submissions migration note:', e.message); }
 
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
