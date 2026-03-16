@@ -1,8 +1,5 @@
 node_modules/
-db/*.db
-db/*.db-shm
-db/*.db-wal
-db/sessions.db
+db/
 *.db
 .env
 uploads/

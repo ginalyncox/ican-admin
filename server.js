@@ -14,8 +14,10 @@ const isProd = process.env.NODE_ENV === 'production';
 if (isProd) app.set('trust proxy', 1);
 
 // Database setup — persistent disk on Render Starter, local file for dev
-const dbPath = path.join(__dirname, 'db', 'ican.db');
-const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+const dbDir = path.join(__dirname, 'db');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+const dbPath = path.join(dbDir, 'ican.db');
+const schemaPath = path.join(__dirname, 'schema.sql');
 
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
