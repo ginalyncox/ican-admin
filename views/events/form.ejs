@@ -1,0 +1,69 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title"><%= isNew ? 'New Event' : 'Edit Event' %></h1>
+    <a href="/admin/events" class="btn btn--ghost">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <form method="POST" action="<%= isNew ? '/admin/events' : '/admin/events/' + event.id %>">
+      <div class="form-field">
+        <label for="title">Event Title</label>
+        <input type="text" id="title" name="title" class="form-input form-input--lg" value="<%= event.title %>" required placeholder="e.g. ICAN Monthly Board Meeting">
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="event_date">Date</label>
+          <input type="date" id="event_date" name="event_date" class="form-input" value="<%= event.event_date %>" required>
+        </div>
+        <div class="form-field">
+          <label for="event_type">Type</label>
+          <select id="event_type" name="event_type" class="form-select">
+            <option value="general" <%= event.event_type === 'general' ? 'selected' : '' %>>General</option>
+            <option value="meeting" <%= event.event_type === 'meeting' ? 'selected' : '' %>>Meeting</option>
+            <option value="garden" <%= event.event_type === 'garden' ? 'selected' : '' %>>Garden Event</option>
+            <option value="legislative" <%= event.event_type === 'legislative' ? 'selected' : '' %>>Legislative</option>
+            <option value="fundraiser" <%= event.event_type === 'fundraiser' ? 'selected' : '' %>>Fundraiser</option>
+            <option value="social" <%= event.event_type === 'social' ? 'selected' : '' %>>Social</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="event_time">Start Time</label>
+          <input type="time" id="event_time" name="event_time" class="form-input" value="<%= event.event_time || '' %>">
+        </div>
+        <div class="form-field">
+          <label for="end_time">End Time</label>
+          <input type="time" id="end_time" name="end_time" class="form-input" value="<%= event.end_time || '' %>">
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="location">Location</label>
+        <input type="text" id="location" name="location" class="form-input" value="<%= event.location || '' %>" placeholder="e.g. Altoona Community Center, 900 Venbury Dr">
+      </div>
+
+      <div class="form-field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" class="form-input" rows="4" placeholder="Brief description of the event..."><%= event.description || '' %></textarea>
+      </div>
+
+      <div class="form-field">
+        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+          <input type="checkbox" name="is_public" value="1" <%= event.is_public ? 'checked' : '' %>>
+          Show on public website
+        </label>
+        <small class="text-muted">Public events appear on the Events page at IowaCannabisAction.org</small>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary"><%= isNew ? 'Create Event' : 'Save Changes' %></button>
+        <a href="/admin/events" class="btn btn--ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

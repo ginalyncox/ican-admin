@@ -1,0 +1,59 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Newsletter</h1>
+      <p class="page-header__subtitle"><%= activeCount %> active subscriber<%= activeCount !== 1 ? 's' : '' %></p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/newsletter/compose" class="btn btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4z"/></svg>
+        Compose
+      </a>
+    </div>
+  </div>
+</div>
+
+<% if (sends.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <div class="empty-state">
+        <p>No newsletters sent yet.</p>
+        <a href="/admin/newsletter/compose" class="btn btn--primary" style="margin-top: 1rem">Compose Your First Newsletter</a>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Send History</h2>
+    </div>
+    <div class="card__body">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Recipients</th>
+            <th>Sent By</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% sends.forEach(s => { %>
+            <tr>
+              <td><a href="/admin/newsletter/<%= s.id %>"><%= s.subject %></a></td>
+              <td><span class="badge badge--info"><%= s.recipient_count %></span></td>
+              <td class="text-muted"><%= s.sender_name || 'Unknown' %></td>
+              <td class="text-muted text-sm"><%= new Date(s.sent_at).toLocaleDateString() %></td>
+              <td class="table__actions">
+                <form method="POST" action="/admin/newsletter/<%= s.id %>/delete" onsubmit="return confirm('Delete this record?')">
+                  <button type="submit" class="btn btn--danger btn--sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

@@ -52,6 +52,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files
 app.use('/admin/static', express.static(path.join(__dirname, 'public')));
 
+// Uploads directory for photos
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
+
 // Sessions
 app.use(session({
   store: new SQLiteStore({
@@ -88,6 +93,9 @@ app.use('/admin/submissions', require('./routes/submissions'));
 app.use('/admin/subscribers', require('./routes/subscribers'));
 app.use('/admin/pages', require('./routes/pages'));
 app.use('/admin/garden', require('./routes/garden'));
+app.use('/admin/settings', require('./routes/settings'));
+app.use('/admin/newsletter', require('./routes/newsletter'));
+app.use('/admin/events', require('./routes/events'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');
@@ -115,6 +123,16 @@ app.post('/admin/api/webhook', (req, res) => {
   }
 
   res.json({ success: true });
+});
+
+// Public API: upcoming events (no auth — used by public website)
+app.get('/api/events', (req, res) => {
+  const events = db.prepare(`
+    SELECT title, description, location, event_date, event_time, end_time, event_type
+    FROM events WHERE is_public = 1 AND event_date >= date('now')
+    ORDER BY event_date ASC LIMIT 20
+  `).all();
+  res.json(events);
 });
 
 // Subscriber CSV export

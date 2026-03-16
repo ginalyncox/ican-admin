@@ -1,0 +1,49 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Compose Newsletter</h1>
+      <p class="page-header__subtitle">Will be sent to <%= activeCount %> active subscriber<%= activeCount !== 1 ? 's' : '' %></p>
+    </div>
+    <a href="/admin/newsletter" class="btn btn--ghost">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <form method="POST" action="/admin/newsletter/preview">
+      <div class="form-field">
+        <label for="subject">Subject Line</label>
+        <input type="text" id="subject" name="subject" class="form-input form-input--lg" placeholder="e.g. ICAN March Update: Victory Garden Launch" required>
+      </div>
+
+      <div class="form-field">
+        <label for="body">Message Body</label>
+        <textarea id="body" name="body" class="form-input" rows="16" placeholder="Write your newsletter content here...
+
+You can use simple formatting:
+- Paragraphs are separated by blank lines
+- Use line breaks for structure" required></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+        <a href="/admin/newsletter" class="btn btn--ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem">
+  <div class="card__header"><h2 class="card__title">How It Works</h2></div>
+  <div class="card__body">
+    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.7">
+      Compose your newsletter here, then preview it before recording the send. Use the
+      <a href="/admin/api/subscribers/export">subscriber export</a> to get a CSV of all
+      active email addresses, which you can import into your email provider (Gmail, Mailchimp, etc.)
+      to deliver the message.
+    </p>
+  </div>
+</div>

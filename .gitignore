@@ -5,3 +5,4 @@ db/*.db-wal
 db/sessions.db
 *.db
 .env
+uploads/

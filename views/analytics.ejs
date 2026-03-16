@@ -1,0 +1,193 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Analytics</h1>
+    <a href="/admin" class="btn btn--outline btn--sm">Back to Dashboard</a>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(6, 1fr); margin-bottom: 2rem;">
+  <div class="stat-card">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= summary.totalSubscribers %></span>
+      <span class="stat-card__label">Active Subscribers</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= summary.totalGardeners %></span>
+      <span class="stat-card__label">Total Gardeners</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(summary.totalHarvestLbs).toFixed(0) %></span>
+      <span class="stat-card__label">Lbs Harvested</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(summary.totalDonatedLbs).toFixed(0) %></span>
+      <span class="stat-card__label">Lbs Donated</span>
+    </div>
+  </div>
+  <div class="stat-card stat-card--garden">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Number(summary.totalVolunteerHrs).toFixed(0) %></span>
+      <span class="stat-card__label">Volunteer Hours</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= summary.totalEvents %></span>
+      <span class="stat-card__label">Total Events</span>
+    </div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="analytics-grid">
+  <!-- Subscriber Growth -->
+  <div class="card chart-card">
+    <div class="card__header"><h2 class="card__title">Subscriber Growth</h2></div>
+    <div class="card__body">
+      <canvas id="subscriberChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Harvest by Month -->
+  <div class="card chart-card">
+    <div class="card__header"><h2 class="card__title">Harvest by Month (lbs)</h2></div>
+    <div class="card__body">
+      <canvas id="harvestChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Volunteer Hours by Month -->
+  <div class="card chart-card">
+    <div class="card__header"><h2 class="card__title">Volunteer Hours by Month</h2></div>
+    <div class="card__body">
+      <canvas id="hoursChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Verification Breakdown -->
+  <div class="card chart-card">
+    <div class="card__header"><h2 class="card__title">Donation Verification</h2></div>
+    <div class="card__body">
+      <canvas id="verificationChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Top Crops + Events by Type -->
+<div class="analytics-grid" style="margin-top: 1.5rem;">
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Top Crops by Weight</h2></div>
+    <div class="card__body">
+      <% if (topCrops.length === 0) { %>
+        <p class="empty-state">No harvest data yet.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Crop</th><th>Total Lbs</th><th>Entries</th></tr></thead>
+          <tbody>
+            <% topCrops.forEach(c => { %>
+              <tr><td><%= c.crop %></td><td><%= Number(c.total_lbs).toFixed(1) %></td><td><%= c.entries %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Events by Type</h2></div>
+    <div class="card__body">
+      <% if (eventsByType.length === 0) { %>
+        <p class="empty-state">No events yet.</p>
+      <% } else { %>
+        <canvas id="eventsChart"></canvas>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const COLORS = {
+    primary: '#2D6A3F',
+    accent: '#B8862B',
+    blue: '#2980b9',
+    purple: '#8e44ad',
+    red: '#c0392b',
+    orange: '#d35400',
+    bg: '#F5F3ED'
+  };
+
+  // Subscriber Growth
+  const subData = <%- JSON.stringify(subscriberGrowth) %>;
+  if (subData.length > 0) {
+    new Chart(document.getElementById('subscriberChart'), {
+      type: 'bar',
+      data: {
+        labels: subData.map(d => d.month),
+        datasets: [{ label: 'New Subscribers', data: subData.map(d => d.count), backgroundColor: COLORS.primary, borderRadius: 4 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+
+  // Harvest by Month
+  const harvestData = <%- JSON.stringify(harvestByMonth) %>;
+  if (harvestData.length > 0) {
+    new Chart(document.getElementById('harvestChart'), {
+      type: 'bar',
+      data: {
+        labels: harvestData.map(d => d.month),
+        datasets: [{ label: 'Lbs Harvested', data: harvestData.map(d => d.total_lbs), backgroundColor: COLORS.accent, borderRadius: 4 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+
+  // Hours by Month
+  const hoursData = <%- JSON.stringify(hoursByMonth) %>;
+  if (hoursData.length > 0) {
+    new Chart(document.getElementById('hoursChart'), {
+      type: 'line',
+      data: {
+        labels: hoursData.map(d => d.month),
+        datasets: [{ label: 'Hours', data: hoursData.map(d => d.total_hrs), borderColor: COLORS.blue, backgroundColor: 'rgba(41,128,185,0.1)', fill: true, tension: 0.3 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+
+  // Verification Breakdown
+  const verifyData = <%- JSON.stringify(verificationStats) %>;
+  if (verifyData.length > 0) {
+    const colorMap = { pending: COLORS.accent, verified: COLORS.primary, flagged: COLORS.red };
+    new Chart(document.getElementById('verificationChart'), {
+      type: 'doughnut',
+      data: {
+        labels: verifyData.map(d => d.donation_status),
+        datasets: [{ data: verifyData.map(d => d.count), backgroundColor: verifyData.map(d => colorMap[d.donation_status] || '#999') }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  // Events by Type
+  const eventsData = <%- JSON.stringify(eventsByType) %>;
+  if (eventsData.length > 0 && document.getElementById('eventsChart')) {
+    const evtColors = { general: '#999', meeting: COLORS.blue, garden: COLORS.primary, legislative: COLORS.orange, fundraiser: COLORS.purple, social: COLORS.red };
+    new Chart(document.getElementById('eventsChart'), {
+      type: 'doughnut',
+      data: {
+        labels: eventsData.map(d => d.event_type),
+        datasets: [{ data: eventsData.map(d => d.count), backgroundColor: eventsData.map(d => evtColors[d.event_type] || '#999') }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+</script>

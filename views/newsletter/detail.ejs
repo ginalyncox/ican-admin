@@ -1,0 +1,15 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title"><%= send.subject %></h1>
+      <p class="page-header__subtitle">Sent by <%= send.sender_name || 'Unknown' %> on <%= new Date(send.sent_at).toLocaleDateString() %> to <%= send.recipient_count %> subscriber<%= send.recipient_count !== 1 ? 's' : '' %></p>
+    </div>
+    <a href="/admin/newsletter" class="btn btn--ghost">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <div style="white-space: pre-wrap; line-height: 1.7; font-size: 0.95rem; max-width: 600px"><%= send.body %></div>
+  </div>
+</div>

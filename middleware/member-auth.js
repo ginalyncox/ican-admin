@@ -13,6 +13,9 @@ function setMemberLocals(req, res, next) {
     email: req.session.memberEmail
   } : null;
   res.locals.path = req.originalUrl.split('?')[0];
+  // Flash messages for member portal
+  res.locals.memberFlash = req.session.memberFlash || null;
+  delete req.session.memberFlash;
   next();
 }
 

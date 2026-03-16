@@ -139,3 +139,37 @@ CREATE TABLE IF NOT EXISTS garden_awards (
   presented_at DATE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Victory Garden: Harvest Photos
+CREATE TABLE IF NOT EXISTS harvest_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  harvest_id INTEGER REFERENCES garden_harvests(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  original_name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Newsletter Sends
+CREATE TABLE IF NOT EXISTS newsletter_sends (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  recipient_count INTEGER DEFAULT 0,
+  sent_by INTEGER REFERENCES users(id),
+  sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Events
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  location TEXT,
+  event_date DATE NOT NULL,
+  event_time TEXT,
+  end_time TEXT,
+  event_type TEXT DEFAULT 'general' CHECK(event_type IN ('general', 'meeting', 'garden', 'legislative', 'fundraiser', 'social')),
+  is_public INTEGER DEFAULT 1,
+  created_by INTEGER REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificate — <%= award.award_name %></title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: landscape; margin: 0; }
+    body { font-family: 'Work Sans', sans-serif; background: #f0f0f0; }
+
+    .certificate {
+      width: 11in;
+      height: 8.5in;
+      margin: 0 auto;
+      padding: 0.75in;
+      background: #FDFCF8;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .certificate__inner {
+      border: 3px solid #2D6A3F;
+      border-radius: 12px;
+      padding: 2.5rem 3rem;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .certificate__inner::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 1px solid #B8862B;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .certificate__org {
+      font-family: 'Work Sans', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #5E6B52;
+      margin-bottom: 0.5rem;
+    }
+
+    .certificate__title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: #2D6A3F;
+      margin-bottom: 0.25rem;
+    }
+
+    .certificate__subtitle {
+      font-size: 1rem;
+      color: #B8862B;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+
+    .certificate__text {
+      font-size: 1.05rem;
+      color: #5E6B52;
+      margin-bottom: 0.5rem;
+    }
+
+    .certificate__recipient {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.25rem;
+      font-weight: 600;
+      color: #1E2418;
+      margin: 0.5rem 0 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid #B8862B;
+      min-width: 400px;
+    }
+
+    .certificate__award {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.5rem;
+      color: #2D6A3F;
+      margin-bottom: 0.5rem;
+    }
+
+    .certificate__description {
+      font-size: 0.95rem;
+      color: #5E6B52;
+      max-width: 500px;
+      line-height: 1.5;
+      margin-bottom: 2rem;
+    }
+
+    .certificate__footer {
+      display: flex;
+      gap: 4rem;
+      align-items: flex-end;
+      margin-top: auto;
+    }
+
+    .certificate__signature {
+      text-align: center;
+    }
+
+    .certificate__signature-line {
+      width: 180px;
+      border-top: 1px solid #1E2418;
+      margin-bottom: 0.25rem;
+    }
+
+    .certificate__signature-label {
+      font-size: 0.75rem;
+      color: #5E6B52;
+    }
+
+    .certificate__date {
+      font-size: 0.85rem;
+      color: #5E6B52;
+    }
+
+    /* Leaf decorations */
+    .leaf {
+      position: absolute;
+      opacity: 0.08;
+      fill: #2D6A3F;
+    }
+    .leaf--tl { top: 20px; left: 20px; transform: rotate(-20deg); }
+    .leaf--tr { top: 20px; right: 20px; transform: rotate(20deg) scaleX(-1); }
+    .leaf--bl { bottom: 20px; left: 20px; transform: rotate(20deg); }
+    .leaf--br { bottom: 20px; right: 20px; transform: rotate(-20deg) scaleX(-1); }
+
+    @media print {
+      body { background: none; }
+      .certificate { box-shadow: none; }
+      .no-print { display: none; }
+    }
+
+    .print-btn {
+      display: block;
+      margin: 1rem auto;
+      padding: 0.75rem 2rem;
+      background: #2D6A3F;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Work Sans', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .print-btn:hover { background: #3d8a55; }
+  </style>
+</head>
+<body>
+  <button class="print-btn no-print" onclick="window.print()">Print Certificate</button>
+
+  <div class="certificate">
+    <div class="certificate__inner">
+      <svg class="leaf leaf--tl" width="80" height="80" viewBox="0 0 32 32"><path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z"/></svg>
+      <svg class="leaf leaf--tr" width="80" height="80" viewBox="0 0 32 32"><path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z"/></svg>
+      <svg class="leaf leaf--bl" width="80" height="80" viewBox="0 0 32 32"><path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z"/></svg>
+      <svg class="leaf leaf--br" width="80" height="80" viewBox="0 0 32 32"><path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z"/></svg>
+
+      <div class="certificate__org">Iowa Cannabis Action Network, Inc.</div>
+      <div class="certificate__title">Victory Garden Program</div>
+      <div class="certificate__subtitle"><%= award.season_name || 'Annual Awards' %></div>
+
+      <div class="certificate__text">This certificate is proudly presented to</div>
+      <div class="certificate__recipient"><%= award.first_name %> <%= award.last_name %></div>
+
+      <div class="certificate__award"><%= award.award_name %></div>
+      <% if (award.description) { %>
+        <div class="certificate__description"><%= award.description %></div>
+      <% } %>
+
+      <div class="certificate__footer">
+        <div class="certificate__signature">
+          <div class="certificate__signature-line"></div>
+          <div class="certificate__signature-label">Gina Lyn Cox, President</div>
+        </div>
+        <div class="certificate__date">
+          <%= award.presented_at ? new Date(award.presented_at + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

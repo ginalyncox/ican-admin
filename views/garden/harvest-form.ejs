@@ -4,7 +4,7 @@
 
 <div class="card" style="max-width: 640px;">
   <div class="card__body">
-    <form method="POST" action="/admin/garden/harvests">
+    <form method="POST" action="/admin/garden/harvests" enctype="multipart/form-data">
       <div class="form-row">
         <div class="form-field">
           <label class="form-label" for="gardener_id">Gardener</label>
@@ -54,6 +54,11 @@
       <div class="form-field">
         <label class="form-label" for="notes">Notes</label>
         <textarea class="form-input" id="notes" name="notes" rows="2"><%= harvest.notes || '' %></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="photos">Photos (optional, up to 3)</label>
+        <input class="form-input" type="file" id="photos" name="photos" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="padding: 0.5rem;">
+        <small class="text-muted">Max 5 MB each. JPEG, PNG, GIF, or WebP.</small>
       </div>
       <div class="form-actions">
         <button type="submit" class="btn btn--primary">Log Harvest</button>

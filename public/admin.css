@@ -1236,6 +1236,26 @@ textarea.form-input {
   text-align: right;
 }
 
+/* Event type badges */
+.badge--general { background: var(--bg); color: var(--text-muted); }
+.badge--meeting { background: #e0ecf7; color: #1a56c4; }
+.badge--garden { background: #e3f0e7; color: #2D6A3F; }
+.badge--legislative { background: #fde8d5; color: #b8540d; }
+.badge--fundraiser { background: #f0e3f5; color: #7a2c99; }
+.badge--social { background: #fce4e4; color: #a32929; }
+
+/* Analytics chart container */
+.chart-card { min-height: 300px; position: relative; }
+.chart-card canvas { max-height: 280px; }
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 768px) {
+  .analytics-grid { grid-template-columns: 1fr; }
+}
+
 /* Responsive member header */
 @media (max-width: 768px) {
   .member-header {

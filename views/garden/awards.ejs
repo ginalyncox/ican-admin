@@ -1,7 +1,12 @@
 <div class="page-header">
   <div class="page-header__row">
     <h1 class="page-header__title">Annual Awards</h1>
-    <a href="/admin/garden/awards/new" class="btn btn--primary">Present Award</a>
+    <div class="page-header__actions">
+      <% if (typeof seasons !== 'undefined' && seasons.length > 0) { %>
+        <a href="/admin/garden/awards/suggest/<%= seasons[0].id %>" class="btn btn--outline">Suggest Awards</a>
+      <% } %>
+      <a href="/admin/garden/awards/new" class="btn btn--primary">Present Award</a>
+    </div>
   </div>
 </div>
 
@@ -33,9 +38,14 @@
           <% if (a.description) { %><p class="award-card__desc"><%= a.description %></p><% } %>
           <% if (a.presented_at) { %><p class="text-muted" style="font-size:0.8rem">Presented: <%= a.presented_at %></p><% } %>
         </div>
-        <form method="POST" action="/admin/garden/awards/<%= a.id %>/delete" onsubmit="return confirm('Remove this award?')">
-          <button type="submit" class="btn btn--danger btn--xs">&times;</button>
-        </form>
+        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+          <a href="/admin/garden/awards/<%= a.id %>/certificate" class="btn btn--outline btn--xs" title="Print Certificate" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          </a>
+          <form method="POST" action="/admin/garden/awards/<%= a.id %>/delete" onsubmit="return confirm('Remove this award?')">
+            <button type="submit" class="btn btn--danger btn--xs">&times;</button>
+          </form>
+        </div>
       </div>
     <% }) %>
   </div>

@@ -59,7 +59,7 @@
         <p class="empty-state">No harvests logged.</p>
       <% } else { %>
         <table class="table">
-          <thead><tr><th>Date</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Status</th></tr></thead>
+          <thead><tr><th>Date</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Status</th><th>Photos</th></tr></thead>
           <tbody>
             <% harvests.forEach(h => { %>
               <tr>
@@ -68,6 +68,17 @@
                 <td><%= h.pounds %></td>
                 <td><%= h.donated_to || (h.donated ? 'Yes' : 'No') %></td>
                 <td><span class="badge badge--<%= h.donation_status || 'pending' %>"><%= h.donation_status || 'pending' %></span></td>
+                <td>
+                  <% if (h.photos && h.photos.length > 0) { %>
+                    <div style="display: flex; gap: 4px;">
+                      <% h.photos.forEach(p => { %>
+                        <a href="/uploads/harvests/<%= p.filename %>" target="_blank"><img src="/uploads/harvests/<%= p.filename %>" alt="Harvest photo" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px;"></a>
+                      <% }) %>
+                    </div>
+                  <% } else { %>
+                    <span class="text-muted">&mdash;</span>
+                  <% } %>
+                </td>
               </tr>
             <% }) %>
           </tbody>

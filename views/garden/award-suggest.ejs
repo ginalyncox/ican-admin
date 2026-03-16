@@ -1,0 +1,47 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Award Suggestions</h1>
+      <p class="page-header__subtitle">Based on data from <strong><%= season.name %> (<%= season.year %>)</strong></p>
+    </div>
+    <a href="/admin/garden/awards" class="btn btn--ghost">Back to Awards</a>
+  </div>
+</div>
+
+<% if (suggestions.length === 0) { %>
+  <div class="card">
+    <div class="card__body">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+        <h3 style="color: var(--text-muted)">Not enough data yet</h3>
+        <p class="text-muted">Add more harvest logs and volunteer hours to this season to generate award suggestions.</p>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <form method="POST" action="/admin/garden/awards/suggest/<%= season.id %>">
+    <div class="awards-grid" style="margin-bottom: 1.5rem">
+      <% suggestions.forEach((s, i) => { %>
+        <div class="award-card award-card--<%= s.category %>">
+          <label style="display: flex; gap: 1rem; cursor: pointer; width: 100%">
+            <input type="checkbox" name="selected" value='<%= JSON.stringify({ id: s.id, award_name: s.award_name, category: s.category, description: s.description }) %>' checked style="margin-top: 0.25rem">
+            <div>
+              <div class="award-card__name"><%= s.award_name %></div>
+              <div class="award-card__recipient"><%= s.first_name %> <%= s.last_name %></div>
+              <div class="award-card__desc"><%= s.description %></div>
+              <span class="badge badge--<%= s.category %>" style="margin-top: 0.5rem"><%= s.category %></span>
+            </div>
+          </label>
+        </div>
+      <% }) %>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+        Create Selected Awards
+      </button>
+      <a href="/admin/garden/awards" class="btn btn--ghost">Cancel</a>
+    </div>
+  </form>
+<% } %>

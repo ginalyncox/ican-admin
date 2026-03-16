@@ -1,7 +1,27 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const router = express.Router();
+
+// Photo upload config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '..', 'uploads', 'harvests');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `harvest-${Date.now()}${ext}`);
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (req, file, cb) => {
+  if (/^image\/(jpeg|png|gif|webp)$/.test(file.mimetype)) cb(null, true);
+  else cb(new Error('Only image files allowed'));
+}});
 
 // ── GARDEN DASHBOARD (overview) ─────────────────────────────
 router.get('/', requireAuth, (req, res) => {
@@ -234,6 +254,11 @@ router.get('/gardeners/:id', requireAuth, (req, res) => {
   if (!gardener) { req.session.flash = { type: 'error', message: 'Gardener not found.' }; return res.redirect('/admin/garden/gardeners'); }
 
   const harvests = db.prepare("SELECT * FROM garden_harvests WHERE gardener_id = ? ORDER BY harvest_date DESC").all(req.params.id);
+  // Attach photos to each harvest
+  const photosStmt = db.prepare('SELECT * FROM harvest_photos WHERE harvest_id = ?');
+  for (const h of harvests) {
+    h.photos = photosStmt.all(h.id);
+  }
   const hours = db.prepare("SELECT * FROM garden_hours WHERE gardener_id = ? ORDER BY work_date DESC").all(req.params.id);
   const awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(req.params.id);
   const totalLbs = db.prepare("SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests WHERE gardener_id = ?").get(req.params.id).c;
@@ -323,17 +348,49 @@ router.get('/harvests/new', requireRole('admin', 'editor'), (req, res) => {
   });
 });
 
-router.post('/harvests', requireRole('admin', 'editor'), (req, res) => {
+router.post('/harvests', requireRole('admin', 'editor'), upload.array('photos', 3), (req, res) => {
   const db = req.app.locals.db;
   const { gardener_id, season_id, harvest_date, crop, pounds, donated, donated_to, notes } = req.body;
   try {
-    db.prepare("INSERT INTO garden_harvests (gardener_id, season_id, harvest_date, crop, pounds, donated, donated_to, donation_status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)")
+    const result = db.prepare("INSERT INTO garden_harvests (gardener_id, season_id, harvest_date, crop, pounds, donated, donated_to, donation_status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)")
       .run(gardener_id, season_id || null, harvest_date, crop, parseFloat(pounds) || 0, donated ? 1 : 0, donated_to || null, notes || null);
+    // Save photos if uploaded
+    if (req.files && req.files.length > 0) {
+      const stmt = db.prepare('INSERT INTO harvest_photos (harvest_id, filename, original_name) VALUES (?, ?, ?)');
+      for (const file of req.files) {
+        stmt.run(result.lastInsertRowid, file.filename, file.originalname);
+      }
+    }
     req.session.flash = { type: 'success', message: 'Harvest logged.' };
   } catch (err) {
     req.session.flash = { type: 'error', message: 'Failed to log harvest.' };
   }
   res.redirect('/admin/garden/harvests');
+});
+
+// Upload photo to existing harvest
+router.post('/harvests/:id/photo', requireRole('admin', 'editor'), upload.single('photo'), (req, res) => {
+  const db = req.app.locals.db;
+  if (req.file) {
+    db.prepare('INSERT INTO harvest_photos (harvest_id, filename, original_name) VALUES (?, ?, ?)').run(
+      req.params.id, req.file.filename, req.file.originalname
+    );
+    req.session.flash = { type: 'success', message: 'Photo uploaded.' };
+  }
+  res.redirect(req.headers.referer || '/admin/garden/harvests');
+});
+
+// Delete a photo
+router.post('/photos/:id/delete', requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const photo = db.prepare('SELECT * FROM harvest_photos WHERE id = ?').get(req.params.id);
+  if (photo) {
+    const filePath = path.join(__dirname, '..', 'uploads', 'harvests', photo.filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    db.prepare('DELETE FROM harvest_photos WHERE id = ?').run(req.params.id);
+    req.session.flash = { type: 'success', message: 'Photo removed.' };
+  }
+  res.redirect(req.headers.referer || '/admin/garden/harvests');
 });
 
 // Verify a donation
@@ -744,5 +801,98 @@ router.get('/export/harvests', requireAuth, (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename=ican-harvests.csv');
   res.send(csv);
 });
+
+// ── AUTO-AWARDS SUGGESTION ──────────────────────────────────
+router.get('/awards/suggest/:seasonId', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const seasonId = req.params.seasonId;
+  const season = db.prepare('SELECT * FROM garden_seasons WHERE id = ?').get(seasonId);
+  if (!season) { req.session.flash = { type: 'error', message: 'Season not found.' }; return res.redirect('/admin/garden/awards'); }
+
+  // Top harvester
+  const topHarvester = db.prepare(`
+    SELECT g.id, g.first_name, g.last_name, COALESCE(SUM(h.pounds), 0) as total_lbs
+    FROM gardeners g JOIN garden_harvests h ON g.id = h.gardener_id AND h.season_id = ?
+    WHERE g.status = 'active' GROUP BY g.id ORDER BY total_lbs DESC LIMIT 1
+  `).get(seasonId);
+
+  // Top volunteer
+  const topVolunteer = db.prepare(`
+    SELECT g.id, g.first_name, g.last_name, COALESCE(SUM(vh.hours), 0) as total_hrs
+    FROM gardeners g JOIN garden_hours vh ON g.id = vh.gardener_id AND vh.season_id = ?
+    WHERE g.status = 'active' GROUP BY g.id ORDER BY total_hrs DESC LIMIT 1
+  `).get(seasonId);
+
+  // Top donor (by verified donated lbs)
+  const topDonor = db.prepare(`
+    SELECT g.id, g.first_name, g.last_name, COALESCE(SUM(h.pounds), 0) as donated_lbs
+    FROM gardeners g JOIN garden_harvests h ON g.id = h.gardener_id AND h.season_id = ?
+    WHERE g.status = 'active' AND h.donated = 1 AND h.donation_status = 'verified'
+    GROUP BY g.id ORDER BY donated_lbs DESC LIMIT 1
+  `).get(seasonId);
+
+  // Most consistent (most harvest entries)
+  const mostConsistent = db.prepare(`
+    SELECT g.id, g.first_name, g.last_name, COUNT(h.id) as entry_count
+    FROM gardeners g JOIN garden_harvests h ON g.id = h.gardener_id AND h.season_id = ?
+    WHERE g.status = 'active' GROUP BY g.id ORDER BY entry_count DESC LIMIT 1
+  `).get(seasonId);
+
+  // Most variety (unique crops)
+  const mostVariety = db.prepare(`
+    SELECT g.id, g.first_name, g.last_name, COUNT(DISTINCT h.crop) as crop_count
+    FROM gardeners g JOIN garden_harvests h ON g.id = h.gardener_id AND h.season_id = ?
+    WHERE g.status = 'active' GROUP BY g.id ORDER BY crop_count DESC LIMIT 1
+  `).get(seasonId);
+
+  const suggestions = [];
+  if (topHarvester && topHarvester.total_lbs > 0) suggestions.push({ ...topHarvester, award_name: 'Harvest Champion', category: 'harvest', description: `Highest total harvest: ${topHarvester.total_lbs.toFixed(1)} lbs` });
+  if (topVolunteer && topVolunteer.total_hrs > 0) suggestions.push({ ...topVolunteer, award_name: 'Volunteer of the Year', category: 'volunteer', description: `Most volunteer hours: ${topVolunteer.total_hrs.toFixed(1)} hrs` });
+  if (topDonor && topDonor.donated_lbs > 0) suggestions.push({ ...topDonor, award_name: 'Community Hero', category: 'community', description: `Most verified donations: ${topDonor.donated_lbs.toFixed(1)} lbs` });
+  if (mostConsistent && mostConsistent.entry_count > 2) suggestions.push({ ...mostConsistent, award_name: 'Most Dedicated Gardener', category: 'overall', description: `Most harvest entries logged: ${mostConsistent.entry_count}` });
+  if (mostVariety && mostVariety.crop_count > 2) suggestions.push({ ...mostVariety, award_name: 'Diversity Award', category: 'innovation', description: `Most unique crops grown: ${mostVariety.crop_count} varieties` });
+
+  res.render('garden/award-suggest', { title: 'Award Suggestions', season, suggestions });
+});
+
+// Bulk-create suggested awards
+router.post('/awards/suggest/:seasonId', requireRole('admin', 'editor'), (req, res) => {
+  const db = req.app.locals.db;
+  const seasonId = req.params.seasonId;
+  const { selected } = req.body;
+  if (!selected) {
+    req.session.flash = { type: 'warning', message: 'No awards selected.' };
+    return res.redirect('/admin/garden/awards');
+  }
+  const items = Array.isArray(selected) ? selected : [selected];
+  let count = 0;
+  for (const item of items) {
+    try {
+      const data = JSON.parse(item);
+      db.prepare('INSERT INTO garden_awards (season_id, gardener_id, award_name, category, description) VALUES (?, ?, ?, ?, ?)').run(
+        seasonId, data.id, data.award_name, data.category, data.description
+      );
+      count++;
+    } catch (e) { /* skip */ }
+  }
+  req.session.flash = { type: 'success', message: `${count} award(s) created.` };
+  res.redirect('/admin/garden/awards');
+});
+
+
+// ── PRINTABLE CERTIFICATE ───────────────────────────────────
+router.get('/awards/:id/certificate', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const award = db.prepare(`
+    SELECT a.*, g.first_name, g.last_name, s.name as season_name, s.year as season_year
+    FROM garden_awards a
+    JOIN gardeners g ON a.gardener_id = g.id
+    LEFT JOIN garden_seasons s ON a.season_id = s.id
+    WHERE a.id = ?
+  `).get(req.params.id);
+  if (!award) { req.session.flash = { type: 'error', message: 'Award not found.' }; return res.redirect('/admin/garden/awards'); }
+  res.render('garden/certificate', { title: 'Certificate', award, layout: false });
+});
+
 
 module.exports = router;

@@ -23,6 +23,7 @@
         <a href="/member" class="member-nav__link <%= path === '/member' || path === '/member/' ? 'member-nav__link--active' : '' %>">My Garden</a>
         <a href="/member/leaderboard" class="member-nav__link <%= path === '/member/leaderboard' ? 'member-nav__link--active' : '' %>">Leaderboard</a>
         <a href="/member/awards" class="member-nav__link <%= path === '/member/awards' ? 'member-nav__link--active' : '' %>">My Awards</a>
+        <a href="/member/profile" class="member-nav__link <%= path === '/member/profile' ? 'member-nav__link--active' : '' %>">Profile</a>
       </nav>
       <div class="member-header__user">
         <span><%= member.name %></span>
@@ -31,6 +32,13 @@
     </header>
 
     <main class="member-main">
+      <% const mFlash = typeof memberFlash !== 'undefined' ? memberFlash : null; %>
+      <% if (mFlash) { %>
+        <div class="alert alert--<%= mFlash.type %>">
+          <%= mFlash.message %>
+          <button class="alert__close" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+      <% } %>
       <%- body %>
     </main>
 

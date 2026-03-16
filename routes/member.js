@@ -155,4 +155,110 @@ router.get('/awards', requireMember, (req, res) => {
   });
 });
 
+// ── SELF-REPORTING: LOG HARVEST ─────────────────────────────
+router.get('/log-harvest', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const gardener = db.prepare('SELECT * FROM gardeners WHERE id = ?').get(gid);
+  const seasons = db.prepare("SELECT * FROM garden_seasons WHERE status = 'active' ORDER BY year DESC").all();
+  res.render('member/log-harvest', {
+    title: 'Log Harvest',
+    gardener,
+    seasons,
+    layout: 'member/layout'
+  });
+});
+
+router.post('/log-harvest', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { season_id, harvest_date, crop, pounds, donated, donated_to, notes } = req.body;
+  try {
+    db.prepare("INSERT INTO garden_harvests (gardener_id, season_id, harvest_date, crop, pounds, donated, donated_to, donation_status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)")
+      .run(gid, season_id || null, harvest_date, crop, parseFloat(pounds) || 0, donated ? 1 : 0, donated_to || null, notes || null);
+    req.session.memberFlash = { type: 'success', message: 'Harvest logged. It will appear after admin verification.' };
+  } catch (err) {
+    req.session.memberFlash = { type: 'error', message: 'Failed to log harvest.' };
+  }
+  res.redirect('/member');
+});
+
+// ── SELF-REPORTING: LOG VOLUNTEER HOURS ──────────────────────
+router.get('/log-hours', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const seasons = db.prepare("SELECT * FROM garden_seasons WHERE status = 'active' ORDER BY year DESC").all();
+  res.render('member/log-hours', {
+    title: 'Log Hours',
+    seasons,
+    layout: 'member/layout'
+  });
+});
+
+router.post('/log-hours', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { season_id, work_date, hours, activity, notes } = req.body;
+  try {
+    db.prepare("INSERT INTO garden_hours (gardener_id, season_id, work_date, hours, activity, notes) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(gid, season_id || null, work_date, parseFloat(hours) || 0, activity || null, notes || null);
+    req.session.memberFlash = { type: 'success', message: 'Volunteer hours logged.' };
+  } catch (err) {
+    req.session.memberFlash = { type: 'error', message: 'Failed to log hours.' };
+  }
+  res.redirect('/member');
+});
+
+// ── PROFILE EDITING ─────────────────────────────────────────
+router.get('/profile', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const gardener = db.prepare('SELECT * FROM gardeners WHERE id = ?').get(gid);
+  const cred = db.prepare('SELECT email FROM member_credentials WHERE gardener_id = ?').get(gid);
+  res.render('member/profile', {
+    title: 'My Profile',
+    gardener,
+    memberEmail: cred ? cred.email : '',
+    layout: 'member/layout'
+  });
+});
+
+router.post('/profile', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { email: gardenerEmail, phone } = req.body;
+  db.prepare('UPDATE gardeners SET email = ?, phone = ? WHERE id = ?').run(gardenerEmail || null, phone || null, gid);
+  req.session.memberFlash = { type: 'success', message: 'Profile updated.' };
+  res.redirect('/member/profile');
+});
+
+// ── PASSWORD CHANGE ─────────────────────────────────────────
+router.post('/change-password', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const { current_password, new_password, confirm_password } = req.body;
+
+  if (!current_password || !new_password || !confirm_password) {
+    req.session.memberFlash = { type: 'error', message: 'All password fields are required.' };
+    return res.redirect('/member/profile');
+  }
+  if (new_password !== confirm_password) {
+    req.session.memberFlash = { type: 'error', message: 'New passwords do not match.' };
+    return res.redirect('/member/profile');
+  }
+  if (new_password.length < 8) {
+    req.session.memberFlash = { type: 'error', message: 'Password must be at least 8 characters.' };
+    return res.redirect('/member/profile');
+  }
+
+  const cred = db.prepare('SELECT * FROM member_credentials WHERE id = ?').get(req.session.memberId);
+  if (!bcrypt.compareSync(current_password, cred.password_hash)) {
+    req.session.memberFlash = { type: 'error', message: 'Current password is incorrect.' };
+    return res.redirect('/member/profile');
+  }
+
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE member_credentials SET password_hash = ? WHERE id = ?').run(hash, req.session.memberId);
+  req.session.memberFlash = { type: 'success', message: 'Password updated.' };
+  res.redirect('/member/profile');
+});
+
 module.exports = router;
