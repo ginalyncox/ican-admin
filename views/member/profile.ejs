@@ -1,21 +1,85 @@
 <div class="page-header">
   <h1 class="page-header__title">My Profile</h1>
-  <p class="page-header__subtitle">Update your information and password</p>
+  <p class="page-header__subtitle">Your information, membership, and milestones</p>
 </div>
 
-<!-- Assigned Programs (read-only) -->
-<% if (programs && programs.length > 0) { %>
+<%
+const totalHrs = typeof profileStats !== 'undefined' ? profileStats.totalHrs : 0;
+const totalEntries = typeof profileStats !== 'undefined' ? profileStats.totalEntries : 0;
+const memberSinceDate = typeof memberSince !== 'undefined' ? memberSince : gardener.joined_date;
+
+// Milestone thresholds
+const hourMilestones = [
+  { label: 'First Steps', threshold: 1, icon: '\u2B50' },
+  { label: '10 Hour Club', threshold: 10, icon: '\uD83C\uDFC5' },
+  { label: '25 Hour Achiever', threshold: 25, icon: '\uD83C\uDF1F' },
+  { label: '50 Hour Champion', threshold: 50, icon: '\uD83D\uDD25' },
+  { label: '100 Hour Legend', threshold: 100, icon: '\uD83C\uDFC6' },
+  { label: '250 Hour Hero', threshold: 250, icon: '\uD83D\uDC8E' },
+  { label: '500 Hour Icon', threshold: 500, icon: '\uD83D\uDC51' }
+];
+const earned = hourMilestones.filter(m => totalHrs >= m.threshold);
+const nextMilestone = hourMilestones.find(m => totalHrs < m.threshold);
+%>
+
+<!-- Volunteer ID Card -->
+<div class="card" style="margin-bottom: 1.5rem; overflow: hidden;">
+  <div style="background: linear-gradient(135deg, #2D6A3F 0%, #1E4D2D 100%); color: #fff; padding: 1.5rem; display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
+    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; flex-shrink: 0;">
+      <%= gardener.first_name.charAt(0) %><%= gardener.last_name.charAt(0) %>
+    </div>
+    <div style="flex: 1; min-width: 200px;">
+      <div style="font-size: 1.25rem; font-weight: 700;"><%= gardener.first_name %> <%= gardener.last_name %></div>
+      <div style="font-size: 0.85rem; opacity: 0.85;">Active Volunteer</div>
+      <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+        <% programs.forEach(p => { %>
+          <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;"><%= programLabels[p.program] || p.program %></span>
+        <% }); %>
+      </div>
+    </div>
+    <div style="text-align: right; font-size: 0.8rem; opacity: 0.8;">
+      <div>Member since</div>
+      <div style="font-weight: 600; font-size: 0.9rem;"><%= new Date(memberSinceDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) %></div>
+      <div style="margin-top: 0.5rem;">Total Hours</div>
+      <div style="font-weight: 700; font-size: 1.3rem;"><%= Number(totalHrs).toFixed(1) %></div>
+    </div>
+  </div>
+</div>
+
+<!-- Milestones -->
+<% if (earned.length > 0 || nextMilestone) { %>
 <div class="card" style="margin-bottom: 1.5rem;">
   <div class="card__header">
-    <h2 class="card__title">My Programs</h2>
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+      Hour Milestones
+    </h2>
   </div>
   <div class="card__body">
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <% programs.forEach(p => { %>
-        <span class="badge" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;"><%= programLabels[p.program] || p.program %></span>
-      <% }) %>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+      <% earned.forEach(m => { %>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.5rem 0.75rem; text-align: center; min-width: 90px;">
+          <div style="font-size: 1.25rem;"><%= m.icon %></div>
+          <div style="font-size: 0.75rem; font-weight: 600; color: #166534;"><%= m.label %></div>
+          <div style="font-size: 0.7rem; color: #15803d;"><%= m.threshold %> hrs</div>
+        </div>
+      <% }); %>
+      <% if (nextMilestone) { %>
+        <div style="background: var(--bg); border: 2px dashed var(--color-border); border-radius: 8px; padding: 0.5rem 0.75rem; text-align: center; min-width: 90px; opacity: 0.6;">
+          <div style="font-size: 1.25rem;"><%= nextMilestone.icon %></div>
+          <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-muted);"><%= nextMilestone.label %></div>
+          <div style="font-size: 0.7rem; color: var(--color-muted);"><%= (nextMilestone.threshold - totalHrs).toFixed(1) %> hrs to go</div>
+        </div>
+      <% } %>
     </div>
-    <p style="font-size: 0.8rem; color: var(--color-muted); margin-top: 0.5rem; margin-bottom: 0;">Programs are managed by your coordinator.</p>
+    <% if (nextMilestone) { %>
+      <div style="background: var(--color-border); border-radius: 4px; height: 6px; overflow: hidden;">
+        <div style="background: var(--primary); height: 100%; width: <%= Math.min(100, (totalHrs / nextMilestone.threshold) * 100) %>%; border-radius: 4px; transition: width 0.3s;"></div>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--color-muted); margin-top: 0.25rem;">
+        <%= Number(totalHrs).toFixed(1) %> / <%= nextMilestone.threshold %> hours toward "<%= nextMilestone.label %>"
+      </div>
+    <% } %>
   </div>
 </div>
 <% } %>
@@ -85,7 +149,7 @@
           <div class="form-field">
             <label for="tshirt_size">T-Shirt Size</label>
             <select id="tshirt_size" name="tshirt_size" class="form-input">
-              <option value="">—</option>
+              <option value="">&mdash;</option>
               <option value="XS" <%= gardener.tshirt_size === 'XS' ? 'selected' : '' %>>XS</option>
               <option value="S" <%= gardener.tshirt_size === 'S' ? 'selected' : '' %>>S</option>
               <option value="M" <%= gardener.tshirt_size === 'M' ? 'selected' : '' %>>M</option>
@@ -98,7 +162,7 @@
           <div class="form-field">
             <label for="availability">Availability</label>
             <select id="availability" name="availability" class="form-input">
-              <option value="">—</option>
+              <option value="">&mdash;</option>
               <option value="weekdays" <%= gardener.availability === 'weekdays' ? 'selected' : '' %>>Weekdays</option>
               <option value="weekends" <%= gardener.availability === 'weekends' ? 'selected' : '' %>>Weekends</option>
               <option value="evenings" <%= gardener.availability === 'evenings' ? 'selected' : '' %>>Evenings</option>

@@ -1,0 +1,135 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">My Hours</h1>
+      <p class="page-header__subtitle">Full hour history and reports</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/member/my-hours/export?format=csv<%= filters.program ? '&program=' + filters.program : '' %><%= filters.from ? '&from=' + filters.from : '' %><%= filters.to ? '&to=' + filters.to : '' %>" class="btn btn--outline btn--sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </a>
+      <a href="/member/my-hours/export?<%= filters.program ? 'program=' + filters.program + '&' : '' %><%= filters.from ? 'from=' + filters.from + '&' : '' %><%= filters.to ? 'to=' + filters.to + '&' : '' %>" class="btn btn--primary btn--sm" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Certified Report
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid stats-grid--4" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <div class="stat-card__label"><%= filters.program || filters.from || filters.to ? 'Filtered' : 'All-Time' %> Hours</div>
+    <div class="stat-card__value"><%= Number(totalHrs).toFixed(1) %></div>
+    <div class="stat-card__detail"><%= hours.length %> entries</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Year-to-Date</div>
+    <div class="stat-card__value"><%= Number(ytdHrs).toFixed(1) %></div>
+    <div class="stat-card__detail"><%= new Date().getFullYear() %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Programs</div>
+    <div class="stat-card__value"><%= memberPrograms.length %></div>
+    <div class="stat-card__detail">Active</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Avg / Entry</div>
+    <div class="stat-card__value"><%= hours.length > 0 ? (totalHrs / hours.length).toFixed(1) : '0.0' %></div>
+    <div class="stat-card__detail">hours</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__body" style="padding: 0.75rem 1rem;">
+    <form method="GET" action="/member/my-hours" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+      <div class="form-field" style="margin-bottom: 0; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Program</label>
+        <select name="program" class="form-select" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All Programs</option>
+          <% memberPrograms.forEach(p => { %>
+            <option value="<%= p %>" <%= filters.program === p ? 'selected' : '' %>><%= (programInfo[p] || {}).label || p %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-field" style="margin-bottom: 0;">
+        <label style="font-size: 0.75rem; font-weight: 600;">From</label>
+        <input type="date" name="from" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;" value="<%= filters.from %>">
+      </div>
+      <div class="form-field" style="margin-bottom: 0;">
+        <label style="font-size: 0.75rem; font-weight: 600;">To</label>
+        <input type="date" name="to" class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;" value="<%= filters.to %>">
+      </div>
+      <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+      <% if (filters.program || filters.from || filters.to) { %>
+        <a href="/member/my-hours" class="btn btn--ghost btn--sm">Clear</a>
+      <% } %>
+    </form>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Monthly Breakdown -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Monthly Summary</h2></div>
+    <div class="card__body">
+      <% if (monthlyData.length === 0) { %>
+        <p class="text-muted">No data for the selected period.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Month</th><th>Hours</th><th>Entries</th></tr></thead>
+          <tbody>
+            <% monthlyData.forEach(m => { %>
+              <%
+                const parts = m.month.split('-');
+                const monthLabel = new Date(parts[0], parts[1] - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+              %>
+              <tr>
+                <td><%= monthLabel %></td>
+                <td><strong><%= Number(m.total).toFixed(1) %></strong></td>
+                <td><%= m.entries %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+          <tfoot>
+            <tr style="font-weight: 700; border-top: 2px solid var(--color-border);">
+              <td>Total</td>
+              <td><%= Number(totalHrs).toFixed(1) %></td>
+              <td><%= hours.length %></td>
+            </tr>
+          </tfoot>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Full Hour Log -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Hour Log</h2></div>
+    <div class="card__body">
+      <% if (hours.length === 0) { %>
+        <p class="text-muted">No hours found. <a href="/member/log-hours">Log hours</a></p>
+      <% } else { %>
+        <div style="max-height: 500px; overflow-y: auto;">
+          <table class="table">
+            <thead><tr><th>Date</th><th>Program</th><th>Hours</th><th>Activity</th><th>Notes</th></tr></thead>
+            <tbody>
+              <% hours.forEach(h => { %>
+                <% const pInfo = programInfo[h.program] || { label: h.program }; %>
+                <tr>
+                  <td style="white-space: nowrap;"><%= h.work_date %></td>
+                  <td><span class="badge" style="font-size: 0.7rem;"><%= pInfo.label %></span></td>
+                  <td><strong><%= h.hours %></strong></td>
+                  <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><%= h.activity || '\u2014' %></td>
+                  <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" class="text-muted"><%= h.notes || '' %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>

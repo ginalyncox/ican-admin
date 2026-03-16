@@ -21,12 +21,15 @@
       </div>
       <nav class="member-nav">
         <a href="/member" class="member-nav__link <%= path === '/member' || path === '/member/' ? 'member-nav__link--active' : '' %>">Dashboard</a>
-        <a href="/member/programs" class="member-nav__link <%= path === '/member/programs' ? 'member-nav__link--active' : '' %>">My Programs</a>
+        <a href="/member/programs" class="member-nav__link <%= path === '/member/programs' ? 'member-nav__link--active' : '' %>">Programs</a>
+        <a href="/member/my-hours" class="member-nav__link <%= path === '/member/my-hours' ? 'member-nav__link--active' : '' %>">My Hours</a>
+        <a href="/member/events" class="member-nav__link <%= path === '/member/events' ? 'member-nav__link--active' : '' %>">Events</a>
         <% if (typeof memberPrograms !== 'undefined' && memberPrograms && memberPrograms.includes('victory_garden')) { %>
           <a href="/member/leaderboard" class="member-nav__link <%= path === '/member/leaderboard' ? 'member-nav__link--active' : '' %>">Leaderboard</a>
-          <a href="/member/awards" class="member-nav__link <%= path === '/member/awards' ? 'member-nav__link--active' : '' %>">My Awards</a>
+          <a href="/member/awards" class="member-nav__link <%= path === '/member/awards' ? 'member-nav__link--active' : '' %>">Awards</a>
         <% } %>
         <a href="/member/mailbox" class="member-nav__link <%= path === '/member/mailbox' || (path && path.startsWith('/member/mailbox/')) ? 'member-nav__link--active' : '' %>">Mailbox</a>
+        <a href="/member/resources" class="member-nav__link <%= path === '/member/resources' ? 'member-nav__link--active' : '' %>">Resources</a>
         <a href="/member/profile" class="member-nav__link <%= path === '/member/profile' ? 'member-nav__link--active' : '' %>">Profile</a>
       </nav>
 

@@ -214,6 +214,7 @@ router.post('/onboarding/complete', requireMember, (req, res) => {
 router.get('/', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
+  const memberId = req.session.memberId;
 
   const gardener = db.prepare(`
     SELECT g.*, gs.name as site_name, gsn.name as season_name
@@ -254,6 +255,69 @@ router.get('/', requireMember, (req, res) => {
     awards = db.prepare("SELECT a.*, s.name as season_name FROM garden_awards a LEFT JOIN garden_seasons s ON a.season_id = s.id WHERE a.gardener_id = ? ORDER BY a.created_at DESC").all(gid);
   }
 
+  // ── Premium Dashboard Data ──
+
+  // Upcoming events (next 5)
+  const upcomingEvents = db.prepare(`
+    SELECT * FROM events WHERE event_date >= date('now') AND is_public = 1
+    ORDER BY event_date ASC LIMIT 5
+  `).all();
+
+  // Unread mailbox count
+  const memberProgs = programs;
+  const progPlaceholders = memberProgs.length > 0 ? memberProgs.map(() => '?').join(',') : "''";
+  const unreadMail = db.prepare(`
+    SELECT COUNT(*) as c FROM member_messages m
+    WHERE (m.target_program IS NULL OR m.target_program IN (${progPlaceholders}))
+    AND m.id NOT IN (SELECT message_id FROM member_message_reads WHERE member_id = ?)
+  `).get(...memberProgs, memberId).c;
+
+  // Hours this month
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const monthStr = monthStart.toISOString().split('T')[0];
+  const hoursThisMonth = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ? AND work_date >= ?").get(gid, monthStr).c;
+
+  // Log streak (consecutive days with hour entries)
+  const recentDays = db.prepare("SELECT DISTINCT work_date FROM garden_hours WHERE gardener_id = ? ORDER BY work_date DESC LIMIT 60").all(gid).map(r => r.work_date);
+  let logStreak = 0;
+  if (recentDays.length > 0) {
+    // Count how many of the last 7-day windows have at least one entry
+    const today = new Date();
+    for (let w = 0; w < 12; w++) {
+      const weekEnd = new Date(today);
+      weekEnd.setDate(today.getDate() - w * 7);
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekEnd.getDate() - 6);
+      const ws = weekStart.toISOString().split('T')[0];
+      const we = weekEnd.toISOString().split('T')[0];
+      const hasEntry = recentDays.some(d => d >= ws && d <= we);
+      if (hasEntry) logStreak++; else break;
+    }
+  }
+
+  // Volunteer hours rank
+  const allVolunteerHours = db.prepare(`
+    SELECT gardener_id, COALESCE(SUM(hours), 0) as total
+    FROM garden_hours GROUP BY gardener_id ORDER BY total DESC
+  `).all();
+  const myRank = allVolunteerHours.findIndex(v => v.gardener_id === gid) + 1;
+  const totalVolunteers = allVolunteerHours.length;
+
+  // Member since date
+  const credInfo = db.prepare('SELECT created_at FROM member_credentials WHERE id = ?').get(memberId);
+  const memberSince = credInfo ? credInfo.created_at : gardener.joined_date;
+
+  // Recent announcements (from member_messages of type announcement)
+  const recentAnnouncements = db.prepare(`
+    SELECT m.*, mr.read_at
+    FROM member_messages m
+    LEFT JOIN member_message_reads mr ON mr.message_id = m.id AND mr.member_id = ?
+    WHERE m.message_type IN ('announcement', 'newsletter')
+    AND (m.target_program IS NULL OR m.target_program IN (${progPlaceholders}))
+    ORDER BY m.created_at DESC LIMIT 3
+  `).all(memberId, ...memberProgs);
+
   res.render('member/dashboard', {
     title: 'My Dashboard',
     gardener,
@@ -265,6 +329,14 @@ router.get('/', requireMember, (req, res) => {
     recentHours,
     awards,
     hoursByProgram,
+    upcomingEvents,
+    unreadMail,
+    hoursThisMonth,
+    logStreak,
+    myRank,
+    totalVolunteers,
+    memberSince,
+    recentAnnouncements,
     layout: 'member/layout'
   });
 });
@@ -467,8 +539,9 @@ router.post('/log-hours', requireMember, (req, res) => {
 router.get('/profile', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
+  const memberId = req.session.memberId;
   const gardener = db.prepare('SELECT * FROM gardeners WHERE id = ?').get(gid);
-  const cred = db.prepare('SELECT email FROM member_credentials WHERE gardener_id = ?').get(gid);
+  const cred = db.prepare('SELECT email, created_at FROM member_credentials WHERE gardener_id = ?').get(gid);
   const programs = db.prepare('SELECT program, assigned_at FROM volunteer_programs WHERE volunteer_id = ? ORDER BY assigned_at').all(gid);
 
   const programLabels = {
@@ -480,12 +553,19 @@ router.get('/profile', requireMember, (req, res) => {
     membership: 'Membership'
   };
 
+  // Stats for milestones
+  const totalHrs = db.prepare('SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ?').get(gid).c;
+  const totalEntries = db.prepare('SELECT COUNT(*) as c FROM garden_hours WHERE gardener_id = ?').get(gid).c;
+  const memberSince = cred ? cred.created_at : gardener.joined_date;
+
   res.render('member/profile', {
     title: 'My Profile',
     gardener,
     memberEmail: cred ? cred.email : '',
     programs,
     programLabels,
+    profileStats: { totalHrs, totalEntries },
+    memberSince,
     layout: 'member/layout'
   });
 });
@@ -576,6 +656,138 @@ router.post('/mailbox/:id/read', requireMember, (req, res) => {
     db.prepare('INSERT OR IGNORE INTO member_message_reads (message_id, member_id) VALUES (?, ?)').run(req.params.id, req.session.memberId);
   } catch (e) { /* already read */ }
   res.json({ success: true });
+});
+
+// ── MY HOURS (full history + export) ──────────────────────
+router.get('/my-hours', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { program, from, to } = req.query;
+
+  let where = 'WHERE gardener_id = ?';
+  const params = [gid];
+  if (program) { where += ' AND program = ?'; params.push(program); }
+  if (from) { where += ' AND work_date >= ?'; params.push(from); }
+  if (to) { where += ' AND work_date <= ?'; params.push(to); }
+
+  const hours = db.prepare(`SELECT * FROM garden_hours ${where} ORDER BY work_date DESC`).all(...params);
+  const totalHrs = hours.reduce((s, h) => s + (h.hours || 0), 0);
+
+  // Monthly breakdown
+  const monthlyData = db.prepare(`
+    SELECT strftime('%Y-%m', work_date) as month, COALESCE(SUM(hours), 0) as total, COUNT(*) as entries
+    FROM garden_hours ${where} GROUP BY month ORDER BY month DESC
+  `).all(...params);
+
+  const memberPrograms = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(p => p.program);
+
+  // Year-to-date
+  const ytdStart = new Date().getFullYear() + '-01-01';
+  const ytdHrs = db.prepare("SELECT COALESCE(SUM(hours), 0) as c FROM garden_hours WHERE gardener_id = ? AND work_date >= ?").get(gid, ytdStart).c;
+
+  res.render('member/my-hours', {
+    title: 'My Hours',
+    hours,
+    totalHrs,
+    monthlyData,
+    memberPrograms,
+    programInfo: PROGRAM_INFO,
+    ytdHrs,
+    filters: { program: program || '', from: from || '', to: to || '' },
+    layout: 'member/layout'
+  });
+});
+
+// ── EXPORT CERTIFIED HOURS REPORT ─────────────────────
+router.get('/my-hours/export', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { program, from, to, format } = req.query;
+
+  let where = 'WHERE gardener_id = ?';
+  const params = [gid];
+  if (program) { where += ' AND program = ?'; params.push(program); }
+  if (from) { where += ' AND work_date >= ?'; params.push(from); }
+  if (to) { where += ' AND work_date <= ?'; params.push(to); }
+
+  const hours = db.prepare(`SELECT * FROM garden_hours ${where} ORDER BY work_date ASC`).all(...params);
+  const gardener = db.prepare('SELECT first_name, last_name, email FROM gardeners WHERE id = ?').get(gid);
+  const totalHrs = hours.reduce((s, h) => s + (h.hours || 0), 0);
+  const totalEntries = hours.length;
+
+  const certDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const volName = `${gardener.first_name} ${gardener.last_name}`;
+
+  if (format === 'csv') {
+    let csv = 'Date,Program,Hours,Activity,Notes\n';
+    hours.forEach(h => {
+      const progLabel = (PROGRAM_INFO[h.program] || {}).label || h.program;
+      csv += `"${h.work_date}","${progLabel}",${h.hours},"${(h.activity || '').replace(/"/g, '""')}","${(h.notes || '').replace(/"/g, '""')}"\n`;
+    });
+    csv += `\n"TOTAL","",${totalHrs},,\n`;
+    csv += `\n"Certified by: Iowa Cannabis Action Network",,,,\n`;
+    csv += `"Volunteer: ${volName}",,,,\n`;
+    csv += `"Report Date: ${certDate}",,,,\n`;
+    csv += `"Total Hours: ${totalHrs.toFixed(1)}",,,,\n`;
+    csv += `"Total Entries: ${totalEntries}",,,,\n`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="ICAN_Hours_${volName.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.csv"`);
+    return res.send(csv);
+  }
+
+  // Default: render printable HTML report
+  res.render('member/hours-report', {
+    title: 'Certified Hours Report',
+    hours,
+    gardener,
+    totalHrs,
+    totalEntries,
+    certDate,
+    volName,
+    programInfo: PROGRAM_INFO,
+    filters: { program: program || '', from: from || '', to: to || '' },
+    layout: false
+  });
+});
+
+// ── EVENTS CALENDAR ───────────────────────────────────
+router.get('/events', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const filter = req.query.filter || 'upcoming';
+
+  let events;
+  if (filter === 'past') {
+    events = db.prepare(`SELECT * FROM events WHERE event_date < date('now') AND is_public = 1 ORDER BY event_date DESC LIMIT 20`).all();
+  } else {
+    events = db.prepare(`SELECT * FROM events WHERE event_date >= date('now') AND is_public = 1 ORDER BY event_date ASC`).all();
+  }
+
+  res.render('member/events', {
+    title: 'Events',
+    events,
+    filter,
+    layout: 'member/layout'
+  });
+});
+
+// ── RESOURCE CENTER ───────────────────────────────────
+router.get('/resources', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  // Reuse board_resources that are not confidential / or create volunteer-specific resources
+  // For now, show all non-confidential board resources + any volunteer-focused docs
+  const resources = db.prepare(`
+    SELECT * FROM board_resources WHERE category NOT IN ('governance', 'compliance')
+    ORDER BY pinned DESC, created_at DESC
+  `).all();
+
+  // Also provide program-specific instructions from constants
+  res.render('member/resources', {
+    title: 'Resources',
+    resources,
+    programInfo: PROGRAM_INFO,
+    layout: 'member/layout'
+  });
 });
 
 module.exports = router;

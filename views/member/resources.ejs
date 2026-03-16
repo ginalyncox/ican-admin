@@ -1,0 +1,159 @@
+<div class="page-header">
+  <h1 class="page-header__title">Resources</h1>
+  <p class="page-header__subtitle">Guides, handbooks, and volunteer references</p>
+</div>
+
+<%
+const volunteerGuides = {
+  victory_garden: {
+    title: 'Victory Garden Volunteer Guide',
+    items: [
+      'Log all harvests promptly using the Log Harvest tool',
+      'Record volunteer hours after each garden work session',
+      'Donate surplus produce to approved community partners',
+      'Keep your plot maintained and free of weeds',
+      'Attend scheduled garden workdays and seasonal events',
+      'Follow organic gardening practices \u2014 no synthetic pesticides'
+    ]
+  },
+  legislative: {
+    title: 'Legislative Action Guide',
+    items: [
+      'Contact your local legislators about cannabis reform bills',
+      'Attend town halls and public hearings when scheduled',
+      'Distribute ICAN-approved talking points to community members',
+      'Report back on meetings and conversations with officials',
+      'Help organize letter-writing and phone-call campaigns'
+    ]
+  },
+  outreach: {
+    title: 'Community Outreach Guide',
+    items: [
+      'Staff ICAN booths at farmers markets and community events',
+      'Distribute brochures and educational materials to the public',
+      'Organize or attend neighborhood informational sessions',
+      'Build relationships with local businesses and organizations',
+      'Collect contact info from interested community members'
+    ]
+  },
+  fundraising: {
+    title: 'Fundraising Guide',
+    items: [
+      'Help plan and execute fundraising events',
+      'Reach out to potential donors and sponsors',
+      'Assist with online crowdfunding campaigns',
+      'Track donations and send thank-you notes',
+      'Brainstorm new fundraising ideas with the team'
+    ]
+  },
+  communications: {
+    title: 'Communications Guide',
+    items: [
+      'Write or edit articles for the ICAN newsletter',
+      'Manage and create content for social media accounts',
+      'Draft press releases and public statements',
+      'Photograph events and volunteer activities',
+      'Help maintain the ICAN website content'
+    ]
+  },
+  membership: {
+    title: 'Membership Guide',
+    items: [
+      'Welcome and orient new ICAN members',
+      'Follow up with lapsed members to encourage renewal',
+      'Organize member appreciation events',
+      'Maintain accurate membership records and contact info',
+      'Recruit new members at events and through personal networks'
+    ]
+  }
+};
+
+const activePrograms = typeof memberPrograms !== 'undefined' ? memberPrograms : [];
+%>
+
+<!-- General Resources -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      General Resources
+    </h2>
+  </div>
+  <div class="card__body">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.75rem;">
+      <a href="https://iowacannabisaction.org" target="_blank" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg); border: 1px solid var(--color-border); border-radius: 6px; text-decoration: none; color: var(--text);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <div>
+          <div style="font-weight: 600; font-size: 0.9rem;">ICAN Website</div>
+          <div style="font-size: 0.8rem; color: var(--color-muted);">iowacannabisaction.org</div>
+        </div>
+      </a>
+      <a href="https://www.facebook.com/61584583045381" target="_blank" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg); border: 1px solid var(--color-border); border-radius: 6px; text-decoration: none; color: var(--text);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+        <div>
+          <div style="font-weight: 600; font-size: 0.9rem;">ICAN on Facebook</div>
+          <div style="font-size: 0.8rem; color: var(--color-muted);">Community updates</div>
+        </div>
+      </a>
+      <a href="mailto:hello@iowacannabisaction.org" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg); border: 1px solid var(--color-border); border-radius: 6px; text-decoration: none; color: var(--text);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <div>
+          <div style="font-weight: 600; font-size: 0.9rem;">Contact ICAN</div>
+          <div style="font-size: 0.8rem; color: var(--color-muted);">hello@iowacannabisaction.org</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Shared Resources from Resource Center -->
+<% if (resources.length > 0) { %>
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Documents & Materials
+    </h2>
+  </div>
+  <div class="card__body">
+    <% resources.forEach(r => { %>
+      <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--color-border);">
+        <div style="flex: 1;">
+          <div style="font-weight: 600; font-size: 0.9rem;">
+            <% if (r.url) { %><a href="<%= r.url %>" target="_blank" style="color: var(--primary);"><%= r.title %></a><% } else { %><%= r.title %><% } %>
+          </div>
+          <% if (r.description) { %><div style="font-size: 0.8rem; color: var(--color-muted);"><%= r.description %></div><% } %>
+        </div>
+        <span class="badge" style="font-size: 0.7rem;"><%= r.category %></span>
+      </div>
+    <% }); %>
+  </div>
+</div>
+<% } %>
+
+<!-- Program-Specific Guides -->
+<h3 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--text);">Program Guides</h3>
+<div class="portal-grid" style="margin-bottom: 1.5rem;">
+  <% Object.keys(volunteerGuides).forEach(prog => { %>
+    <% const guide = volunteerGuides[prog]; %>
+    <% const info = programInfo[prog] || { label: prog, color: '#666' }; %>
+    <% const isActive = activePrograms.includes(prog); %>
+    <div class="card" style="<%= !isActive ? 'opacity: 0.6;' : '' %>">
+      <div class="card__header" style="border-left: 3px solid <%= info.color %>;">
+        <h2 class="card__title" style="color: <%= info.color %>; font-size: 0.95rem;"><%= guide.title %></h2>
+      </div>
+      <div class="card__body">
+        <% if (!isActive) { %>
+          <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.5rem;">
+            <span class="badge">Not enrolled</span> &mdash; <a href="/member/programs" style="color: var(--primary);">Apply</a>
+          </p>
+        <% } %>
+        <ul style="font-size: 0.85rem; color: var(--color-muted); margin: 0 0 0 1.25rem; padding: 0; line-height: 1.7;">
+          <% guide.items.forEach(item => { %>
+            <li><%= item %></li>
+          <% }); %>
+        </ul>
+      </div>
+    </div>
+  <% }); %>
+</div>

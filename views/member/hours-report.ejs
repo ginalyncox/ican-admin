@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certified Volunteer Hours Report &mdash; <%= volName %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Georgia', 'Times New Roman', serif; color: #1a1a1a; padding: 2rem; max-width: 850px; margin: 0 auto; }
+    .report-header { text-align: center; border-bottom: 3px solid #2D6A3F; padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+    .report-header h1 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.1em; color: #2D6A3F; margin-bottom: 0.25rem; }
+    .report-header h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .report-header p { font-size: 0.9rem; color: #666; }
+    .report-logo { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .report-logo svg { width: 36px; height: 36px; }
+
+    .report-info { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; border: 1px solid #ddd; padding: 1rem; border-radius: 4px; }
+    .report-info dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; font-family: sans-serif; }
+    .report-info dd { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.85rem; }
+    th { background: #2D6A3F; color: #fff; padding: 0.5rem 0.75rem; text-align: left; font-family: sans-serif; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #f9f9f7; }
+    tfoot td { font-weight: 700; border-top: 2px solid #2D6A3F; background: #f5f3ed !important; }
+
+    .cert-block { border: 2px solid #2D6A3F; padding: 1.5rem; margin-top: 2rem; text-align: center; border-radius: 4px; }
+    .cert-block h3 { color: #2D6A3F; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; font-family: sans-serif; }
+    .cert-block p { font-size: 0.9rem; line-height: 1.6; }
+    .cert-block .cert-sig { margin-top: 1.5rem; display: flex; justify-content: space-around; }
+    .cert-block .cert-sig div { text-align: center; }
+    .cert-block .cert-sig .sig-line { width: 180px; border-top: 1px solid #333; margin: 0 auto 0.25rem; }
+    .cert-block .cert-sig .sig-label { font-size: 0.75rem; color: #666; font-family: sans-serif; }
+
+    .print-actions { text-align: center; margin-bottom: 1.5rem; }
+    .print-actions button { background: #2D6A3F; color: #fff; border: none; padding: 0.5rem 1.5rem; font-size: 0.9rem; border-radius: 4px; cursor: pointer; margin: 0 0.5rem; }
+    .print-actions button:hover { background: #245533; }
+    .print-actions a { color: #2D6A3F; font-size: 0.9rem; text-decoration: none; }
+
+    @media print {
+      .print-actions { display: none; }
+      body { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-actions">
+    <button onclick="window.print()">Print Report</button>
+    <a href="/member/my-hours">&larr; Back to My Hours</a>
+  </div>
+
+  <div class="report-header">
+    <div class="report-logo">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z" fill="#2D6A3F"/>
+      </svg>
+      <span style="font-size: 1.1rem; font-weight: 700; color: #2D6A3F; font-family: sans-serif;">ICAN</span>
+    </div>
+    <h1>Iowa Cannabis Action Network</h1>
+    <h2>Certified Volunteer Hours Report</h2>
+    <p>Report generated: <%= certDate %></p>
+  </div>
+
+  <div class="report-info">
+    <dl>
+      <dt>Volunteer Name</dt>
+      <dd><%= volName %></dd>
+      <dt>Total Hours</dt>
+      <dd><%= Number(totalHrs).toFixed(1) %></dd>
+    </dl>
+    <dl>
+      <dt>Total Entries</dt>
+      <dd><%= totalEntries %></dd>
+      <dt>Date Range</dt>
+      <dd>
+        <% if (filters.from || filters.to) { %>
+          <%= filters.from || 'Start' %> &ndash; <%= filters.to || 'Present' %>
+        <% } else { %>
+          All dates
+        <% } %>
+      </dd>
+    </dl>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Program</th>
+        <th>Hours</th>
+        <th>Activity</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% hours.forEach(h => { %>
+        <% const pInfo = programInfo[h.program] || { label: h.program }; %>
+        <tr>
+          <td><%= h.work_date %></td>
+          <td><%= pInfo.label %></td>
+          <td><%= h.hours %></td>
+          <td><%= h.activity || '' %></td>
+          <td><%= h.notes || '' %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">TOTAL</td>
+        <td><%= Number(totalHrs).toFixed(1) %></td>
+        <td colspan="2"><%= totalEntries %> entries</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="cert-block">
+    <h3>Certification</h3>
+    <p>
+      This certifies that <strong><%= volName %></strong> has completed
+      <strong><%= Number(totalHrs).toFixed(1) %></strong> volunteer hours
+      as documented above with the Iowa Cannabis Action Network, Inc.
+    </p>
+    <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+      EIN: 41-2746368 &middot; Iowa Corp No: 849500<br>
+      501(c)(4) Social Welfare Organization
+    </p>
+    <div class="cert-sig">
+      <div>
+        <div class="sig-line"></div>
+        <div class="sig-label">Authorized Signature</div>
+      </div>
+      <div>
+        <div class="sig-line"></div>
+        <div class="sig-label">Date</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

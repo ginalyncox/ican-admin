@@ -1,39 +1,55 @@
 <div class="page-header">
   <h1 class="page-header__title">Mailbox</h1>
-  <p class="page-header__subtitle">Messages from ICAN staff</p>
+  <p class="page-header__subtitle">Messages from ICAN staff and leadership</p>
+</div>
+
+<%
+const typeLabels = { general: 'General', newsletter: 'Newsletter', announcement: 'Announcement', program_update: 'Program Update' };
+const typeColors = { general: '#666', newsletter: '#6366f1', announcement: '#2D6A3F', program_update: '#f59e0b' };
+const unreadCount = messages.filter(m => !m.read_at).length;
+%>
+
+<!-- Summary Bar -->
+<div class="card" style="margin-bottom: 1rem;">
+  <div class="card__body" style="padding: 0.6rem 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <span style="font-size: 0.85rem; font-weight: 600;"><%= messages.length %> message<%= messages.length !== 1 ? 's' : '' %></span>
+    <% if (unreadCount > 0) { %>
+      <span class="badge" style="background: #c0392b; color: #fff; font-size: 0.7rem;"><%= unreadCount %> unread</span>
+    <% } else { %>
+      <span class="badge badge--success" style="font-size: 0.7rem;">All read</span>
+    <% } %>
+  </div>
 </div>
 
 <div class="card">
-  <div class="card__body">
+  <div class="card__body" style="padding: 0;">
     <% if (messages.length === 0) { %>
-      <div style="text-align: center; padding: 2rem;">
-        <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: 0;">No messages yet.</p>
+      <div style="text-align: center; padding: 2.5rem;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="1.5" style="margin-bottom: 0.75rem;">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <p style="font-size: 1rem; color: var(--color-muted); margin: 0;">No messages yet.</p>
       </div>
     <% } else { %>
-      <table class="table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Subject</th>
-            <th>Type</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% messages.forEach(m => { %>
-            <tr style="<%= !m.read_at ? 'font-weight: 600; background: rgba(45,106,63,0.04);' : '' %>">
-              <td style="width: 1.5rem;">
-                <% if (!m.read_at) { %>
-                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>
-                <% } %>
-              </td>
-              <td><a href="/member/mailbox/<%= m.id %>" style="color: var(--primary);"><%= m.subject %></a></td>
-              <td><span class="badge"><%= m.message_type %></span></td>
-              <td class="text-muted" style="font-size: 0.85rem;"><%= new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
+      <% messages.forEach(m => { %>
+        <a href="/member/mailbox/<%= m.id %>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); text-decoration: none; color: inherit; <%= !m.read_at ? 'background: rgba(45,106,63,0.04);' : '' %>">
+          <div style="width: 8px; flex-shrink: 0;">
+            <% if (!m.read_at) { %>
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>
+            <% } %>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: <%= !m.read_at ? '600' : '400' %>; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);">
+              <%= m.subject %>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <%= m.body ? m.body.substring(0, 80) + (m.body.length > 80 ? '...' : '') : '' %>
+            </div>
+          </div>
+          <span class="badge" style="background: <%= typeColors[m.message_type] || '#666' %>; color: #fff; font-size: 0.65rem; flex-shrink: 0;"><%= typeLabels[m.message_type] || m.message_type %></span>
+          <span class="text-muted" style="font-size: 0.8rem; white-space: nowrap; flex-shrink: 0;"><%= new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></span>
+        </a>
+      <% }); %>
     <% } %>
   </div>
 </div>
