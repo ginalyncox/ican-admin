@@ -3,7 +3,7 @@ const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const ejsLayouts = require('express-ejs-layouts');
 const path = require('path');
-const Database = require('libsql');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 
 const app = express();
@@ -13,26 +13,16 @@ const isProd = process.env.NODE_ENV === 'production';
 // Trust proxy in production (Render)
 if (isProd) app.set('trust proxy', 1);
 
-// Database setup — Turso (persistent cloud) or local SQLite (fallback for dev)
+// Database setup — persistent disk on Render Starter, local file for dev
 const dbPath = path.join(__dirname, 'db', 'ican.db');
 const schemaPath = path.join(__dirname, 'db', 'schema.sql');
 
-let db;
-if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
-  // Connect to Turso cloud database (persistent storage)
-  db = new Database(process.env.TURSO_DATABASE_URL, {
-    authToken: process.env.TURSO_AUTH_TOKEN
-  });
-  console.log('Connected to Turso cloud database');
-} else {
-  // Local SQLite file (ephemeral on Render free tier)
-  db = new Database(dbPath);
-  console.log('Using local SQLite database');
-}
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 const schema = fs.readFileSync(schemaPath, 'utf8');
 db.exec(schema);
+console.log('Database initialized at', dbPath);
 
 // Migrations — add columns that may not exist yet
 try {
