@@ -1,0 +1,50 @@
+<div class="page-header">
+  <h1 class="page-header__title">Acknowledgment Tracking</h1>
+  <p class="page-header__subtitle"><%= requiredDocs.length %> document<%= requiredDocs.length !== 1 ? 's' : '' %> requiring acknowledgment</p>
+</div>
+
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <p style="font-size: 0.85rem; color: var(--text-muted);">
+    Tracking acknowledgments for <strong><%= totalVolunteers %></strong> active volunteer<%= totalVolunteers !== 1 ? 's' : '' %> and <strong><%= totalDirectors %></strong> active board member<%= totalDirectors !== 1 ? 's' : '' %>.
+  </p>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Document</th>
+          <th>Category</th>
+          <th>Audience</th>
+          <th>Version</th>
+          <th>Acknowledged</th>
+          <th>Completion</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% requiredDocs.forEach(d => {
+          const targetCount = (d.audience === 'all' || d.audience === 'volunteer' ? totalVolunteers : 0) +
+                              (d.audience === 'all' || d.audience === 'director' ? totalDirectors : 0);
+          const pct = targetCount > 0 ? Math.round((d.current_ack_count / targetCount) * 100) : 0;
+        %>
+        <tr>
+          <td><a href="/admin/documents/<%= d.id %>" style="font-weight: 600;"><%= d.title %></a></td>
+          <td><span class="badge badge--default"><%= d.category %></span></td>
+          <td><%= d.audience === 'all' ? 'Everyone' : d.audience %></td>
+          <td>v<%= d.version || 1 %></td>
+          <td><%= d.current_ack_count %> / <%= targetCount %></td>
+          <td>
+            <div style="background: var(--border); border-radius: 999px; height: 8px; width: 100px; overflow: hidden;">
+              <div style="background: <%= pct >= 100 ? 'var(--primary)' : pct > 50 ? 'var(--warning)' : 'var(--danger)' %>; height: 100%; width: <%= Math.min(pct, 100) %>%; border-radius: 999px;"></div>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted);"><%= pct %>%</span>
+          </td>
+          <td><a href="/admin/documents/<%= d.id %>" class="btn btn--sm">Details</a></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>

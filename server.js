@@ -116,6 +116,50 @@ db.exec(indexSql);
 
 try { db.exec(`ALTER TABLE board_votes ADD COLUMN resolution_number TEXT`); } catch (e) { /* exists */ }
 
+
+// ── Migration: Document Library enhancements ──────────────
+// Audience tagging: who can see each document
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN audience TEXT DEFAULT 'all'`); } catch (e) { /* exists */ }
+// 'all' = everyone, 'volunteer' = volunteers only, 'director' = directors only, 'admin' = admin only
+
+// Is this document required (must be acknowledged)?
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN is_required INTEGER DEFAULT 0`); } catch (e) { /* exists */ }
+
+// Re-acknowledgment: when set, all previous acks are invalidated
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN ack_required_after DATETIME`); } catch (e) { /* exists */ }
+
+// Version tracking
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN version INTEGER DEFAULT 1`); } catch (e) { /* exists */ }
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN version_notes TEXT`); } catch (e) { /* exists */ }
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN previous_version_id INTEGER`); } catch (e) { /* exists */ }
+
+// Document type: document vs form
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN doc_type TEXT DEFAULT 'document'`); } catch (e) { /* exists */ }
+// 'document' = informational, 'form' = fillable form, 'template' = template, 'policy' = policy/procedure
+
+// Sort order for library display
+try { db.exec(`ALTER TABLE board_documents ADD COLUMN sort_order INTEGER DEFAULT 99`); } catch (e) { /* exists */ }
+
+// Document version history table
+db.exec(`CREATE TABLE IF NOT EXISTS document_versions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL REFERENCES board_documents(id) ON DELETE CASCADE,
+  version INTEGER NOT NULL,
+  filename TEXT NOT NULL,
+  original_name TEXT,
+  file_size INTEGER DEFAULT 0,
+  version_notes TEXT,
+  uploaded_by INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// Expand document_acknowledgments to include version info
+try { db.exec(`ALTER TABLE document_acknowledgments ADD COLUMN document_version INTEGER DEFAULT 1`); } catch (e) { /* exists */ }
+
+// Create index for faster ack lookups
+db.exec(`CREATE INDEX IF NOT EXISTS idx_doc_ack_lookup ON document_acknowledgments(document_id, user_type, user_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_doc_audience ON board_documents(audience)`);
+
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
@@ -198,6 +242,7 @@ app.use('/admin/directory', require('./routes/directory'));
 app.use('/admin/messages', require('./routes/messages'));
 app.use('/admin/reports', require('./routes/reports'));
 app.use('/admin/search', require('./routes/search'));
+app.use('/admin/documents', require('./routes/doc-library'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');

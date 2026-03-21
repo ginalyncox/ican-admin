@@ -1714,4 +1714,83 @@ router.get('/meetings/:id/print', requireDirector, (req, res) => {
   });
 });
 
+
+// ── DOCUMENT LIBRARY ─────────────────────────────────────
+router.get('/documents/library', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const category = req.query.category || '';
+
+  let where = "WHERE d.audience IN ('all', 'director')";
+  const params = [];
+  if (category) { where += ' AND d.category = ?'; params.push(category); }
+
+  const docs = db.prepare(`
+    SELECT d.*,
+      (SELECT acknowledged_at FROM document_acknowledgments 
+       WHERE document_id = d.id AND user_type = 'director' AND user_id = ?) as my_ack_date,
+      (SELECT document_version FROM document_acknowledgments 
+       WHERE document_id = d.id AND user_type = 'director' AND user_id = ?) as my_ack_version
+    FROM board_documents d
+    ${where}
+    ORDER BY d.is_required DESC, d.sort_order ASC, d.category ASC, d.title ASC
+  `).all(mid, mid, ...params);
+
+  docs.forEach(d => {
+    d.needs_ack = d.is_required && (!d.my_ack_date || (d.ack_required_after && d.my_ack_date < d.ack_required_after));
+  });
+
+  const categories = db.prepare("SELECT DISTINCT category FROM board_documents WHERE audience IN ('all', 'director') ORDER BY category").all().map(r => r.category);
+  const pendingCount = docs.filter(d => d.needs_ack).length;
+
+  res.render('director/documents-library', {
+    title: 'Document Library',
+    docs,
+    categories,
+    currentCategory: category,
+    pendingCount,
+    layout: 'director/layout'
+  });
+});
+
+// Acknowledge a document
+router.post('/documents/:id/acknowledge', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const doc = db.prepare("SELECT * FROM board_documents WHERE id = ? AND audience IN ('all', 'director')").get(req.params.id);
+  if (!doc) {
+    req.session.directorFlash = { type: 'error', message: 'Document not found.' };
+    return res.redirect('/director/documents/library');
+  }
+
+  const ip = req.ip || req.connection.remoteAddress;
+  try {
+    db.prepare('DELETE FROM document_acknowledgments WHERE document_id = ? AND user_type = ? AND user_id = ?').run(doc.id, 'director', mid);
+    db.prepare(`
+      INSERT INTO document_acknowledgments (document_id, user_type, user_id, ip_address, document_version)
+      VALUES (?, 'director', ?, ?, ?)
+    `).run(doc.id, mid, ip, doc.version || 1);
+    req.session.directorFlash = { type: 'success', message: 'Document acknowledged.' };
+  } catch (e) {
+    req.session.directorFlash = { type: 'error', message: 'Failed to acknowledge document.' };
+  }
+  res.redirect('/director/documents/library');
+});
+
+// Download from library
+router.get('/documents/:id/download-lib', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const doc = db.prepare("SELECT * FROM board_documents WHERE id = ? AND audience IN ('all', 'director')").get(req.params.id);
+  if (!doc) {
+    req.session.directorFlash = { type: 'error', message: 'Document not found.' };
+    return res.redirect('/director/documents/library');
+  }
+  const filePath = path.join(__dirname, '..', 'uploads', 'board', doc.filename);
+  if (!fs.existsSync(filePath)) {
+    req.session.directorFlash = { type: 'error', message: 'File not found.' };
+    return res.redirect('/director/documents/library');
+  }
+  res.download(filePath, doc.original_name || doc.filename);
+});
+
 module.exports = router;

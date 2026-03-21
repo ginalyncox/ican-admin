@@ -1,0 +1,64 @@
+<div class="page-header">
+  <h1 class="page-header__title">Document Library</h1>
+  <p class="page-header__subtitle">
+    Board governance documents, policies, forms, and organizational resources
+    <% if (pendingCount > 0) { %>
+      · <span style="color: var(--danger); font-weight: 600;"><%= pendingCount %> requiring your acknowledgment</span>
+    <% } %>
+  </p>
+</div>
+
+<!-- Category Filter -->
+<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+  <a href="/director/documents/library" class="btn btn--sm <%= !currentCategory ? 'btn--primary' : 'btn--outline' %>">All</a>
+  <% categories.forEach(c => { %>
+    <a href="/director/documents/library?category=<%= c %>" class="btn btn--sm <%= currentCategory === c ? 'btn--primary' : 'btn--outline' %>"><%= c.charAt(0).toUpperCase() + c.slice(1) %></a>
+  <% }); %>
+</div>
+
+<% if (pendingCount > 0) { %>
+<div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.5rem; border-left: 4px solid var(--warning); background: var(--warning-light);">
+  <strong style="font-size: 0.9rem;">Action Required</strong>
+  <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+    Please review and acknowledge the documents marked below. As a board member, your acknowledgment is required.
+  </p>
+</div>
+<% } %>
+
+<div class="card">
+  <% if (docs.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-state__title">No documents available</div>
+    </div>
+  <% } %>
+
+  <% docs.forEach(d => { %>
+  <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);<%= d.needs_ack ? ' background: var(--warning-light);' : '' %>">
+    <div style="width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+      background: <%= d.doc_type === 'form' ? '#6366f120' : d.doc_type === 'policy' ? '#2D6A3F20' : d.doc_type === 'template' ? '#f59e0b20' : '#5E6B5220' %>;
+      color: <%= d.doc_type === 'form' ? '#6366f1' : d.doc_type === 'policy' ? '#2D6A3F' : d.doc_type === 'template' ? '#f59e0b' : '#5E6B52' %>;">
+      <%= d.doc_type === 'form' ? '📋' : d.doc_type === 'policy' ? '📜' : d.doc_type === 'template' ? '📝' : '📄' %>
+    </div>
+    <div style="flex: 1;">
+      <div style="font-weight: 600; font-size: 0.9rem;"><%= d.title %></div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.75rem; margin-top: 0.15rem;">
+        <span><%= d.category.charAt(0).toUpperCase() + d.category.slice(1) %></span>
+        <span>v<%= d.version || 1 %></span>
+        <% if (d.description) { %><span><%= d.description.substring(0, 50) %><%= d.description.length > 50 ? '...' : '' %></span><% } %>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <% if (d.is_required) { %>
+        <% if (d.needs_ack) { %>
+          <form method="POST" action="/director/documents/<%= d.id %>/acknowledge" style="display: inline;">
+            <button type="submit" class="btn btn--primary btn--sm">Acknowledge</button>
+          </form>
+        <% } else { %>
+          <span style="color: var(--primary); font-size: 0.75rem; font-weight: 600;">✓ Acknowledged</span>
+        <% } %>
+      <% } %>
+      <a href="/director/documents/<%= d.id %>/download-lib" class="btn btn--outline btn--sm" title="Download">↓</a>
+    </div>
+  </div>
+  <% }); %>
+</div>

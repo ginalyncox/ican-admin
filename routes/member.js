@@ -1120,4 +1120,86 @@ router.post('/hours/:id/delete', requireMember, (req, res) => {
   res.redirect('/member/my-hours');
 });
 
+
+// ── DOCUMENT LIBRARY ─────────────────────────────────────
+router.get('/documents', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const memberId = req.session.memberId;
+  const category = req.query.category || '';
+
+  let where = "WHERE d.audience IN ('all', 'volunteer') AND d.is_confidential = 0";
+  const params = [];
+  if (category) { where += ' AND d.category = ?'; params.push(category); }
+
+  const docs = db.prepare(`
+    SELECT d.*,
+      (SELECT acknowledged_at FROM document_acknowledgments 
+       WHERE document_id = d.id AND user_type = 'volunteer' AND user_id = ?) as my_ack_date,
+      (SELECT document_version FROM document_acknowledgments 
+       WHERE document_id = d.id AND user_type = 'volunteer' AND user_id = ?) as my_ack_version
+    FROM board_documents d
+    ${where}
+    ORDER BY d.is_required DESC, d.sort_order ASC, d.category ASC, d.title ASC
+  `).all(gid, gid, ...params);
+
+  // Check which required docs need (re-)acknowledgment
+  docs.forEach(d => {
+    d.needs_ack = d.is_required && (!d.my_ack_date || (d.ack_required_after && d.my_ack_date < d.ack_required_after));
+  });
+
+  const categories = db.prepare("SELECT DISTINCT category FROM board_documents WHERE audience IN ('all', 'volunteer') AND is_confidential = 0 ORDER BY category").all().map(r => r.category);
+  const pendingCount = docs.filter(d => d.needs_ack).length;
+
+  res.render('member/documents', {
+    title: 'Document Library',
+    docs,
+    categories,
+    currentCategory: category,
+    pendingCount,
+    layout: 'member/layout'
+  });
+});
+
+// Acknowledge a document
+router.post('/documents/:id/acknowledge', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const doc = db.prepare("SELECT * FROM board_documents WHERE id = ? AND audience IN ('all', 'volunteer')").get(req.params.id);
+  if (!doc) {
+    req.session.memberFlash = { type: 'error', message: 'Document not found.' };
+    return res.redirect('/member/documents');
+  }
+
+  const ip = req.ip || req.connection.remoteAddress;
+  try {
+    // Delete old ack if re-acknowledging
+    db.prepare('DELETE FROM document_acknowledgments WHERE document_id = ? AND user_type = ? AND user_id = ?').run(doc.id, 'volunteer', gid);
+    db.prepare(`
+      INSERT INTO document_acknowledgments (document_id, user_type, user_id, ip_address, document_version)
+      VALUES (?, 'volunteer', ?, ?, ?)
+    `).run(doc.id, gid, ip, doc.version || 1);
+    req.session.memberFlash = { type: 'success', message: 'Document acknowledged. Thank you.' };
+  } catch (e) {
+    req.session.memberFlash = { type: 'error', message: 'Failed to acknowledge document.' };
+  }
+  res.redirect('/member/documents');
+});
+
+// Download a document
+router.get('/documents/:id/download', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const doc = db.prepare("SELECT * FROM board_documents WHERE id = ? AND audience IN ('all', 'volunteer') AND is_confidential = 0").get(req.params.id);
+  if (!doc) {
+    req.session.memberFlash = { type: 'error', message: 'Document not found.' };
+    return res.redirect('/member/documents');
+  }
+  const filePath = path.join(__dirname, '..', 'uploads', 'board', doc.filename);
+  if (!fs.existsSync(filePath)) {
+    req.session.memberFlash = { type: 'error', message: 'File not found.' };
+    return res.redirect('/member/documents');
+  }
+  res.download(filePath, doc.original_name || doc.filename);
+});
+
 module.exports = router;

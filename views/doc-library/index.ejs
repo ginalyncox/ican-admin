@@ -1,0 +1,171 @@
+<div class="page-header">
+  <h1 class="page-header__title">Document Library</h1>
+  <p class="page-header__subtitle"><%= stats.totalDocs %> document<%= stats.totalDocs !== 1 ? 's' : '' %> · <%= stats.totalRequired %> requiring acknowledgment</p>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-grid" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= stats.totalDocs %></span>
+      <span class="stat-card__label">Total Documents</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= stats.totalRequired %></span>
+      <span class="stat-card__label">Required Docs</span>
+    </div>
+  </div>
+  <a href="/admin/documents/ack/dashboard" class="stat-card stat-card--link">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= stats.totalVolunteers + stats.totalDirectors %></span>
+      <span class="stat-card__label">Members to Track</span>
+    </div>
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="/admin/documents" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+    <select name="category" class="form-control" style="width: auto;">
+      <option value="">All Categories</option>
+      <% categories.forEach(c => { %>
+        <option value="<%= c %>" <%= filters.category === c ? 'selected' : '' %>><%= c.charAt(0).toUpperCase() + c.slice(1) %></option>
+      <% }); %>
+    </select>
+    <select name="audience" class="form-control" style="width: auto;">
+      <option value="">All Audiences</option>
+      <option value="all" <%= filters.audience === 'all' ? 'selected' : '' %>>Everyone</option>
+      <option value="volunteer" <%= filters.audience === 'volunteer' ? 'selected' : '' %>>Volunteers Only</option>
+      <option value="director" <%= filters.audience === 'director' ? 'selected' : '' %>>Directors Only</option>
+      <option value="admin" <%= filters.audience === 'admin' ? 'selected' : '' %>>Admin Only</option>
+    </select>
+    <select name="type" class="form-control" style="width: auto;">
+      <option value="">All Types</option>
+      <option value="document" <%= filters.type === 'document' ? 'selected' : '' %>>Document</option>
+      <option value="form" <%= filters.type === 'form' ? 'selected' : '' %>>Form</option>
+      <option value="template" <%= filters.type === 'template' ? 'selected' : '' %>>Template</option>
+      <option value="policy" <%= filters.type === 'policy' ? 'selected' : '' %>>Policy</option>
+    </select>
+    <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+    <% if (filters.category || filters.audience || filters.type) { %>
+      <a href="/admin/documents" class="btn btn--outline btn--sm">Clear</a>
+    <% } %>
+  </form>
+</div>
+
+<!-- Upload Form -->
+<details class="card" style="margin-bottom: 1.5rem;">
+  <summary style="padding: 1rem 1.25rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--primary);">
+    + Upload New Document
+  </summary>
+  <form method="POST" action="/admin/documents/upload" enctype="multipart/form-data" style="padding: 0 1.25rem 1.25rem;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input type="text" name="title" class="form-control" required placeholder="Document title">
+      </div>
+      <div class="form-group">
+        <label class="form-label">File</label>
+        <input type="file" name="file" class="form-control" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select name="category" class="form-control">
+          <option value="general">General</option>
+          <option value="bylaws">Bylaws</option>
+          <option value="policy">Policy</option>
+          <option value="compliance">Compliance</option>
+          <option value="financial">Financial</option>
+          <option value="legal">Legal</option>
+          <option value="minutes">Minutes</option>
+          <option value="resolution">Resolution</option>
+          <option value="report">Report</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Audience</label>
+        <select name="audience" class="form-control">
+          <option value="all">Everyone</option>
+          <option value="volunteer">Volunteers Only</option>
+          <option value="director">Directors Only</option>
+          <option value="admin">Admin Only</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select name="doc_type" class="form-control">
+          <option value="document">Document</option>
+          <option value="form">Form</option>
+          <option value="template">Template</option>
+          <option value="policy">Policy</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input type="text" name="description" class="form-control" placeholder="Optional description">
+      </div>
+    </div>
+    <div style="display: flex; gap: 1.5rem; margin-top: 0.75rem;">
+      <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem;">
+        <input type="checkbox" name="is_required" value="1"> Requires acknowledgment
+      </label>
+      <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem;">
+        <input type="checkbox" name="is_confidential" value="1"> Confidential
+      </label>
+    </div>
+    <button type="submit" class="btn btn--primary" style="margin-top: 1rem;">Upload Document</button>
+  </form>
+</details>
+
+<!-- Document Table -->
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Audience</th>
+          <th>Version</th>
+          <th>Required</th>
+          <th>Acks</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (docs.length === 0) { %>
+          <tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No documents found</td></tr>
+        <% } %>
+        <% docs.forEach(d => { %>
+        <tr>
+          <td>
+            <a href="/admin/documents/<%= d.id %>" style="font-weight: 600;"><%= d.title %></a>
+            <% if (d.description) { %><br><span style="font-size: 0.75rem; color: var(--text-muted);"><%= d.description.substring(0, 60) %><%= d.description.length > 60 ? '...' : '' %></span><% } %>
+          </td>
+          <td><span class="badge badge--default"><%= d.category %></span></td>
+          <td><span style="font-size: 0.8rem;"><%= d.doc_type %></span></td>
+          <td>
+            <% const audienceColors = { all: '#2D6A3F', volunteer: '#f59e0b', director: '#6366f1', admin: '#ef4444' }; %>
+            <span class="badge" style="background: <%= audienceColors[d.audience] || '#666' %>20; color: <%= audienceColors[d.audience] || '#666' %>; font-size: 0.72rem;"><%= d.audience === 'all' ? 'Everyone' : d.audience.charAt(0).toUpperCase() + d.audience.slice(1) %></span>
+          </td>
+          <td style="text-align: center;">v<%= d.version || 1 %></td>
+          <td style="text-align: center;">
+            <% if (d.is_required) { %>
+              <span style="color: var(--primary); font-weight: 600;">✓</span>
+            <% } else { %>
+              <span style="color: var(--text-light);">—</span>
+            <% } %>
+          </td>
+          <td style="text-align: center;"><%= d.ack_count %></td>
+          <td>
+            <a href="/admin/documents/<%= d.id %>/download" class="btn btn--sm btn--outline" title="Download">↓</a>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>

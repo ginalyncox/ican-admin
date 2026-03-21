@@ -1,0 +1,159 @@
+<div class="page-header">
+  <h1 class="page-header__title"><%= doc.title %></h1>
+  <p class="page-header__subtitle">Version <%= doc.version || 1 %> · <%= doc.category %> · <%= doc.original_name %></p>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+  <!-- Left: Document Info & Edit -->
+  <div>
+    <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem;">Document Details</h3>
+      <form method="POST" action="/admin/documents/<%= doc.id %>/edit">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="<%= doc.title %>" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control">
+              <% ['general','bylaws','policy','compliance','financial','legal','minutes','resolution','report'].forEach(c => { %>
+                <option value="<%= c %>" <%= doc.category === c ? 'selected' : '' %>><%= c.charAt(0).toUpperCase() + c.slice(1) %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Audience</label>
+            <select name="audience" class="form-control">
+              <option value="all" <%= doc.audience === 'all' ? 'selected' : '' %>>Everyone</option>
+              <option value="volunteer" <%= doc.audience === 'volunteer' ? 'selected' : '' %>>Volunteers Only</option>
+              <option value="director" <%= doc.audience === 'director' ? 'selected' : '' %>>Directors Only</option>
+              <option value="admin" <%= doc.audience === 'admin' ? 'selected' : '' %>>Admin Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select name="doc_type" class="form-control">
+              <% ['document','form','template','policy'].forEach(t => { %>
+                <option value="<%= t %>" <%= doc.doc_type === t ? 'selected' : '' %>><%= t.charAt(0).toUpperCase() + t.slice(1) %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="2"><%= doc.description || '' %></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sort Order</label>
+            <input type="number" name="sort_order" class="form-control" value="<%= doc.sort_order || 99 %>" min="0">
+          </div>
+        </div>
+        <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem;">
+            <input type="checkbox" name="is_required" value="1" <%= doc.is_required ? 'checked' : '' %>> Requires acknowledgment
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem;">
+            <input type="checkbox" name="is_confidential" value="1" <%= doc.is_confidential ? 'checked' : '' %>> Confidential
+          </label>
+        </div>
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn--primary btn--sm">Save Changes</button>
+          <a href="/admin/documents/<%= doc.id %>/download" class="btn btn--outline btn--sm">Download Current</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Upload New Version -->
+    <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem;">Upload New Version</h3>
+      <form method="POST" action="/admin/documents/<%= doc.id %>/new-version" enctype="multipart/form-data">
+        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">File</label>
+            <input type="file" name="file" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Version Notes</label>
+            <input type="text" name="version_notes" class="form-control" placeholder="What changed?">
+          </div>
+          <button type="submit" class="btn btn--primary btn--sm" style="margin-bottom: 1rem;">Upload v<%= (doc.version || 1) + 1 %></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Version History -->
+    <% if (versions.length > 0) { %>
+    <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem;">Version History</h3>
+      <table class="table">
+        <thead><tr><th>Version</th><th>File</th><th>Notes</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          <% versions.forEach(v => { %>
+          <tr>
+            <td><strong>v<%= v.version %></strong><%= v.version === doc.version ? ' (current)' : '' %></td>
+            <td><%= v.original_name %></td>
+            <td style="font-size: 0.8rem; color: var(--text-muted);"><%= v.version_notes || '—' %></td>
+            <td style="font-size: 0.8rem;"><%= new Date(v.created_at).toLocaleDateString() %></td>
+            <td><a href="/admin/documents/<%= doc.id %>/download?version=<%= v.version %>" class="btn btn--sm btn--outline">↓</a></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Right: Acknowledgment Sidebar -->
+  <div>
+    <div class="card" style="padding: 1.25rem; margin-bottom: 1rem;">
+      <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem;">Acknowledgments (<%= acks.length %>)</h3>
+      <% if (doc.is_required) { %>
+        <form method="POST" action="/admin/documents/<%= doc.id %>/require-reack" style="margin-bottom: 1rem;"
+          onsubmit="return confirm('This will require all members to re-acknowledge this document. Continue?')">
+          <button type="submit" class="btn btn--outline btn--sm" style="width: 100%;">Require Re-Acknowledgment</button>
+        </form>
+        <% if (doc.ack_required_after) { %>
+          <p style="font-size: 0.75rem; color: var(--warning); margin-bottom: 0.75rem;">Re-ack required since <%= new Date(doc.ack_required_after).toLocaleDateString() %></p>
+        <% } %>
+      <% } %>
+      
+      <% if (pendingVolunteers.length > 0 || pendingDirectors.length > 0) { %>
+        <div style="margin-bottom: 0.75rem;">
+          <p style="font-size: 0.8rem; font-weight: 600; color: var(--danger); margin-bottom: 0.5rem;">Pending:</p>
+          <% pendingDirectors.forEach(d => { %>
+            <div style="font-size: 0.8rem; padding: 0.25rem 0; color: var(--text-muted);">
+              <span class="badge" style="background: #6366f120; color: #6366f1; font-size: 0.65rem;">Director</span>
+              <%= d.first_name %> <%= d.last_name %>
+            </div>
+          <% }); %>
+          <% pendingVolunteers.forEach(v => { %>
+            <div style="font-size: 0.8rem; padding: 0.25rem 0; color: var(--text-muted);">
+              <span class="badge" style="background: #f59e0b20; color: #f59e0b; font-size: 0.65rem;">Volunteer</span>
+              <%= v.first_name %> <%= v.last_name %>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+
+      <% if (acks.length > 0) { %>
+        <p style="font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">Acknowledged:</p>
+        <% acks.forEach(a => { %>
+          <div style="font-size: 0.8rem; padding: 0.25rem 0; display: flex; justify-content: space-between;">
+            <span><%= a.user_name || 'Unknown' %></span>
+            <span style="color: var(--text-light); font-size: 0.72rem;"><%= new Date(a.acknowledged_at).toLocaleDateString() %></span>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">No acknowledgments yet.</p>
+      <% } %>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card" style="padding: 1.25rem; border-color: var(--danger);">
+      <h3 style="font-size: 0.9rem; font-weight: 600; color: var(--danger); margin-bottom: 0.75rem;">Danger Zone</h3>
+      <form method="POST" action="/admin/documents/<%= doc.id %>/delete" onsubmit="return confirm('Permanently delete this document and all its versions? This cannot be undone.')">
+        <button type="submit" class="btn btn--danger btn--sm" style="width: 100%;">Delete Document</button>
+      </form>
+    </div>
+  </div>
+</div>
