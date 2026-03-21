@@ -6,8 +6,9 @@
 <% const personalDone = gardener.phone && gardener.email && gardener.emergency_contact_name; %>
 <% const prefsDone = !!gardener.availability; %>
 <% const programsDone = appliedPrograms.length > 0; %>
+<% const docsDone = !!cred.documents_acknowledged; %>
 
-<!-- Progress Steps -->
+<!-- Progress Steps (6 steps) -->
 <div class="onboarding-progress">
   <div class="onboarding-step <%= step === 'password' ? 'onboarding-step--active' : (cred.must_change_password ? '' : 'onboarding-step--done') %>">
     <div class="onboarding-step__number"><% if (!cred.must_change_password) { %>&#10003;<% } else { %>1<% } %></div>
@@ -29,8 +30,13 @@
     <div class="onboarding-step__label">Programs</div>
   </div>
   <div class="onboarding-step__line <%= programsDone ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'documents' ? 'onboarding-step--active' : (docsDone ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (docsDone) { %>&#10003;<% } else { %>5<% } %></div>
+    <div class="onboarding-step__label">Documents</div>
+  </div>
+  <div class="onboarding-step__line <%= docsDone ? 'onboarding-step__line--done' : '' %>"></div>
   <div class="onboarding-step <%= step === 'welcome' ? 'onboarding-step--active' : '' %>">
-    <div class="onboarding-step__number">5</div>
+    <div class="onboarding-step__number">6</div>
     <div class="onboarding-step__label">Get Started</div>
   </div>
 </div>
@@ -232,7 +238,65 @@
 </div>
 <% } %>
 
-<!-- Step 5: Welcome & Finish -->
+<!-- Step 5: Document Acknowledgment -->
+<% if (step === 'documents') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Step 5: Review &amp; Acknowledge Documents
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1rem; color: var(--color-muted);">Please download and review each volunteer document below, then check the box to confirm you received it. These documents remain available in your Resources section after onboarding.</p>
+
+    <form method="POST" action="/member/onboarding/documents" id="memberDocAckForm">
+    <% if (volDocs && volDocs.length > 0) { %>
+      <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+        <% volDocs.forEach(function(doc) { %>
+          <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:1rem; border:1px solid var(--color-border); border-radius:8px; background:#fff;">
+            <input type="checkbox" name="acknowledged_docs" value="<%= doc.id %>" id="vol-ack-<%= doc.id %>" class="vol-doc-ack-check" style="margin-top:3px; width:18px; height:18px; accent-color:#2D6A3F; cursor:pointer;">
+            <div style="flex:1;">
+              <label for="vol-ack-<%= doc.id %>" style="font-weight:600; cursor:pointer; display:block; margin-bottom:0.25rem;"><%= doc.title %></label>
+              <span class="badge badge--<%= doc.category %>" style="font-size:0.7rem;"><%= doc.category %></span>
+            </div>
+            <a href="/member/resources/<%= doc.id %>/download" class="btn btn--outline btn--sm" target="_blank" style="white-space:nowrap;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </a>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <p class="text-muted" style="margin-bottom:1rem;">No volunteer documents have been uploaded yet. Your administrator will add these soon.</p>
+    <% } %>
+
+      <div style="padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15);">
+        <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">By checking each box above and clicking below, you confirm that you have received, downloaded, and agree to review the ICAN volunteer documents.</p>
+        <button type="submit" class="btn btn--primary" id="memberDocAckSubmit" <%= (volDocs && volDocs.length > 0) ? 'disabled' : '' %>>I Acknowledge Receipt of All Documents</button>
+      </div>
+    </form>
+
+    <script>
+    (function() {
+      var checks = document.querySelectorAll('.vol-doc-ack-check');
+      var btn = document.getElementById('memberDocAckSubmit');
+      if (!checks.length) return; // No docs, button already enabled
+      function update() {
+        var all = true;
+        checks.forEach(function(c) { if (!c.checked) all = false; });
+        btn.disabled = !all;
+        btn.style.opacity = all ? '1' : '0.5';
+      }
+      checks.forEach(function(c) { c.addEventListener('change', update); });
+      update();
+    })();
+    </script>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 6: Welcome & Finish -->
 <% if (step === 'welcome') { %>
 <div class="card onboarding-card">
   <div class="card__header">

@@ -1,7 +1,7 @@
 function requireMember(req, res, next) {
   if (req.session && req.session.memberId) {
     // If onboarding not completed, redirect (but allow onboarding routes + logout)
-    const onboardingPaths = ['/member/onboarding', '/member/logout'];
+    const onboardingPaths = ['/member/onboarding', '/member/logout', '/member/resources/'];
     const currentPath = req.originalUrl.split('?')[0];
     const isOnboardingRoute = onboardingPaths.some(p => currentPath.startsWith(p));
 

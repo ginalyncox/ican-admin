@@ -1,10 +1,26 @@
+<%
+const typeLabels = { general: 'General', newsletter: 'Newsletter', announcement: 'Announcement', program_update: 'Program Update' };
+const typeColors = { general: '#666', newsletter: '#6366f1', announcement: '#2D6A3F', program_update: '#f59e0b' };
+%>
+
 <div class="page-header">
   <div class="page-header__row">
     <div>
       <h1 class="page-header__title"><%= message.subject %></h1>
-      <p class="page-header__subtitle"><%= new Date(message.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></p>
+      <p class="page-header__subtitle">
+        <%= new Date(message.created_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>
+        <% if (message.created_at) { %>
+          at <%= new Date(message.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %>
+        <% } %>
+      </p>
     </div>
-    <div class="page-header__actions">
+    <div class="page-header__actions" style="display: flex; gap: 0.5rem;">
+      <form method="POST" action="/member/mailbox/<%= message.id %>/unread" style="margin: 0;">
+        <button type="submit" class="btn btn--outline btn--sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Mark as Unread
+        </button>
+      </form>
       <a href="/member/mailbox" class="btn btn--outline btn--sm">&larr; Mailbox</a>
     </div>
   </div>
@@ -12,9 +28,15 @@
 
 <div class="card">
   <div class="card__body">
-    <p style="margin-bottom: 0.75rem;">
-      <span class="badge"><%= message.message_type %></span>
-    </p>
-    <div style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6;"><%= message.body %></div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border);">
+      <span class="badge" style="background: <%= typeColors[message.message_type] || '#666' %>; color: #fff;"><%= typeLabels[message.message_type] || message.message_type %></span>
+      <% if (message.target_program) { %>
+        <span class="badge" style="font-size: 0.7rem;">Program: <%= message.target_program %></span>
+      <% } %>
+      <% if (message.read_at) { %>
+        <span style="font-size: 0.75rem; color: var(--color-muted); margin-left: auto;">Read <%= new Date(message.read_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></span>
+      <% } %>
+    </div>
+    <div style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; color: var(--text);"><%= message.body %></div>
   </div>
 </div>

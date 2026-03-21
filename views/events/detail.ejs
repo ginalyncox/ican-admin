@@ -1,0 +1,72 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title"><%= event.title %></h1>
+    <div class="page-header__actions">
+      <a href="/admin/events/<%= event.id %>/edit" class="btn btn--primary btn--sm">Edit</a>
+      <a href="/admin/events" class="btn btn--ghost btn--sm">Back</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <table class="table">
+      <tbody>
+        <tr>
+          <td style="width:150px; font-weight:600;">Date</td>
+          <td>
+            <%
+              const d = new Date(event.event_date + 'T12:00:00');
+              const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            %>
+            <%= dateStr %>
+          </td>
+        </tr>
+        <% if (event.event_time) { %>
+        <tr>
+          <td style="font-weight:600;">Time</td>
+          <td><%= event.event_time %><% if (event.end_time) { %> &ndash; <%= event.end_time %><% } %></td>
+        </tr>
+        <% } %>
+        <tr>
+          <td style="font-weight:600;">Type</td>
+          <td><span class="badge badge--<%= event.event_type %>"><%= event.event_type %></span></td>
+        </tr>
+        <% if (event.location) { %>
+        <tr>
+          <td style="font-weight:600;">Location</td>
+          <td><%= event.location %></td>
+        </tr>
+        <% } %>
+        <tr>
+          <td style="font-weight:600;">Public</td>
+          <td><%= event.is_public ? 'Yes — visible on public website' : 'No — admin only' %></td>
+        </tr>
+        <% if (event.creator_name) { %>
+        <tr>
+          <td style="font-weight:600;">Created by</td>
+          <td><%= event.creator_name %></td>
+        </tr>
+        <% } %>
+        <tr>
+          <td style="font-weight:600;">Created</td>
+          <td class="text-muted"><%= new Date(event.created_at).toLocaleString() %></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <% if (event.description) { %>
+      <div style="margin-top:1.5rem; padding:1rem; background:var(--bg-light, #f9f9f6); border-radius:var(--radius-sm, 4px);">
+        <h3 style="margin-bottom:0.5rem; font-size:0.9rem;">Description</h3>
+        <p style="white-space:pre-wrap; margin:0;"><%= event.description %></p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<div style="margin-top:1rem; display:flex; gap:0.5rem;">
+  <a href="/admin/events/<%= event.id %>/edit" class="btn btn--primary">Edit Event</a>
+  <form method="POST" action="/admin/events/<%= event.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this event?')">
+    <button type="submit" class="btn" style="color:var(--danger);">Delete Event</button>
+  </form>
+</div>

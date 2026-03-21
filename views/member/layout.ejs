@@ -26,6 +26,9 @@
         <a href="/member" class="member-nav__link <%= path === '/member' || path === '/member/' ? 'member-nav__link--active' : '' %>">Dashboard</a>
         <a href="/member/programs" class="member-nav__link <%= path === '/member/programs' ? 'member-nav__link--active' : '' %>">Programs</a>
         <a href="/member/my-hours" class="member-nav__link <%= path === '/member/my-hours' ? 'member-nav__link--active' : '' %>">My Hours</a>
+        <% if (typeof memberPrograms !== 'undefined' && memberPrograms && memberPrograms.includes('victory_garden')) { %>
+          <a href="/member/my-harvests" class="member-nav__link <%= path === '/member/my-harvests' ? 'member-nav__link--active' : '' %>">My Harvests</a>
+        <% } %>
         <a href="/member/events" class="member-nav__link <%= path === '/member/events' ? 'member-nav__link--active' : '' %>">Events</a>
         <% if (typeof memberPrograms !== 'undefined' && memberPrograms && memberPrograms.includes('victory_garden')) { %>
           <a href="/member/leaderboard" class="member-nav__link <%= path === '/member/leaderboard' ? 'member-nav__link--active' : '' %>">Leaderboard</a>
@@ -68,6 +71,10 @@
           <% } %>
         </div>
       </div>
+      <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
       <div class="member-header__user">
         <% if (typeof hasDirectorAccess !== 'undefined' && hasDirectorAccess) { %>
           <a href="/director/login" class="member-nav__link member-nav__link--portal" title="Switch to Director Portal">
@@ -126,6 +133,12 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         My Hours
       </a>
+      <% if (typeof memberPrograms !== 'undefined' && memberPrograms && memberPrograms.includes('victory_garden')) { %>
+        <a href="/member/my-harvests" class="mobile-nav-drawer__link <%= path === '/member/my-harvests' ? 'mobile-nav-drawer__link--active' : '' %>">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+          My Harvests
+        </a>
+      <% } %>
       <a href="/member/events" class="mobile-nav-drawer__link <%= path === '/member/events' ? 'mobile-nav-drawer__link--active' : '' %>">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Events
@@ -175,5 +188,22 @@
       document.body.style.overflow = '';
     }
   </script>
+
+<script>
+// Dark mode toggle
+(function() {
+  const saved = localStorage.getItem('ican-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+function toggleDarkMode() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('ican-theme', next);
+}
+</script>
 </body>
 </html>

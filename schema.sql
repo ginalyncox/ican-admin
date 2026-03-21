@@ -502,3 +502,14 @@ CREATE TABLE IF NOT EXISTS board_committee_members (
   joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(committee_id, member_id)
 );
+
+-- Document Acknowledgment Tracking
+CREATE TABLE IF NOT EXISTS document_acknowledgments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL REFERENCES board_documents(id),
+  user_type TEXT NOT NULL CHECK(user_type IN ('volunteer', 'director')),
+  user_id INTEGER NOT NULL,
+  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ip_address TEXT,
+  UNIQUE(document_id, user_type, user_id)
+);

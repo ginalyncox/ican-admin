@@ -37,7 +37,16 @@ router.get('/:id', requireAuth, (req, res) => {
     submission.read = 1;
   }
 
-  res.json({ success: true, submission: { ...submission, data: JSON.parse(submission.data) } });
+  const data = JSON.parse(submission.data);
+  res.render('submissions/detail', { title: 'Submission Detail', submission, data });
+});
+
+// Delete submission
+router.post('/:id/delete', requireAuth, requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  db.prepare('DELETE FROM submissions WHERE id = ?').run(req.params.id);
+  req.session.flash = { type: 'success', message: 'Submission deleted.' };
+  res.redirect('/admin/submissions');
 });
 
 // Toggle read status

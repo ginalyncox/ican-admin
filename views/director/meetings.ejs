@@ -1,6 +1,8 @@
 <div class="page-header">
   <h1 class="page-title">Board Meetings</h1>
-  <button class="btn btn--primary" onclick="document.getElementById('newMeetingModal').style.display='flex'">Schedule Meeting</button>
+  <% if (typeof director !== 'undefined' && director && director.isOfficer) { %>
+    <button class="btn btn--primary" onclick="document.getElementById('newMeetingModal').style.display='flex'">Schedule Meeting</button>
+  <% } %>
 </div>
 
 <!-- Upcoming Meetings -->
@@ -52,7 +54,15 @@
                   </form>
                 </div>
               </td>
-              <td class="table__actions"><a href="/director/meetings/<%= m.id %>" class="btn btn--outline btn--sm">Details</a></td>
+              <td class="table__actions" style="white-space:nowrap;">
+                <a href="/director/meetings/<%= m.id %>" class="btn btn--outline btn--sm">Details</a>
+                <% if (typeof director !== 'undefined' && director && director.isOfficer) { %>
+                  <a href="/director/meetings/<%= m.id %>/edit" class="btn btn--outline btn--sm">Edit</a>
+                  <form method="POST" action="/director/meetings/<%= m.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this meeting and all associated attendance, votes, RSVPs, and action items? This cannot be undone.')">
+                    <button type="submit" class="btn btn--outline btn--sm" style="color:#c0392b">&times;</button>
+                  </form>
+                <% } %>
+              </td>
             </tr>
           <% }); %>
         </tbody>
@@ -97,7 +107,12 @@
                   <span class="text-muted">—</span>
                 <% } %>
               </td>
-              <td class="table__actions"><a href="/director/meetings/<%= m.id %>" class="btn btn--outline btn--sm">View</a></td>
+              <td class="table__actions" style="white-space:nowrap;">
+                <a href="/director/meetings/<%= m.id %>" class="btn btn--outline btn--sm">View</a>
+                <% if (typeof director !== 'undefined' && director && director.isOfficer) { %>
+                  <a href="/director/meetings/<%= m.id %>/edit" class="btn btn--outline btn--sm">Edit</a>
+                <% } %>
+              </td>
             </tr>
           <% }); %>
         </tbody>

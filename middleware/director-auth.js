@@ -1,5 +1,15 @@
 function requireDirector(req, res, next) {
   if (req.session && req.session.directorId) {
+    // Re-check that the director is still active in the database
+    const db = req.app.locals.db;
+    const member = db.prepare('SELECT status FROM board_members WHERE id = ?').get(req.session.directorBoardMemberId);
+    if (!member || member.status !== 'active') {
+      req.session.destroy(() => {
+        res.redirect('/director/login');
+      });
+      return;
+    }
+
     // If onboarding not completed, redirect (but allow onboarding routes + logout)
     const onboardingPaths = ['/director/onboarding', '/director/logout'];
     const currentPath = req.originalUrl.split('?')[0];

@@ -51,6 +51,7 @@
   <div class="card"><div class="card__body"><p class="empty-state">No volunteers found. <a href="/admin/garden/gardeners/new">Add your first volunteer</a></p></div></div>
 <% } else { %>
   <div class="card"><div class="card__body">
+    <div class="table-responsive">
     <table class="table">
       <thead><tr>
         <th style="width: 30px;"><input type="checkbox" id="selectAll" title="Select all"></th>
@@ -73,6 +74,7 @@
         <% }) %>
       </tbody>
     </table>
+    </div>
   </div></div>
 <% } %>
 

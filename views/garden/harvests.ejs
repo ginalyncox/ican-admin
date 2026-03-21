@@ -55,6 +55,7 @@
   <div class="card"><div class="card__body"><p class="empty-state">No harvest entries found.</p></div></div>
 <% } else { %>
   <div class="card"><div class="card__body">
+    <div class="table-responsive">
     <table class="table">
       <thead><tr><th>Date</th><th>Gardener</th><th>Crop</th><th>Lbs</th><th>Donated To</th><th>Status</th><th></th></tr></thead>
       <tbody>
@@ -93,5 +94,6 @@
         <% }) %>
       </tbody>
     </table>
+    </div>
   </div></div>
 <% } %>

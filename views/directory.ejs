@@ -26,6 +26,7 @@
         <p><%= search ? 'No matches for "' + search + '".' : 'No records in this category yet.' %></p>
       </div>
     <% } else { %>
+      <div class="table-responsive">
       <table class="table">
         <thead>
           <tr>
@@ -58,6 +59,7 @@
           <% }); %>
         </tbody>
       </table>
+      </div>
       <p class="text-muted" style="margin-top:0.75rem; font-size:0.85rem;"><%= rows.length %> result<%= rows.length !== 1 ? 's' : '' %></p>
     <% } %>
   </div>

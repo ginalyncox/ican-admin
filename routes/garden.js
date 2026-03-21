@@ -1114,4 +1114,53 @@ router.post('/applications/:id/deny', requireAuth, (req, res) => {
 });
 
 
+
+// ── PROGRAM MEMBERS (view all volunteers by program) ─────
+router.get('/program-members', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const program = req.query.program || '';
+  const status = req.query.status || 'active';
+
+  let volunteers;
+  if (program) {
+    volunteers = db.prepare(`
+      SELECT g.*, vp.program, vp.assigned_at,
+        (SELECT COALESCE(SUM(hours), 0) FROM garden_hours WHERE gardener_id = g.id AND program = vp.program) as program_hours,
+        (SELECT COUNT(*) FROM garden_hours WHERE gardener_id = g.id AND program = vp.program) as hour_entries
+      FROM gardeners g
+      JOIN volunteer_programs vp ON g.id = vp.volunteer_id
+      WHERE vp.program = ? AND g.status = ?
+      ORDER BY g.last_name, g.first_name
+    `).all(program, status);
+  } else {
+    volunteers = db.prepare(`
+      SELECT g.*,
+        GROUP_CONCAT(DISTINCT vp.program) as enrolled_programs,
+        (SELECT COALESCE(SUM(hours), 0) FROM garden_hours WHERE gardener_id = g.id) as total_hours,
+        (SELECT COUNT(*) FROM garden_hours WHERE gardener_id = g.id) as hour_entries
+      FROM gardeners g
+      LEFT JOIN volunteer_programs vp ON g.id = vp.volunteer_id
+      WHERE g.status = ?
+      GROUP BY g.id
+      ORDER BY g.last_name, g.first_name
+    `).all(status);
+  }
+
+  // Program counts
+  const programCounts = {};
+  try {
+    const counts = db.prepare("SELECT program, COUNT(*) as count FROM volunteer_programs GROUP BY program").all();
+    for (const c of counts) programCounts[c.program] = c.count;
+  } catch (e) {}
+
+  res.render('garden/program-members', {
+    title: 'Program Members',
+    volunteers,
+    programCounts,
+    currentProgram: program,
+    currentStatus: status,
+    programInfo: PROGRAM_INFO
+  });
+});
+
 module.exports = router;

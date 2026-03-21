@@ -1,0 +1,136 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">My Harvests</h1>
+      <p class="page-header__subtitle">Full harvest history</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/member/log-harvest" class="btn btn--primary btn--sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Log Harvest
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid stats-grid--4" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <div class="stat-card__label"><%= filters.season ? 'Filtered' : 'All-Time' %> Harvest</div>
+    <div class="stat-card__value"><%= Number(totalLbs).toFixed(1) %></div>
+    <div class="stat-card__detail">pounds</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Donated</div>
+    <div class="stat-card__value"><%= Number(totalDonatedLbs).toFixed(1) %></div>
+    <div class="stat-card__detail">pounds</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Entries</div>
+    <div class="stat-card__value"><%= totalCount %></div>
+    <div class="stat-card__detail">harvests logged</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Avg / Entry</div>
+    <div class="stat-card__value"><%= totalCount > 0 ? (totalLbs / totalCount).toFixed(1) : '0.0' %></div>
+    <div class="stat-card__detail">pounds</div>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__body" style="padding: 0.75rem 1rem;">
+    <form method="GET" action="/member/my-harvests" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+      <div class="form-field" style="margin-bottom: 0; min-width: 160px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Season</label>
+        <select name="season" class="form-select" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All Seasons</option>
+          <% seasons.forEach(s => { %>
+            <option value="<%= s.id %>" <%= filters.season == s.id ? 'selected' : '' %>><%= s.name %> (<%= s.year %>)</option>
+          <% }); %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+      <% if (filters.season) { %>
+        <a href="/member/my-harvests" class="btn btn--ghost btn--sm">Clear</a>
+      <% } %>
+    </form>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Monthly Breakdown -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Monthly Summary</h2></div>
+    <div class="card__body">
+      <% if (monthlyData.length === 0) { %>
+        <p class="text-muted">No data for the selected period.</p>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Month</th><th>Lbs</th><th>Entries</th></tr></thead>
+          <tbody>
+            <% monthlyData.forEach(m => { %>
+              <%
+                const parts = m.month.split('-');
+                const monthLabel = new Date(parts[0], parts[1] - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+              %>
+              <tr>
+                <td><%= monthLabel %></td>
+                <td><strong><%= Number(m.total).toFixed(1) %></strong></td>
+                <td><%= m.entries %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+          <tfoot>
+            <tr style="font-weight: 700; border-top: 2px solid var(--color-border);">
+              <td>Total</td>
+              <td><%= Number(totalLbs).toFixed(1) %></td>
+              <td><%= totalCount %></td>
+            </tr>
+          </tfoot>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Harvest Log -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Harvest Log</h2></div>
+    <div class="card__body">
+      <% if (harvests.length === 0) { %>
+        <p class="text-muted">No harvests found. <a href="/member/log-harvest">Log a harvest</a></p>
+      <% } else { %>
+        <div style="max-height: 500px; overflow-y: auto;">
+          <table class="table">
+            <thead><tr><th>Date</th><th>Crop</th><th>Lbs</th><th>Donated</th><th>Season</th><th>Notes</th></tr></thead>
+            <tbody>
+              <% harvests.forEach(h => { %>
+                <tr>
+                  <td style="white-space: nowrap;"><%= h.harvest_date %></td>
+                  <td><%= h.crop %></td>
+                  <td><strong><%= Number(h.pounds).toFixed(1) %></strong></td>
+                  <td><%= h.donated_to || (h.donated ? 'Yes' : '\u2014') %></td>
+                  <td style="font-size: 0.8rem;" class="text-muted"><%= h.season_name || '\u2014' %></td>
+                  <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" class="text-muted"><%= h.notes || '' %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <% if (totalPages > 1) { %>
+          <div style="display: flex; justify-content: center; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border); margin-top: 0.75rem;">
+            <% if (page > 1) { %>
+              <a href="/member/my-harvests?page=<%= page - 1 %><%= filters.season ? '&season=' + filters.season : '' %>" class="btn btn--outline btn--sm">&larr; Prev</a>
+            <% } %>
+            <span style="font-size: 0.85rem; color: var(--color-muted); line-height: 2;">Page <%= page %> of <%= totalPages %></span>
+            <% if (page < totalPages) { %>
+              <a href="/member/my-harvests?page=<%= page + 1 %><%= filters.season ? '&season=' + filters.season : '' %>" class="btn btn--outline btn--sm">Next &rarr;</a>
+            <% } %>
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+</div>

@@ -9,6 +9,39 @@ const typeColors = { general: '#666', newsletter: '#6366f1', announcement: '#2D6
 const unreadCount = messages.filter(m => !m.read_at).length;
 %>
 
+<!-- Search / Filter Bar -->
+<div class="card" style="margin-bottom: 1rem;">
+  <div class="card__body" style="padding: 0.6rem 1rem;">
+    <form method="GET" action="/member/mailbox" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end;">
+      <div class="form-field" style="margin-bottom: 0; flex: 1; min-width: 160px;">
+        <label style="font-size: 0.7rem; font-weight: 600;">Search</label>
+        <input type="text" name="search" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.85rem;" placeholder="Search messages..." value="<%= filters.search %>">
+      </div>
+      <div class="form-field" style="margin-bottom: 0; min-width: 120px;">
+        <label style="font-size: 0.7rem; font-weight: 600;">Type</label>
+        <select name="type" class="form-select" style="padding: 0.3rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All Types</option>
+          <% Object.entries(typeLabels).forEach(([k, v]) => { %>
+            <option value="<%= k %>" <%= filters.type === k ? 'selected' : '' %>><%= v %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-field" style="margin-bottom: 0;">
+        <label style="font-size: 0.7rem; font-weight: 600;">From</label>
+        <input type="date" name="from" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.85rem;" value="<%= filters.from %>">
+      </div>
+      <div class="form-field" style="margin-bottom: 0;">
+        <label style="font-size: 0.7rem; font-weight: 600;">To</label>
+        <input type="date" name="to" class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.85rem;" value="<%= filters.to %>">
+      </div>
+      <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+      <% if (filters.search || filters.type || filters.from || filters.to) { %>
+        <a href="/member/mailbox" class="btn btn--ghost btn--sm">Clear</a>
+      <% } %>
+    </form>
+  </div>
+</div>
+
 <!-- Summary Bar -->
 <div class="card" style="margin-bottom: 1rem;">
   <div class="card__body" style="padding: 0.6rem 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
@@ -28,7 +61,7 @@ const unreadCount = messages.filter(m => !m.read_at).length;
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="1.5" style="margin-bottom: 0.75rem;">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
         </svg>
-        <p style="font-size: 1rem; color: var(--color-muted); margin: 0;">No messages yet.</p>
+        <p style="font-size: 1rem; color: var(--color-muted); margin: 0;"><%= (filters.search || filters.type || filters.from || filters.to) ? 'No messages match your filters.' : 'No messages yet.' %></p>
       </div>
     <% } else { %>
       <% messages.forEach(m => { %>

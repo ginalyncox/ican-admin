@@ -59,6 +59,7 @@ const PROG_LABELS = {
   <div class="card"><div class="card__body"><p class="empty-state">No hours logged yet.</p></div></div>
 <% } else { %>
   <div class="card"><div class="card__body">
+    <div class="table-responsive">
     <table class="table">
       <thead><tr><th>Date</th><th>Volunteer</th><th>Program</th><th>Hours</th><th>Activity</th><th>Season</th><th></th></tr></thead>
       <tbody>
@@ -79,5 +80,6 @@ const PROG_LABELS = {
         <% }) %>
       </tbody>
     </table>
+    </div>
   </div></div>
 <% } %>

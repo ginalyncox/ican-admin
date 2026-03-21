@@ -15,7 +15,8 @@ router.post('/login', (req, res) => {
     return res.render('login', { title: 'Login', error: 'Email and password are required.', layout: false });
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  const normalizedEmail = email.toLowerCase().trim();
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(normalizedEmail);
   if (!user) {
     return res.render('login', { title: 'Login', error: 'Invalid email or password.', layout: false });
   }

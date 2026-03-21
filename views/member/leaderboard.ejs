@@ -1,43 +1,72 @@
 <div class="page-header">
-  <h1 class="page-header__title">Leaderboard</h1>
+  <div class="page-header__row">
+    <h1 class="page-header__title">Leaderboard</h1>
+    <div class="page-header__actions">
+      <form method="GET" action="/member/leaderboard" style="display: flex; align-items: center; gap: 0.5rem;">
+        <label style="font-size: 0.8rem; font-weight: 600; white-space: nowrap;">Hours by Program:</label>
+        <select name="program" class="form-select" style="padding: 0.3rem 0.5rem; font-size: 0.85rem; min-width: 140px;" onchange="this.form.submit()">
+          <option value="">All Programs</option>
+          <% Object.entries(programInfo).forEach(([key, info]) => { %>
+            <option value="<%= key %>" <%= programFilter === key ? 'selected' : '' %>><%= info.label %></option>
+          <% }); %>
+        </select>
+      </form>
+    </div>
+  </div>
 </div>
 
 <div class="dashboard-grid">
   <div class="card">
     <div class="card__header"><h2 class="card__title">Harvest Leaders (lbs)</h2></div>
     <div class="card__body">
-      <table class="table">
-        <thead><tr><th>Rank</th><th>Gardener</th><th>Site</th><th>Lbs</th></tr></thead>
-        <tbody>
-          <% harvestLeaders.forEach((g, i) => { %>
-            <tr class="<%= g.id === myId ? 'leaderboard-me' : '' %>">
-              <td><span class="rank-badge rank-badge--<%= i+1 %>"><%= i+1 %></span></td>
-              <td><%= g.first_name %> <%= g.last_name %><%= g.id === myId ? ' (You)' : '' %></td>
-              <td><%= g.site_name || '—' %></td>
-              <td><strong><%= Number(g.total_lbs).toFixed(1) %></strong></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+      <% if (harvestLeaders.length === 0) { %>
+        <div style="text-align: center; padding: 2rem;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="1.5" style="margin-bottom: 0.5rem;"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+          <p style="color: var(--color-muted); margin: 0; font-size: 0.9rem;">No harvests logged yet. Be the first to <a href="/member/log-harvest">log a harvest</a>!</p>
+        </div>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Rank</th><th>Gardener</th><th>Site</th><th>Lbs</th></tr></thead>
+          <tbody>
+            <% harvestLeaders.forEach((g, i) => { %>
+              <tr class="<%= g.id === myId ? 'leaderboard-me' : '' %>">
+                <td><span class="rank-badge rank-badge--<%= i+1 %>"><%= i+1 %></span></td>
+                <td><%= g.first_name %> <%= g.last_name %><%= g.id === myId ? ' (You)' : '' %></td>
+                <td><%= g.site_name || '\u2014' %></td>
+                <td><strong><%= Number(g.total_lbs).toFixed(1) %></strong></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
     </div>
   </div>
 
   <div class="card">
-    <div class="card__header"><h2 class="card__title">Volunteer Hours Leaders</h2></div>
+    <div class="card__header">
+      <h2 class="card__title">Volunteer Hours Leaders<%= programFilter ? ' \u2014 ' + (programInfo[programFilter] || {}).label : '' %></h2>
+    </div>
     <div class="card__body">
-      <table class="table">
-        <thead><tr><th>Rank</th><th>Gardener</th><th>Site</th><th>Hours</th></tr></thead>
-        <tbody>
-          <% hoursLeaders.forEach((g, i) => { %>
-            <tr class="<%= g.id === myId ? 'leaderboard-me' : '' %>">
-              <td><span class="rank-badge rank-badge--<%= i+1 %>"><%= i+1 %></span></td>
-              <td><%= g.first_name %> <%= g.last_name %><%= g.id === myId ? ' (You)' : '' %></td>
-              <td><%= g.site_name || '—' %></td>
-              <td><strong><%= Number(g.total_hrs).toFixed(1) %></strong></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+      <% if (hoursLeaders.length === 0) { %>
+        <div style="text-align: center; padding: 2rem;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="1.5" style="margin-bottom: 0.5rem;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <p style="color: var(--color-muted); margin: 0; font-size: 0.9rem;">No hours logged yet<%= programFilter ? ' for this program' : '' %>. <a href="/member/log-hours">Log hours</a> to get on the board!</p>
+        </div>
+      <% } else { %>
+        <table class="table">
+          <thead><tr><th>Rank</th><th>Volunteer</th><th>Site</th><th>Hours</th></tr></thead>
+          <tbody>
+            <% hoursLeaders.forEach((g, i) => { %>
+              <tr class="<%= g.id === myId ? 'leaderboard-me' : '' %>">
+                <td><span class="rank-badge rank-badge--<%= i+1 %>"><%= i+1 %></span></td>
+                <td><%= g.first_name %> <%= g.last_name %><%= g.id === myId ? ' (You)' : '' %></td>
+                <td><%= g.site_name || '\u2014' %></td>
+                <td><strong><%= Number(g.total_hrs).toFixed(1) %></strong></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
     </div>
   </div>
 </div>

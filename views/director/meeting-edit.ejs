@@ -1,0 +1,58 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Edit Meeting</h1>
+    <p class="page-subtitle"><%= meeting.title %></p>
+  </div>
+  <a href="/director/meetings/<%= meeting.id %>" class="btn btn--outline">Back to Meeting</a>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <form method="POST" action="/director/meetings/<%= meeting.id %>/edit">
+      <div class="form-group">
+        <label for="title" class="form-label">Title *</label>
+        <input type="text" id="title" name="title" class="form-control" required value="<%= meeting.title %>">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="meeting_date" class="form-label">Date *</label>
+          <input type="date" id="meeting_date" name="meeting_date" class="form-control" required value="<%= meeting.meeting_date %>">
+        </div>
+        <div class="form-group">
+          <label for="meeting_time" class="form-label">Time</label>
+          <input type="text" id="meeting_time" name="meeting_time" class="form-control" placeholder="6:00 PM" value="<%= meeting.meeting_time || '' %>">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="location" class="form-label">Location</label>
+        <input type="text" id="location" name="location" class="form-control" placeholder="Meeting location or video link" value="<%= meeting.location || '' %>">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="meeting_type" class="form-label">Type</label>
+          <select id="meeting_type" name="meeting_type" class="form-control">
+            <% ['regular','special','annual','committee','emergency'].forEach(t => { %>
+              <option value="<%= t %>" <%= meeting.meeting_type === t ? 'selected' : '' %>><%= t.charAt(0).toUpperCase() + t.slice(1) %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="status" class="form-label">Status</label>
+          <select id="status" name="status" class="form-control">
+            <% ['scheduled','in_progress','completed','cancelled'].forEach(s => { %>
+              <option value="<%= s %>" <%= meeting.status === s ? 'selected' : '' %>><%= s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="agenda" class="form-label">Agenda</label>
+        <textarea id="agenda" name="agenda" class="form-control" rows="6"><%= meeting.agenda || '' %></textarea>
+      </div>
+      <div class="form-actions">
+        <a href="/director/meetings/<%= meeting.id %>" class="btn btn--outline">Cancel</a>
+        <button type="submit" class="btn btn--primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>

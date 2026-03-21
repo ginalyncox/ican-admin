@@ -117,14 +117,24 @@ const activePrograms = typeof memberPrograms !== 'undefined' ? memberPrograms : 
   </div>
   <div class="card__body">
     <% resources.forEach(r => { %>
-      <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--color-border);">
+      <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <div style="flex: 1;">
           <div style="font-weight: 600; font-size: 0.9rem;">
-            <% if (r.url) { %><a href="<%= r.url %>" target="_blank" style="color: var(--primary);"><%= r.title %></a><% } else { %><%= r.title %><% } %>
+            <% if (r.url) { %>
+              <a href="<%= r.url %>" target="_blank" style="color: var(--primary);"><%= r.title %></a>
+            <% } else if (r.document_id) { %>
+              <a href="/member/resources/<%= r.document_id %>/download" style="color: var(--primary);"><%= r.title %></a>
+            <% } else { %>
+              <%= r.title %>
+            <% } %>
           </div>
-          <% if (r.description) { %><div style="font-size: 0.8rem; color: var(--color-muted);"><%= r.description %></div><% } %>
+          <% if (r.description) { %><div style="font-size: 0.8rem; color: var(--color-muted); margin-top: 2px;"><%= r.description %></div><% } %>
         </div>
         <span class="badge" style="font-size: 0.7rem;"><%= r.category %></span>
+        <% if (r.document_id) { %>
+          <a href="/member/resources/<%= r.document_id %>/download" class="btn btn--outline btn--sm" style="white-space:nowrap;">Download</a>
+        <% } %>
       </div>
     <% }); %>
   </div>

@@ -54,7 +54,7 @@
                 <% if (ev.event_time) { %><br><span class="text-muted text-sm"><%= ev.event_time %><% if (ev.end_time) { %> &ndash; <%= ev.end_time %><% } %></span><% } %>
               </td>
               <td>
-                <strong><%= ev.title %></strong>
+                <a href="/admin/events/<%= ev.id %>" style="color:inherit; text-decoration:none;"><strong><%= ev.title %></strong></a>
                 <% if (ev.description) { %><br><span class="text-muted text-sm"><%= ev.description.substring(0, 80) %><%= ev.description.length > 80 ? '...' : '' %></span><% } %>
               </td>
               <td><span class="badge badge--<%= ev.event_type %>"><%= ev.event_type %></span></td>

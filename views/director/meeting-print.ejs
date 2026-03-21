@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Work Sans', sans-serif; color: #1E2418; line-height: 1.6; padding: 2rem; max-width: 850px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 3px solid #2D6A3F; }
+    .header__org { font-size: 0.85rem; color: #5E6B52; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.25rem; }
+    .header__title { font-family: Georgia, serif; font-size: 1.5rem; color: #2D6A3F; margin-bottom: 0.5rem; }
+    .header__meta { font-size: 0.85rem; color: #5E6B52; }
+    h2 { font-size: 1.1rem; color: #2D6A3F; margin: 1.5rem 0 0.75rem; padding-bottom: 0.25rem; border-bottom: 1px solid #d4d0c5; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.85rem; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e8e5dd; }
+    th { background: #F5F3ED; font-weight: 600; color: #5E6B52; font-size: 0.75rem; text-transform: uppercase; }
+    .present { color: #2D6A3F; font-weight: 600; }
+    .absent { color: #c0392b; }
+    .vote-result { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .vote-passed { background: #e3f0e7; color: #2D6A3F; }
+    .vote-failed { background: #f9e5e3; color: #c0392b; }
+    .minutes-body { white-space: pre-wrap; font-size: 0.9rem; line-height: 1.7; margin-top: 0.75rem; }
+    .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d4d0c5; text-align: center; font-size: 0.75rem; color: #5E6B52; }
+    .print-btn { display: inline-block; padding: 0.5rem 1.5rem; background: #2D6A3F; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .print-btn:hover { background: #1e4a2c; }
+    @media print {
+      .print-btn, .no-print { display: none !important; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align: center; margin-bottom: 1rem;">
+    <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <a href="/director/meetings/<%= meeting.id %>" style="margin-left: 1rem; font-size: 0.85rem;">← Back to Meeting</a>
+  </div>
+
+  <div class="header">
+    <div class="header__org">Iowa Cannabis Action Network</div>
+    <h1 class="header__title">Meeting Minutes</h1>
+    <div class="header__meta">
+      <strong><%= meeting.title %></strong><br>
+      <%= new Date(meeting.meeting_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %>
+      <% if (meeting.meeting_time) { %> at <%= meeting.meeting_time %><% } %><br>
+      <% if (meeting.location) { %>Location: <%= meeting.location %><br><% } %>
+      Type: <%= meeting.meeting_type ? meeting.meeting_type.charAt(0).toUpperCase() + meeting.meeting_type.slice(1) : 'Regular' %> Meeting
+      <% if (meeting.status === 'completed' && meeting.minutes_approved) { %>
+        <br><span style="color: #2D6A3F; font-weight: 600;">✓ Minutes Approved<% if (meeting.minutes_approved_date) { %> — <%= meeting.minutes_approved_date %><% } %></span>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (attendance.length > 0) { %>
+  <h2>Attendance</h2>
+  <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+    Quorum: <%= meeting.quorum_present || attendance.filter(a => a.status === 'present' || a.status === 'remote').length %> of <%= totalActiveMembers %> members present (quorum requires <%= quorumNeeded %>)
+    — <strong style="color: <%= (meeting.quorum_present || attendance.filter(a => a.status === 'present' || a.status === 'remote').length) >= quorumNeeded ? '#2D6A3F' : '#c0392b' %>">
+      Quorum <%= (meeting.quorum_present || attendance.filter(a => a.status === 'present' || a.status === 'remote').length) >= quorumNeeded ? 'Met' : 'Not Met' %>
+    </strong>
+  </p>
+  <table>
+    <thead><tr><th>Name</th><th>Title</th><th>Status</th></tr></thead>
+    <tbody>
+      <% attendance.forEach(a => { %>
+      <tr>
+        <td><%= a.first_name %> <%= a.last_name %></td>
+        <td><%= a.officer_title || a.title || 'Director' %></td>
+        <td class="<%= a.status === 'present' || a.status === 'remote' ? 'present' : 'absent' %>">
+          <%= a.status.charAt(0).toUpperCase() + a.status.slice(1) %>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <% } %>
+
+  <% if (agendaItems.length > 0) { %>
+  <h2>Agenda</h2>
+  <table>
+    <thead><tr><th>#</th><th>Item</th><th>Presenter</th><th>Duration</th></tr></thead>
+    <tbody>
+      <% agendaItems.forEach((item, i) => { %>
+      <tr>
+        <td><%= i + 1 %></td>
+        <td>
+          <strong><%= item.title %></strong>
+          <% if (item.description) { %><br><span style="font-size: 0.8rem; color: #5E6B52;"><%= item.description %></span><% } %>
+        </td>
+        <td><%= item.presenter || '—' %></td>
+        <td><%= item.duration_minutes ? item.duration_minutes + ' min' : '—' %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <% } %>
+
+  <% if (votes.length > 0) { %>
+  <h2>Votes & Resolutions</h2>
+  <table>
+    <thead><tr><th>Motion</th><th>Introduced By</th><th>For</th><th>Against</th><th>Abstain</th><th>Result</th></tr></thead>
+    <tbody>
+      <% votes.forEach(v => { %>
+      <tr>
+        <td><strong><%= v.motion_title %></strong></td>
+        <td><%= v.introduced_by_name || '—' %></td>
+        <td><%= v.votes_for || 0 %></td>
+        <td><%= v.votes_against || 0 %></td>
+        <td><%= v.votes_abstain || 0 %></td>
+        <td><span class="vote-result vote-<%= v.status === 'passed' ? 'passed' : v.status === 'failed' ? 'failed' : '' %>"><%= v.status ? v.status.charAt(0).toUpperCase() + v.status.slice(1) : 'Pending' %></span></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <% } %>
+
+  <% if (meeting.minutes) { %>
+  <h2>Minutes</h2>
+  <div class="minutes-body"><%= meeting.minutes %></div>
+  <% } %>
+
+  <% if (meeting.agenda && !agendaItems.length) { %>
+  <h2>Agenda Notes</h2>
+  <div class="minutes-body"><%= meeting.agenda %></div>
+  <% } %>
+
+  <div class="footer">
+    <p>Iowa Cannabis Action Network, Inc. — Board of Directors</p>
+    <p>Generated on <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+    <% if (meeting.minutes_approved) { %>
+      <p style="color: #2D6A3F; font-weight: 600; margin-top: 0.5rem;">✓ These minutes have been officially approved by the Board.</p>
+    <% } %>
+  </div>
+</body>
+</html>

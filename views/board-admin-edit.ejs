@@ -1,0 +1,109 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Edit Board Member</h1>
+    <a href="/admin/board" class="btn btn--ghost">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <form method="POST" action="/admin/board/<%= member.id %>/edit">
+      <div class="form-row">
+        <div class="form-field">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" class="form-input" required value="<%= member.first_name %>">
+        </div>
+        <div class="form-field">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" class="form-input" required value="<%= member.last_name %>">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" class="form-input" required value="<%= member.email %>">
+        </div>
+        <div class="form-field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" class="form-input" value="<%= member.phone || '' %>">
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" class="form-input" value="<%= member.title || 'Director' %>">
+      </div>
+
+      <div class="form-field">
+        <label for="bio">Bio</label>
+        <textarea id="bio" name="bio" class="form-input" rows="4" placeholder="Brief biography for the public website..."><%= member.bio || '' %></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="term_start">Term Start</label>
+          <input type="date" id="term_start" name="term_start" class="form-input" value="<%= member.term_start || '' %>">
+        </div>
+        <div class="form-field">
+          <label for="term_end">Term End</label>
+          <input type="date" id="term_end" name="term_end" class="form-input" value="<%= member.term_end || '' %>">
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+          <input type="checkbox" name="is_officer" value="1" id="isOfficerCheck" <%= member.is_officer ? 'checked' : '' %> onchange="var show = this.checked ? 'block' : 'none'; document.getElementById('officerTitleGroup').style.display = show; document.getElementById('officerRankGroup').style.display = show; if(this.checked) autoSetRank();">
+          This member is an officer
+        </label>
+      </div>
+
+      <div class="form-field" id="officerTitleGroup" style="display:<%= member.is_officer ? 'block' : 'none' %>;">
+        <label for="officer_title">Officer Title</label>
+        <select id="officer_title" name="officer_title" class="form-select" onchange="autoSetRank()">
+          <option value="President" <%= member.officer_title === 'President' ? 'selected' : '' %>>President</option>
+          <option value="Vice President" <%= member.officer_title === 'Vice President' ? 'selected' : '' %>>Vice President</option>
+          <option value="Secretary" <%= member.officer_title === 'Secretary' ? 'selected' : '' %>>Secretary</option>
+          <option value="Treasurer" <%= member.officer_title === 'Treasurer' ? 'selected' : '' %>>Treasurer</option>
+        </select>
+      </div>
+
+      <div class="form-field" id="officerRankGroup" style="display:<%= member.is_officer ? 'block' : 'none' %>;">
+        <label for="officer_rank">Display Order</label>
+        <select id="officer_rank" name="officer_rank" class="form-select">
+          <option value="1" <%= member.officer_rank == 1 ? 'selected' : '' %>>1 — President</option>
+          <option value="2" <%= member.officer_rank == 2 ? 'selected' : '' %>>2 — Vice President</option>
+          <option value="3" <%= member.officer_rank == 3 ? 'selected' : '' %>>3 — Secretary</option>
+          <option value="4" <%= member.officer_rank == 4 ? 'selected' : '' %>>4 — Treasurer</option>
+          <option value="5" <%= member.officer_rank == 5 ? 'selected' : '' %>>5 — Other Officer</option>
+        </select>
+        <small class="text-muted">Controls sort order on the public website.</small>
+      </div>
+
+      <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-light, #f9f9f6); border-radius: var(--radius-sm, 4px);">
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">
+          <strong>Status:</strong> <span class="badge badge--<%= member.status === 'active' ? 'garden' : member.status === 'locked' ? 'locked' : 'general' %>"><%= member.status %></span>
+          &nbsp;&middot;&nbsp;
+          <strong>Onboarding:</strong> <%= member.onboarding_completed ? 'Complete' : 'Pending' %>
+          <% if (member.last_login) { %>
+            &nbsp;&middot;&nbsp;
+            <strong>Last Login:</strong> <%= new Date(member.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %>
+          <% } %>
+        </p>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">Save Changes</button>
+        <a href="/admin/board" class="btn btn--ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function autoSetRank() {
+  var title = document.getElementById('officer_title').value;
+  var rankMap = { 'President': '1', 'Vice President': '2', 'Secretary': '3', 'Treasurer': '4' };
+  document.getElementById('officer_rank').value = rankMap[title] || '5';
+}
+</script>

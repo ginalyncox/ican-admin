@@ -13,7 +13,7 @@
   <div class="stat-card">
     <div class="stat-card__label">Volunteer Hours</div>
     <div class="stat-card__value"><%= Number(stats.totalVolunteerHours).toLocaleString() %></div>
-    <div class="stat-card__detail">Total hours logged by gardeners</div>
+    <div class="stat-card__detail">Total hours logged by all volunteers</div>
   </div>
   <div class="stat-card">
     <div class="stat-card__label">Events (Past Year)</div>
@@ -34,11 +34,47 @@
     <div class="stat-card__detail">Active newsletter subscribers</div>
   </div>
   <div class="stat-card">
-    <div class="stat-card__label">Form Submissions</div>
-    <div class="stat-card__value"><%= stats.totalSubmissions %></div>
-    <div class="stat-card__detail">Contact, volunteer & newsletter forms</div>
+    <div class="stat-card__label">Board Members</div>
+    <div class="stat-card__value"><%= boardMemberCount %></div>
+    <div class="stat-card__detail">Active board directors</div>
   </div>
 </div>
+
+<!-- Volunteer Hours by Program -->
+<% if (hoursByProgram.length > 0) { %>
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header">
+    <h2 class="card__title">Volunteer Hours by Program (Past Year)</h2>
+  </div>
+  <div class="card__body">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Program</th>
+          <th>Total Hours</th>
+          <th>Volunteers</th>
+          <th>Distribution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% const maxHours = Math.max(...hoursByProgram.map(h => h.total_hours), 1); %>
+        <% hoursByProgram.forEach(h => { %>
+          <tr>
+            <td><strong><%= h.program || 'General' %></strong></td>
+            <td><%= Number(h.total_hours).toLocaleString() %></td>
+            <td><%= h.volunteers %></td>
+            <td>
+              <div style="background:#eee;border-radius:4px;height:20px;width:100%;max-width:200px">
+                <div style="background:#2D6A3F;border-radius:4px;height:100%;width:<%= Math.round((h.total_hours / maxHours) * 100) %>%"></div>
+              </div>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
 
 <!-- Harvest Trend -->
 <div class="card" style="margin-top: 1.5rem;">
@@ -76,7 +112,8 @@
   <div class="card__body" style="text-align:center; padding:2rem;">
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <p style="margin-top:0.75rem; color:var(--text-muted);">
-      Detailed financial statements, budgets, and tax filings are available in the
+      Detailed financial statements, budgets, and tax filings are managed in ICAN&rsquo;s accounting software.
+      Board-approved financial documents are available in the
       <a href="/director/documents?category=financial">Financial Documents</a> section.
       Contact the Treasurer for additional financial inquiries.
     </p>

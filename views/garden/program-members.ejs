@@ -1,0 +1,78 @@
+<div class="page-header">
+  <h1 class="page-header__title">Program Members</h1>
+  <p class="page-header__subtitle">View volunteers across all ICAN programs</p>
+</div>
+
+<!-- Program filter cards -->
+<div class="stats-grid" style="margin-bottom: 1.5rem;">
+  <a href="/admin/garden/program-members" class="stat-card stat-card--link<%= !currentProgram ? ' stat-card--attention' : '' %>">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= Object.values(programCounts).reduce((a, b) => a + b, 0) %></span>
+      <span class="stat-card__label">All Programs</span>
+    </div>
+  </a>
+  <% Object.entries(programInfo).forEach(([key, info]) => { %>
+  <a href="/admin/garden/program-members?program=<%= key %>" class="stat-card stat-card--link<%= currentProgram === key ? ' stat-card--attention' : '' %>">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= programCounts[key] || 0 %></span>
+      <span class="stat-card__label"><%= info.label %></span>
+    </div>
+  </a>
+  <% }); %>
+</div>
+
+<!-- Status filter -->
+<div class="filters" style="margin-bottom: 1rem;">
+  <form method="GET" action="/admin/garden/program-members" style="display: flex; gap: 0.5rem; align-items: center;">
+    <input type="hidden" name="program" value="<%= currentProgram %>">
+    <select name="status" class="form-control" style="width: auto;" onchange="this.form.submit()">
+      <option value="active" <%= currentStatus === 'active' ? 'selected' : '' %>>Active</option>
+      <option value="inactive" <%= currentStatus === 'inactive' ? 'selected' : '' %>>Inactive</option>
+    </select>
+    <span style="color: var(--text-muted); font-size: 0.85rem;"><%= volunteers.length %> volunteer<%= volunteers.length !== 1 ? 's' : '' %></span>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <% if (!currentProgram) { %><th>Programs</th><% } %>
+          <th>Hours</th>
+          <th>Entries</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (volunteers.length === 0) { %>
+        <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No volunteers found</td></tr>
+        <% } %>
+        <% volunteers.forEach(v => { %>
+        <tr>
+          <td><strong><%= v.first_name %> <%= v.last_name %></strong></td>
+          <td><%= v.email || '—' %></td>
+          <td><%= v.phone || '—' %></td>
+          <% if (!currentProgram) { %>
+          <td>
+            <% if (v.enrolled_programs) { %>
+              <% v.enrolled_programs.split(',').forEach(p => { %>
+                <span class="badge" style="background: <%= (programInfo[p] || {}).color || '#666' %>20; color: <%= (programInfo[p] || {}).color || '#666' %>; font-size: 0.7rem; margin-right: 0.25rem;"><%= (programInfo[p] || {}).label || p %></span>
+              <% }); %>
+            <% } else { %>
+              <span style="color: var(--text-light);">None</span>
+            <% } %>
+          </td>
+          <% } %>
+          <td><%= (v.program_hours || v.total_hours || 0).toFixed(1) %></td>
+          <td><%= v.hour_entries || 0 %></td>
+          <td><a href="/admin/garden/gardeners/<%= v.id %>" class="btn btn--sm">View</a></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>

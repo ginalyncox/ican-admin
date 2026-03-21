@@ -9,6 +9,8 @@
   const nextYear = month === 12 ? year + 1 : year;
   const today = new Date();
   const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  const todayMonth = today.getMonth() + 1;
+  const todayYear = today.getFullYear();
 
   // Index events by day
   const eventsByDay = {};
@@ -22,6 +24,29 @@
     if (!eventsByDay[day]) eventsByDay[day] = [];
     eventsByDay[day].push({ type: 'vote', label: v.motion_title, id: v.id });
   });
+  if (typeof actionItems !== 'undefined') {
+    actionItems.forEach(ai => {
+      if (ai.due_date) {
+        const day = parseInt(ai.due_date.split('-')[2]);
+        if (!eventsByDay[day]) eventsByDay[day] = [];
+        eventsByDay[day].push({ type: 'task', label: ai.title, id: ai.id, priority: ai.priority });
+      }
+    });
+  }
+  if (typeof polls !== 'undefined') {
+    polls.forEach(p => {
+      const day = parseInt(p.created_at.split('-')[2]);
+      if (!eventsByDay[day]) eventsByDay[day] = [];
+      eventsByDay[day].push({ type: 'poll', label: p.question, id: p.id });
+    });
+  }
+  if (typeof events !== 'undefined') {
+    events.forEach(e => {
+      const day = parseInt(e.event_date.split('-')[2]);
+      if (!eventsByDay[day]) eventsByDay[day] = [];
+      eventsByDay[day].push({ type: 'event', label: e.title, id: e.id, time: e.event_time });
+    });
+  }
   if (coiReminder) {
     if (!eventsByDay[31]) eventsByDay[31] = [];
     eventsByDay[31].push({ type: 'coi', label: 'COI Filing Due' });
@@ -32,6 +57,9 @@
   <h1 class="page-title">Board Calendar</h1>
   <div style="display: flex; align-items: center; gap: 0.75rem;">
     <a href="/director/calendar?month=<%= prevMonth %>&year=<%= prevYear %>" class="btn btn--outline btn--sm">&larr;</a>
+    <% if (month !== todayMonth || year !== todayYear) { %>
+      <a href="/director/calendar?month=<%= todayMonth %>&year=<%= todayYear %>" class="btn btn--outline btn--sm">Today</a>
+    <% } %>
     <span style="font-size: 1.1rem; font-weight: 600;"><%= monthNames[month-1] %> <%= year %></span>
     <a href="/director/calendar?month=<%= nextMonth %>&year=<%= nextYear %>" class="btn btn--outline btn--sm">&rarr;</a>
   </div>
@@ -60,6 +88,12 @@
           <a href="/director/meetings/<%= ev.id %>" class="board-calendar__event board-calendar__event--meeting" title="<%= ev.label %><%= ev.time ? ' at ' + ev.time : '' %>"><%= ev.label %></a>
         <% } else if (ev.type === 'vote') { %>
           <a href="/director/votes" class="board-calendar__event board-calendar__event--vote" title="<%= ev.label %>"><%= ev.label %></a>
+        <% } else if (ev.type === 'task') { %>
+          <a href="/director/tasks" class="board-calendar__event board-calendar__event--task" title="Due: <%= ev.label %>"><%= ev.label %></a>
+        <% } else if (ev.type === 'poll') { %>
+          <a href="/director/polls" class="board-calendar__event board-calendar__event--poll" title="Poll: <%= ev.label %>"><%= ev.label %></a>
+        <% } else if (ev.type === 'event') { %>
+          <a href="#" class="board-calendar__event board-calendar__event--org-event" title="<%= ev.label %>"><%= ev.label %></a>
         <% } else { %>
           <a href="/director/coi" class="board-calendar__event board-calendar__event--coi" title="<%= ev.label %>"><%= ev.label %></a>
         <% } %>
@@ -75,7 +109,7 @@
   <% } } %>
 </div>
 
-<div style="margin-top: 1rem; display: flex; gap: 1rem; font-size: 0.78rem; color: var(--color-muted);">
+<div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--color-muted);">
   <div style="display: flex; align-items: center; gap: 0.35rem;">
     <span style="width: 12px; height: 12px; border-radius: 2px; background: var(--primary);"></span> Meeting
   </div>
@@ -83,6 +117,21 @@
     <span style="width: 12px; height: 12px; border-radius: 2px; background: #6366f1;"></span> Open Vote
   </div>
   <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="width: 12px; height: 12px; border-radius: 2px; background: #c0392b;"></span> Action Item Due
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="width: 12px; height: 12px; border-radius: 2px; background: #8b5cf6;"></span> Poll
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="width: 12px; height: 12px; border-radius: 2px; background: #0891b2;"></span> Event
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
     <span style="width: 12px; height: 12px; border-radius: 2px; background: #f59e0b;"></span> COI Deadline
   </div>
 </div>
+
+<style>
+  .board-calendar__event--task { background: #fef2f2; color: #c0392b; border-left: 2px solid #c0392b; }
+  .board-calendar__event--poll { background: #f5f3ff; color: #8b5cf6; border-left: 2px solid #8b5cf6; }
+  .board-calendar__event--org-event { background: #ecfeff; color: #0891b2; border-left: 2px solid #0891b2; }
+</style>

@@ -3,6 +3,52 @@
   <p class="page-header__subtitle">Your volunteer dashboard</p>
 </div>
 
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <a href="/member/log-hours" class="quick-action">
+    <span class="quick-action__icon">⏱</span>
+    <span class="quick-action__label">Log Hours</span>
+  </a>
+  <% if (programs.includes('victory_garden')) { %>
+  <a href="/member/log-harvest" class="quick-action">
+    <span class="quick-action__icon">🌱</span>
+    <span class="quick-action__label">Log Harvest</span>
+  </a>
+  <% } %>
+  <a href="/member/events" class="quick-action">
+    <span class="quick-action__icon">📅</span>
+    <span class="quick-action__label">Events</span>
+  </a>
+  <a href="/member/mailbox" class="quick-action">
+    <span class="quick-action__icon">✉️</span>
+    <span class="quick-action__label">Mailbox<% if (unreadMail > 0) { %> (<%= unreadMail %>)<% } %></span>
+  </a>
+</div>
+
+<!-- Milestone Badges -->
+<%
+  const milestones = [
+    { threshold: 10, label: '10 Hours', icon: '🌿' },
+    { threshold: 25, label: '25 Hours', icon: '🌻' },
+    { threshold: 50, label: '50 Hours', icon: '⭐' },
+    { threshold: 100, label: '100 Hours', icon: '🏆' },
+    { threshold: 250, label: '250 Hours', icon: '💎' },
+    { threshold: 500, label: '500 Hours', icon: '👑' }
+  ];
+%>
+<div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+  <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Hour Milestones</h3>
+  <div class="milestone-badges">
+    <% milestones.forEach(m => { %>
+      <span class="milestone-badge milestone-badge--<%= stats.totalHrs >= m.threshold ? 'earned' : 'locked' %>">
+        <span class="milestone-badge__icon"><%= m.icon %></span>
+        <%= m.label %>
+      </span>
+    <% }); %>
+  </div>
+</div>
+
+
 <% if (pendingApplications && pendingApplications.length > 0) { %>
 <div class="card" style="margin-bottom: 1.5rem; border-left: 3px solid var(--accent);">
   <div class="card__body" style="padding: 0.75rem 1rem;">
@@ -204,7 +250,10 @@ const hbp = typeof hoursByProgram !== 'undefined' ? hoursByProgram : {};
   <% if (programs.includes('victory_garden') && recentHarvests.length > 0) { %>
   <!-- Recent Harvests -->
   <div class="card">
-    <div class="card__header"><h2 class="card__title">Recent Harvests</h2></div>
+    <div class="card__header" style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 class="card__title">Recent Harvests</h2>
+      <a href="/member/my-harvests" class="btn btn--outline btn--sm" style="font-size: 0.75rem;">View All Harvests</a>
+    </div>
     <div class="card__body">
       <table class="table">
         <thead><tr><th>Date</th><th>Crop</th><th>Lbs</th><th>Donated</th></tr></thead>

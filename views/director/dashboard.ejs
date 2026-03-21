@@ -186,4 +186,26 @@
       <% } %>
     </div>
   </div>
+
+  <!-- Recent Activity -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Recent Activity</h2>
+    </div>
+    <div class="card__body">
+      <% if (typeof recentActivity === 'undefined' || recentActivity.length === 0) { %>
+        <p class="text-muted">No recent activity logged.</p>
+      <% } else { %>
+        <% recentActivity.forEach(a => { %>
+          <div style="padding:0.4rem 0;border-bottom:1px solid #eee;font-size:0.85rem">
+            <strong><%= a.user_name %></strong>
+            <span style="color:#555"><%= a.action %></span>
+            <% if (a.entity_type) { %><span class="badge" style="background:#eee;color:#555;font-size:0.65rem"><%= a.entity_type %></span><% } %>
+            <% if (a.entity_label) { %><span style="color:#333"><%= a.entity_label %></span><% } %>
+            <div class="text-muted" style="font-size:0.75rem"><%= new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %></div>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
 </div>

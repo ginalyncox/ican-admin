@@ -142,41 +142,53 @@
   <div class="card__header">
     <h2 class="card__title">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      Step 4: Review Key Documents &amp; Finish
+      Step 4: Review &amp; Acknowledge Documents
     </h2>
   </div>
   <div class="card__body">
-    <p style="margin-bottom:1.5rem; color: var(--color-muted);">Please review these important governing documents. You can always access them later from the Documents section.</p>
+    <p style="margin-bottom:1rem; color: var(--color-muted);">Please download and review each governing document below, then check the box to confirm you received it. All documents remain available in the Documents section after onboarding.</p>
 
+    <form method="POST" action="/director/onboarding/documents" id="docAckForm">
     <% if (keyDocs.length > 0) { %>
-      <div class="onboarding-doc-list">
+      <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
         <% keyDocs.forEach(function(doc) { %>
-          <a href="/director/documents/<%= doc.id %>/download" class="onboarding-doc-item" target="_blank">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <div>
-              <strong><%= doc.title %></strong>
-              <span class="badge badge--<%= doc.category %>"><%= doc.category %></span>
+          <div style="display:flex; align-items:flex-start; gap:0.75rem; padding:1rem; border:1px solid var(--color-border); border-radius:8px; background:#fff;">
+            <input type="checkbox" name="acknowledged_docs" value="<%= doc.id %>" id="ack-<%= doc.id %>" class="doc-ack-check" style="margin-top:3px; width:18px; height:18px; accent-color:#2D6A3F; cursor:pointer;">
+            <div style="flex:1;">
+              <label for="ack-<%= doc.id %>" style="font-weight:600; cursor:pointer; display:block; margin-bottom:0.25rem;"><%= doc.title %></label>
+              <span class="badge badge--<%= doc.category %>" style="font-size:0.7rem;"><%= doc.category %></span>
             </div>
-          </a>
+            <a href="/director/documents/<%= doc.id %>/download" class="btn btn--outline btn--sm" target="_blank" style="white-space:nowrap;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </a>
+          </div>
         <% }); %>
       </div>
     <% } else { %>
       <p class="text-muted" style="margin-bottom:1rem;">No governing documents have been uploaded yet. Your administrator will add these soon.</p>
     <% } %>
 
-    <div style="margin-top:2rem; padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15);">
-      <h3 style="margin:0 0 0.5rem; font-size:1rem;">You're all set!</h3>
-      <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">By completing this onboarding, you confirm that you:</p>
-      <ul style="margin:0 0 1rem; padding-left:1.25rem; font-size:0.9rem; color: var(--color-muted);">
-        <li>Set a secure personal password</li>
-        <li>Provided your contact information and bio</li>
-        <li>Filed your annual Conflict of Interest disclosure</li>
-        <li>Are aware of the key governing documents</li>
-      </ul>
-      <form method="POST" action="/director/onboarding/complete">
-        <button type="submit" class="btn btn--primary">Complete Onboarding &amp; Enter Portal</button>
-      </form>
-    </div>
+      <div style="padding:1.25rem; background: rgba(45,106,63,0.08); border-radius:8px; border: 1px solid rgba(45,106,63,0.15);">
+        <p style="margin:0 0 1rem; font-size:0.9rem; color: var(--color-muted);">By checking each box above and clicking below, you confirm that you have received, downloaded, and agree to review the ICAN governing documents.</p>
+        <button type="submit" class="btn btn--primary" id="docAckSubmit" disabled>I Acknowledge Receipt of All Documents</button>
+      </div>
+    </form>
+
+    <script>
+    (function() {
+      var checks = document.querySelectorAll('.doc-ack-check');
+      var btn = document.getElementById('docAckSubmit');
+      function update() {
+        var all = true;
+        checks.forEach(function(c) { if (!c.checked) all = false; });
+        btn.disabled = !all;
+        btn.style.opacity = all ? '1' : '0.5';
+      }
+      checks.forEach(function(c) { c.addEventListener('change', update); });
+      update();
+    })();
+    </script>
   </div>
 </div>
 <% } %>

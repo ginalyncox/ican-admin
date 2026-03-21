@@ -33,7 +33,7 @@
       <div class="form-row">
         <div class="form-field">
           <label for="pounds">Pounds Harvested</label>
-          <input type="number" id="pounds" name="pounds" class="form-input" step="0.1" min="0" required placeholder="0.0">
+          <input type="number" id="pounds" name="pounds" class="form-input" step="0.1" min="0.1" max="500" required placeholder="0.0">
         </div>
         <div class="form-field">
           <label for="donated_to">Donated To</label>
@@ -43,7 +43,7 @@
 
       <div class="form-field">
         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer">
-          <input type="checkbox" name="donated" value="1" checked>
+          <input type="checkbox" name="donated" value="1">
           This harvest was donated
         </label>
       </div>

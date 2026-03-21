@@ -61,11 +61,53 @@
                   <%= e.location %>
                 </p>
               <% } %>
-              <span class="badge" style="font-size: 0.7rem;"><%= e.event_type %></span>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge" style="font-size: 0.7rem;"><%= e.event_type %></span>
+                <% if (e.goingCount > 0) { %>
+                  <span style="font-size: 0.75rem; color: var(--color-muted);"><%= e.goingCount %> going</span>
+                <% } %>
+              </div>
             </div>
           </div>
           <% if (e.description) { %>
-            <p style="font-size: 0.85rem; color: var(--color-muted); margin: 0; line-height: 1.5;"><%= e.description %></p>
+            <p style="font-size: 0.85rem; color: var(--color-muted); margin: 0 0 0.75rem 0; line-height: 1.5;"><%= e.description %></p>
+          <% } %>
+
+          <% if (filter !== 'past') { %>
+            <div style="display: flex; gap: 0.5rem; align-items: center; border-top: 1px solid var(--color-border); padding-top: 0.75rem;">
+              <% if (e.myRsvp === 'going') { %>
+                <span class="badge badge--success" style="font-size: 0.75rem;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align: -1px;"><polyline points="20 6 9 17 4 12"/></svg>
+                  Going
+                </span>
+                <form method="POST" action="/member/events/<%= e.id %>/rsvp" style="margin: 0;">
+                  <input type="hidden" name="status" value="cancel">
+                  <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.75rem;">Cancel RSVP</button>
+                </form>
+              <% } else if (e.myRsvp === 'interested') { %>
+                <span class="badge" style="background: #f59e0b; color: #fff; font-size: 0.75rem;">Interested</span>
+                <form method="POST" action="/member/events/<%= e.id %>/rsvp" style="margin: 0;">
+                  <input type="hidden" name="status" value="going">
+                  <button type="submit" class="btn btn--primary btn--sm" style="font-size: 0.75rem;">Going</button>
+                </form>
+                <form method="POST" action="/member/events/<%= e.id %>/rsvp" style="margin: 0;">
+                  <input type="hidden" name="status" value="cancel">
+                  <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.75rem;">Cancel</button>
+                </form>
+              <% } else { %>
+                <form method="POST" action="/member/events/<%= e.id %>/rsvp" style="margin: 0;">
+                  <input type="hidden" name="status" value="going">
+                  <button type="submit" class="btn btn--primary btn--sm" style="font-size: 0.75rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px;"><polyline points="20 6 9 17 4 12"/></svg>
+                    Going
+                  </button>
+                </form>
+                <form method="POST" action="/member/events/<%= e.id %>/rsvp" style="margin: 0;">
+                  <input type="hidden" name="status" value="interested">
+                  <button type="submit" class="btn btn--outline btn--sm" style="font-size: 0.75rem;">Interested</button>
+                </form>
+              <% } %>
+            </div>
           <% } %>
         </div>
       </div>

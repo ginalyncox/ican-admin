@@ -49,10 +49,60 @@ router.post('/add', requireAuth, requireRole('admin'), (req, res) => {
   res.redirect('/admin/board');
 });
 
+// Edit board member form
+router.get('/:id/edit', requireAuth, requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const member = db.prepare('SELECT * FROM board_members WHERE id = ?').get(req.params.id);
+  if (!member) {
+    req.session.flash = { type: 'error', message: 'Board member not found.' };
+    return res.redirect('/admin/board');
+  }
+  res.render('board-admin-edit', { title: 'Edit Board Member', member });
+});
+
+// Update board member
+router.post('/:id/edit', requireAuth, requireRole('admin'), (req, res) => {
+  const db = req.app.locals.db;
+  const { first_name, last_name, email, title, bio, phone, term_start, term_end, is_officer, officer_title, officer_rank } = req.body;
+
+  if (!first_name || !last_name || !email) {
+    req.session.flash = { type: 'error', message: 'First name, last name, and email are required.' };
+    return res.redirect('/admin/board/' + req.params.id + '/edit');
+  }
+
+  try {
+    db.prepare(`
+      UPDATE board_members SET first_name = ?, last_name = ?, email = ?, title = ?, bio = ?, phone = ?,
+        term_start = ?, term_end = ?, is_officer = ?, officer_title = ?, officer_rank = ?
+      WHERE id = ?
+    `).run(
+      first_name, last_name, email, title || 'Director', bio || null, phone || null,
+      term_start || null, term_end || null,
+      is_officer ? 1 : 0, officer_title || null,
+      is_officer ? (parseInt(officer_rank) || 99) : 99,
+      req.params.id
+    );
+    req.session.flash = { type: 'success', message: `Board member ${first_name} ${last_name} updated.` };
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      req.session.flash = { type: 'error', message: 'A board member with that email already exists.' };
+    } else {
+      req.session.flash = { type: 'error', message: 'Failed to update board member.' };
+    }
+    return res.redirect('/admin/board/' + req.params.id + '/edit');
+  }
+  res.redirect('/admin/board');
+});
+
 // Update board member status
 router.post('/:id/status', requireAuth, requireRole('admin'), (req, res) => {
   const db = req.app.locals.db;
   const { status } = req.body;
+  const validStatuses = ['active', 'locked', 'removed'];
+  if (!validStatuses.includes(status)) {
+    req.session.flash = { type: 'error', message: 'Invalid status value.' };
+    return res.redirect('/admin/board');
+  }
   db.prepare('UPDATE board_members SET status = ? WHERE id = ?').run(status, req.params.id);
   req.session.flash = { type: 'success', message: 'Board member status updated.' };
   res.redirect('/admin/board');

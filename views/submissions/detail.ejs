@@ -1,0 +1,67 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <h1 class="page-header__title">Submission Detail</h1>
+    <div class="page-header__actions">
+      <a href="/admin/submissions" class="btn btn--ghost">Back</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <span class="badge badge--<%= submission.form_type %>"><%= submission.form_type %></span>
+      &nbsp;
+      <span class="text-muted"><%= new Date(submission.created_at).toLocaleString() %></span>
+      &nbsp;
+      <% if (submission.read) { %>
+        <span class="text-muted">Read</span>
+      <% } else { %>
+        <span class="badge badge--new">New</span>
+      <% } %>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+      <form method="POST" action="/admin/submissions/<%= submission.id %>/toggle-read" style="display:inline;">
+        <button type="submit" class="btn btn--ghost btn--sm"><%= submission.read ? 'Mark Unread' : 'Mark Read' %></button>
+      </form>
+      <form method="POST" action="/admin/submissions/<%= submission.id %>/delete" style="display:inline;" onsubmit="return confirm('Permanently delete this submission?')">
+        <button type="submit" class="btn btn--sm" style="color:var(--danger);">Delete</button>
+      </form>
+    </div>
+  </div>
+  <div class="card__body">
+    <table class="table">
+      <tbody>
+        <% for (const [key, value] of Object.entries(data)) { %>
+          <% if (key === 'access_key' || key === 'botcheck') continue; %>
+          <tr>
+            <td style="width:180px; font-weight:600; text-transform:capitalize;"><%= key.replace(/_/g, ' ') %></td>
+            <td><%= String(value) %></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if (submission.form_type === 'volunteer' && data.email) { %>
+<div class="card" style="margin-top:1rem;">
+  <div class="card__body">
+    <form method="POST" action="/admin/submissions/<%= submission.id %>/create-member" onsubmit="return confirm('Create a member portal account for this volunteer?');">
+      <button type="submit" class="btn btn--primary">Create Volunteer Portal Account</button>
+      <span class="text-muted" style="margin-left:0.5rem;">from this application</span>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (submission.form_type === 'board_application' && data.email) { %>
+<div class="card" style="margin-top:1rem;">
+  <div class="card__body">
+    <form method="POST" action="/admin/submissions/<%= submission.id %>/create-director" onsubmit="return confirm('Create a Director Portal account from this application?');">
+      <button type="submit" class="btn btn--primary" style="background:var(--color-accent); color:#fff;">Create Director Account</button>
+      <span class="text-muted" style="margin-left:0.5rem;">from this board application</span>
+    </form>
+  </div>
+</div>
+<% } %>

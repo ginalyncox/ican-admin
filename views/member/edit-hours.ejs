@@ -1,0 +1,44 @@
+<div class="page-header">
+  <h1 class="page-header__title">Edit Hour Entry</h1>
+  <p class="page-header__subtitle">You can edit entries within 7 days of creation</p>
+</div>
+
+<div class="card" style="padding: 1.5rem; max-width: 600px;">
+  <form method="POST" action="/member/hours/<%= entry.id %>/edit">
+    <div class="form-group">
+      <label class="form-label">Program</label>
+      <input type="text" class="form-control" value="<%= (programInfo[entry.program] || {}).label || entry.program %>" disabled>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" name="work_date" class="form-control" value="<%= entry.work_date %>" required max="<%= new Date().toISOString().split('T')[0] %>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Hours</label>
+      <input type="number" name="hours" class="form-control" value="<%= entry.hours %>" required step="0.25" min="0.25" max="24">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Activity</label>
+      <input type="text" name="activity" class="form-control" value="<%= entry.activity || '' %>" placeholder="What did you work on?">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="3" placeholder="Optional notes"><%= entry.notes || '' %></textarea>
+    </div>
+
+    <div class="form-actions" style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.25rem;">
+      <button type="submit" class="btn btn--primary">Save Changes</button>
+      <a href="/member/my-hours" class="btn btn--outline">Cancel</a>
+    </div>
+  </form>
+
+  <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);">
+
+  <form method="POST" action="/member/hours/<%= entry.id %>/delete" onsubmit="return confirm('Delete this hour entry? This cannot be undone.')">
+    <button type="submit" class="btn btn--danger btn--sm">Delete This Entry</button>
+  </form>
+</div>

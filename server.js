@@ -6,12 +6,27 @@ const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 const isProd = process.env.NODE_ENV === 'production';
 
 // Trust proxy in production (Render)
 if (isProd) app.set('trust proxy', 1);
+
+// Security headers (CSP disabled — inline styles/scripts used throughout)
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Rate limiting for login endpoints — 5 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many login attempts. Please try again in 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Database setup — persistent disk on Render Starter, local file for dev
 const dbDir = path.join(__dirname, 'db');
@@ -71,6 +86,35 @@ for (const [col, type] of gardenerCols) {
 try {
   db.exec(`ALTER TABLE garden_hours ADD COLUMN program TEXT DEFAULT 'victory_garden'`);
 } catch (e) { /* column already exists */ }
+
+// Migration — document acknowledgment tracking
+try { db.exec(`ALTER TABLE member_credentials ADD COLUMN documents_acknowledged INTEGER DEFAULT 0`); } catch (e) { /* exists */ }
+try { db.exec(`ALTER TABLE board_members ADD COLUMN documents_acknowledged INTEGER DEFAULT 0`); } catch (e) { /* exists */ }
+db.exec(`CREATE TABLE IF NOT EXISTS document_acknowledgments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL REFERENCES board_documents(id),
+  user_type TEXT NOT NULL CHECK(user_type IN ('volunteer', 'director')),
+  user_id INTEGER NOT NULL,
+  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ip_address TEXT,
+  UNIQUE(document_id, user_type, user_id)
+)`);
+
+// Migration — event RSVP tracking
+db.exec(`CREATE TABLE IF NOT EXISTS event_rsvps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  gardener_id INTEGER NOT NULL REFERENCES gardeners(id),
+  status TEXT NOT NULL DEFAULT 'going' CHECK(status IN ('going', 'interested')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(event_id, gardener_id)
+)`);
+
+// Migration — performance indexes
+const indexSql = fs.readFileSync(path.join(__dirname, 'migrations', '006-indexes.sql'), 'utf8');
+db.exec(indexSql);
+
+try { db.exec(`ALTER TABLE board_votes ADD COLUMN resolution_number TEXT`); } catch (e) { /* exists */ }
 
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
@@ -133,6 +177,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Apply rate limiting to all login POST routes
+app.post('/admin/login', loginLimiter);
+app.post('/member/login', loginLimiter);
+app.post('/director/login', loginLimiter);
+
 // Routes
 app.use('/admin', require('./routes/auth'));
 app.use('/admin', require('./routes/dashboard'));
@@ -148,6 +197,7 @@ app.use('/admin/board', require('./routes/board-admin'));
 app.use('/admin/directory', require('./routes/directory'));
 app.use('/admin/messages', require('./routes/messages'));
 app.use('/admin/reports', require('./routes/reports'));
+app.use('/admin/search', require('./routes/search'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');

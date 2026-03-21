@@ -141,6 +141,29 @@ const programDetails = {
 </div>
 <% } %>
 
+<% if (deniedApps.length > 0) { %>
+<h3 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--text);">Denied Applications</h3>
+<div class="portal-grid" style="margin-bottom: 1.5rem;">
+  <% deniedApps.forEach(da => { %>
+    <% const info = programInfo[da.program] || { label: da.program, color: 'var(--text)', description: '' }; %>
+    <div class="card" style="border-left: 3px solid var(--danger);">
+      <div class="card__body">
+        <h2 class="card__title" style="font-size: 1rem; margin-bottom: 0.5rem;"><%= info.label %></h2>
+        <p style="font-size: 0.8rem; color: var(--color-muted); margin-bottom: 0.5rem;">
+          <span class="badge badge--danger">Denied</span>
+          &nbsp; Applied: <%= new Date(da.created_at).toLocaleDateString() %>
+        </p>
+        <% if (da.note) { %>
+          <div style="background: var(--danger-light, #fff5f5); border: 1px solid var(--danger, #dc3545); border-radius: var(--radius-sm, 4px); padding: 0.5rem 0.75rem; font-size: 0.85rem; color: var(--text);">
+            <strong>Reason:</strong> <%= da.note %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+</div>
+<% } %>
+
 <% if (availablePrograms.length > 0) { %>
 <h3 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--text);">Available Programs</h3>
 <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1rem;">Apply for additional volunteer programs below.</p>

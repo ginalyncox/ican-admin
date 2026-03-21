@@ -19,6 +19,7 @@
     <% if (submissions.length === 0) { %>
       <p class="empty-state">No submissions found.</p>
     <% } else { %>
+      <div class="table-responsive">
       <table class="table">
         <thead>
           <tr>
@@ -52,9 +53,9 @@
               </td>
               <td class="text-muted"><%= new Date(sub.created_at).toLocaleDateString() %></td>
               <td class="actions-cell">
-                <button class="btn btn--sm btn--ghost" onclick="viewSubmission(<%= sub.id %>)" title="View details">
+                <a href="/admin/submissions/<%= sub.id %>" class="btn btn--sm btn--ghost" title="View details">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+                </a>
                 <% if (sub.form_type === 'volunteer' && data.email) { %>
                   <form method="POST" action="/admin/submissions/<%= sub.id %>/create-member" style="display:inline" onsubmit="return confirm('Create a member portal account for <%= (data.first_name || data.name || data.email).replace(/'/g, '') %>?');">
                     <button type="submit" class="btn btn--sm btn--primary" title="Create member portal account">
@@ -78,67 +79,17 @@
                     <% } %>
                   </button>
                 </form>
+                <form method="POST" action="/admin/submissions/<%= sub.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this submission?')">
+                  <button type="submit" class="btn btn--sm btn--ghost" style="color:var(--danger);" title="Delete">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </form>
               </td>
             </tr>
           <% }) %>
         </tbody>
       </table>
+      </div>
     <% } %>
   </div>
 </div>
-
-<!-- Submission Detail Modal -->
-<div class="modal" id="submissionModal">
-  <div class="modal__backdrop" onclick="closeModal()"></div>
-  <div class="modal__content">
-    <div class="modal__header">
-      <h2 class="modal__title">Submission Details</h2>
-      <button class="modal__close" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal__body" id="submissionDetail">
-      <p>Loading...</p>
-    </div>
-  </div>
-</div>
-
-<script>
-function viewSubmission(id) {
-  const modal = document.getElementById('submissionModal');
-  const detail = document.getElementById('submissionDetail');
-  detail.innerHTML = '<p>Loading...</p>';
-  modal.classList.add('modal--open');
-
-  fetch(`/admin/submissions/${id}`)
-    .then(r => r.json())
-    .then(result => {
-      if (result.success) {
-        const sub = result.submission;
-        let html = `<div class="submission-detail">`;
-        html += `<div class="submission-detail__row"><strong>Type:</strong> <span class="badge badge--${sub.form_type}">${sub.form_type}</span></div>`;
-        html += `<div class="submission-detail__row"><strong>Received:</strong> ${new Date(sub.created_at).toLocaleString()}</div>`;
-        html += `<hr>`;
-        for (const [key, value] of Object.entries(sub.data)) {
-          if (key === 'access_key' || key === 'botcheck') continue;
-          html += `<div class="submission-detail__row"><strong>${key.replace(/_/g, ' ')}:</strong> ${escapeHtml(String(value))}</div>`;
-        }
-        html += `</div>`;
-        detail.innerHTML = html;
-      }
-    })
-    .catch(() => { detail.innerHTML = '<p>Failed to load submission.</p>'; });
-}
-
-function closeModal() {
-  document.getElementById('submissionModal').classList.remove('modal--open');
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
-});
-</script>

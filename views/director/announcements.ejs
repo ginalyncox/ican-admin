@@ -79,6 +79,7 @@
               </form>
             <% } %>
             <% if (a.author_id === director.id || director.isOfficer) { %>
+              <a href="/director/announcements/<%= a.id %>/edit" class="btn btn--outline btn--xs">Edit</a>
               <form method="POST" action="/director/announcements/<%= a.id %>/pin">
                 <button type="submit" class="btn btn--outline btn--xs"><%= a.pinned ? 'Unpin' : 'Pin' %></button>
               </form>

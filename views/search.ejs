@@ -1,0 +1,165 @@
+<div class="page-header">
+  <h1 class="page-header__title">Search</h1>
+</div>
+
+<form method="GET" action="/admin/search" class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; gap: 0.5rem;">
+    <input type="text" name="q" value="<%= query %>" placeholder="Search volunteers, subscribers, board members, posts..." 
+      class="form-control" style="flex: 1;" autofocus>
+    <button type="submit" class="btn btn--primary">Search</button>
+  </div>
+</form>
+
+<% if (results) { %>
+  <p style="color: var(--text-muted); margin-bottom: 1rem;"><%= results.totalResults %> result<%= results.totalResults !== 1 ? 's' : '' %> for "<strong><%= query %></strong>"</p>
+
+  <% if (results.volunteers.length > 0) { %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 0.95rem; font-weight: 600;">Volunteers (<%= results.volunteers.length %>)</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% results.volunteers.forEach(v => { %>
+          <tr>
+            <td><strong><%= v.first_name %> <%= v.last_name %></strong></td>
+            <td><%= v.email || '—' %></td>
+            <td><span class="badge badge--<%= v.status === 'active' ? 'success' : 'default' %>"><%= v.status %></span></td>
+            <td><a href="/admin/garden/gardeners/<%= v.id %>" class="btn btn--sm">View</a></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (results.boardMembers.length > 0) { %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 0.95rem; font-weight: 600;">Board Members (<%= results.boardMembers.length %>)</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Title</th><th>Email</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% results.boardMembers.forEach(m => { %>
+          <tr>
+            <td><strong><%= m.first_name %> <%= m.last_name %></strong></td>
+            <td><%= m.officer_title || m.title || 'Director' %></td>
+            <td><%= m.email %></td>
+            <td><span class="badge badge--<%= m.status === 'active' ? 'success' : m.status === 'locked' ? 'danger' : 'default' %>"><%= m.status %></span></td>
+            <td><a href="/admin/board/<%= m.id %>/edit" class="btn btn--sm">Edit</a></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (results.subscribers.length > 0) { %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 0.95rem; font-weight: 600;">Subscribers (<%= results.subscribers.length %>)</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Email</th><th>Name</th><th>Source</th><th>Status</th></tr></thead>
+        <tbody>
+          <% results.subscribers.forEach(s => { %>
+          <tr>
+            <td><%= s.email %></td>
+            <td><%= s.name || '—' %></td>
+            <td><%= s.source %></td>
+            <td><span class="badge badge--<%= s.status === 'active' ? 'success' : 'default' %>"><%= s.status %></span></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (results.posts.length > 0) { %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 0.95rem; font-weight: 600;">Posts (<%= results.posts.length %>)</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Title</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+          <% results.posts.forEach(p => { %>
+          <tr>
+            <td><%= p.title %></td>
+            <td><span class="badge badge--<%= p.status === 'published' ? 'success' : 'default' %>"><%= p.status %></span></td>
+            <td><%= new Date(p.created_at).toLocaleDateString() %></td>
+            <td><a href="/admin/posts/<%= p.id %>/edit" class="btn btn--sm">Edit</a></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (results.events.length > 0) { %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 0.95rem; font-weight: 600;">Events (<%= results.events.length %>)</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Title</th><th>Date</th><th>Type</th></tr></thead>
+        <tbody>
+          <% results.events.forEach(e => { %>
+          <tr>
+            <td><%= e.title %></td>
+            <td><%= e.event_date %></td>
+            <td><%= e.event_type %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (results.submissions.length > 0) { %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 0.95rem; font-weight: 600;">Submissions (<%= results.submissions.length %>)</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Type</th><th>Date</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% results.submissions.forEach(s => { %>
+          <tr>
+            <td><%= s.form_type %></td>
+            <td><%= new Date(s.created_at).toLocaleDateString() %></td>
+            <td><%= s.read ? 'Read' : 'Unread' %></td>
+            <td><a href="/admin/submissions/<%= s.id %>" class="btn btn--sm">View</a></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (results.totalResults === 0) { %>
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <div class="empty-state__title">No results found</div>
+    <div class="empty-state__text">Try a different search term</div>
+  </div>
+  <% } %>
+<% } else if (query) { %>
+  <p style="color: var(--text-muted);">Please enter at least 2 characters to search.</p>
+<% } %>

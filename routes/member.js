@@ -1,5 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
 const { requireMember } = require('../middleware/member-auth');
 const { PROGRAM_INFO, VALID_PROGRAMS } = require('../lib/constants');
 const router = express.Router();
@@ -18,15 +20,20 @@ router.post('/login', (req, res) => {
     return res.render('member/login', { title: 'Volunteer Login', error: 'Email and password are required.', layout: false });
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
   const cred = db.prepare(`
-    SELECT mc.*, g.first_name, g.last_name, g.id as gardener_id
+    SELECT mc.*, g.first_name, g.last_name, g.id as gardener_id, g.status as gardener_status
     FROM member_credentials mc
     JOIN gardeners g ON mc.gardener_id = g.id
     WHERE mc.email = ?
-  `).get(email);
+  `).get(normalizedEmail);
 
   if (!cred) {
     return res.render('member/login', { title: 'Volunteer Login', error: 'Invalid email or password.', layout: false });
+  }
+
+  if (cred.gardener_status !== 'active') {
+    return res.render('member/login', { title: 'Volunteer Login', error: 'Your account is not active. Please contact the administrator.', layout: false });
   }
 
   const valid = bcrypt.compareSync(password, cred.password_hash);
@@ -53,11 +60,9 @@ router.post('/login', (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  delete req.session.memberId;
-  delete req.session.memberGardenerId;
-  delete req.session.memberName;
-  delete req.session.memberEmail;
-  res.redirect('/member/login');
+  req.session.destroy(() => {
+    res.redirect('/member/login');
+  });
 });
 
 // ── ONBOARDING ──────────────────────────────────────────────
@@ -71,20 +76,20 @@ router.get('/onboarding', requireMember, (req, res) => {
     return res.redirect('/member');
   }
 
-  // Determine current step (5 steps now)
+  // Determine current step (6 steps: password, personal, preferences, programs, documents, welcome)
   let step = 'password';
   if (!cred.must_change_password) {
     step = 'personal';
-    // Personal info complete when phone, email, and emergency contact filled
     if (gardener.phone && gardener.email && gardener.emergency_contact_name) {
       step = 'preferences';
-      // Preferences complete when availability is set
       if (gardener.availability) {
         step = 'programs';
-        // Programs step complete when at least one application exists
         const hasApplied = db.prepare('SELECT COUNT(*) as c FROM program_applications WHERE volunteer_id = ?').get(gardener.id).c;
         if (hasApplied > 0) {
-          step = 'welcome';
+          step = 'documents';
+          if (cred.documents_acknowledged) {
+            step = 'welcome';
+          }
         }
       }
     }
@@ -96,6 +101,16 @@ router.get('/onboarding', requireMember, (req, res) => {
   const existingApps = db.prepare('SELECT program, status FROM program_applications WHERE volunteer_id = ?').all(gardener.id);
   const appliedPrograms = existingApps.map(a => a.program);
 
+  // Get volunteer-facing documents for acknowledgment step
+  const volDocs = db.prepare(`
+    SELECT d.id, d.title, d.category, d.original_name
+    FROM board_documents d
+    JOIN board_resources r ON r.document_id = d.id
+    WHERE r.category NOT IN ('governance', 'compliance')
+    AND d.is_confidential = 0
+    ORDER BY d.title
+  `).all();
+
   res.render('member/onboarding', {
     title: 'Welcome — Get Started',
     gardener,
@@ -103,6 +118,7 @@ router.get('/onboarding', requireMember, (req, res) => {
     step,
     programInfo,
     appliedPrograms,
+    volDocs,
     layout: 'member/layout'
   });
 });
@@ -195,7 +211,42 @@ router.post('/onboarding/programs', requireMember, (req, res) => {
   res.redirect('/member/onboarding');
 });
 
-// Onboarding Step 5: Complete onboarding
+// Onboarding Step 5: Acknowledge documents
+router.post('/onboarding/documents', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const acknowledged = req.body.acknowledged_docs || [];
+  const docsToAck = Array.isArray(acknowledged) ? acknowledged : [acknowledged];
+
+  // Get the volunteer-facing documents that require acknowledgment
+  const volDocs = db.prepare(`
+    SELECT d.id FROM board_documents d
+    JOIN board_resources r ON r.document_id = d.id
+    WHERE r.category NOT IN ('governance', 'compliance')
+    AND d.is_confidential = 0
+  `).all();
+  const requiredIds = volDocs.map(d => String(d.id));
+
+  // Check all docs are acknowledged
+  const allChecked = requiredIds.length === 0 || requiredIds.every(id => docsToAck.includes(id));
+  if (!allChecked) {
+    req.session.memberFlash = { type: 'error', message: 'Please acknowledge all documents before continuing.' };
+    return res.redirect('/member/onboarding');
+  }
+
+  // Record each acknowledgment
+  const ip = req.ip || req.connection.remoteAddress;
+  const insertAck = db.prepare(`INSERT OR IGNORE INTO document_acknowledgments (document_id, user_type, user_id, ip_address) VALUES (?, 'volunteer', ?, ?)`);
+  for (const docId of docsToAck) {
+    insertAck.run(parseInt(docId), gid, ip);
+  }
+
+  db.prepare('UPDATE member_credentials SET documents_acknowledged = 1 WHERE id = ?').run(req.session.memberId);
+  req.session.memberFlash = { type: 'success', message: 'Documents acknowledged. Welcome to ICAN!' };
+  res.redirect('/member/onboarding');
+});
+
+// Onboarding Step 6: Complete onboarding
 router.post('/onboarding/complete', requireMember, (req, res) => {
   const db = req.app.locals.db;
 
@@ -421,32 +472,42 @@ router.post('/apply-program', requireMember, (req, res) => {
 router.get('/leaderboard', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
+  const programFilter = req.query.program || '';
 
   const harvestLeaders = db.prepare(`
     SELECT g.id, g.first_name, g.last_name, gs.name as site_name,
            COALESCE(SUM(h.pounds), 0) as total_lbs
     FROM gardeners g
-    LEFT JOIN garden_harvests h ON g.id = h.gardener_id
+    INNER JOIN garden_harvests h ON g.id = h.gardener_id
     LEFT JOIN garden_sites gs ON g.site_id = gs.id
     WHERE g.status = 'active'
-    GROUP BY g.id ORDER BY total_lbs DESC
+    GROUP BY g.id HAVING total_lbs > 0 ORDER BY total_lbs DESC
   `).all();
+
+  let hoursWhere = "WHERE g.status = 'active'";
+  const hoursParams = [];
+  if (programFilter && VALID_PROGRAMS.includes(programFilter)) {
+    hoursWhere += ' AND vh.program = ?';
+    hoursParams.push(programFilter);
+  }
 
   const hoursLeaders = db.prepare(`
     SELECT g.id, g.first_name, g.last_name, gs.name as site_name,
            COALESCE(SUM(vh.hours), 0) as total_hrs
     FROM gardeners g
-    LEFT JOIN garden_hours vh ON g.id = vh.gardener_id
+    INNER JOIN garden_hours vh ON g.id = vh.gardener_id
     LEFT JOIN garden_sites gs ON g.site_id = gs.id
-    WHERE g.status = 'active'
-    GROUP BY g.id ORDER BY total_hrs DESC
-  `).all();
+    ${hoursWhere}
+    GROUP BY g.id HAVING total_hrs > 0 ORDER BY total_hrs DESC
+  `).all(...hoursParams);
 
   res.render('member/leaderboard', {
     title: 'Leaderboard',
     harvestLeaders,
     hoursLeaders,
     myId: gid,
+    programFilter,
+    programInfo: PROGRAM_INFO,
     layout: 'member/layout'
   });
 });
@@ -471,6 +532,50 @@ router.get('/awards', requireMember, (req, res) => {
   });
 });
 
+// ── MY HARVESTS (full history + pagination) ─────────────────
+router.get('/my-harvests', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const { season, page: pageStr } = req.query;
+  const page = Math.max(1, parseInt(pageStr) || 1);
+  const perPage = 20;
+
+  let where = 'WHERE gardener_id = ?';
+  const params = [gid];
+  if (season) { where += ' AND season_id = ?'; params.push(season); }
+
+  const totalCount = db.prepare(`SELECT COUNT(*) as c FROM garden_harvests ${where}`).get(...params).c;
+  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+  const offset = (page - 1) * perPage;
+
+  const harvests = db.prepare(`SELECT gh.*, gs.name as season_name FROM garden_harvests gh LEFT JOIN garden_seasons gs ON gh.season_id = gs.id ${where} ORDER BY gh.harvest_date DESC LIMIT ? OFFSET ?`).all(...params, perPage, offset);
+
+  const totalLbs = db.prepare(`SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests ${where}`).get(...params).c;
+  const totalDonatedLbs = db.prepare(`SELECT COALESCE(SUM(pounds), 0) as c FROM garden_harvests ${where} AND donated = 1`).get(...params).c;
+
+  const seasons = db.prepare("SELECT * FROM garden_seasons ORDER BY year DESC").all();
+
+  // Monthly breakdown
+  const monthlyData = db.prepare(`
+    SELECT strftime('%Y-%m', harvest_date) as month, COALESCE(SUM(pounds), 0) as total, COUNT(*) as entries
+    FROM garden_harvests ${where} GROUP BY month ORDER BY month DESC
+  `).all(...params);
+
+  res.render('member/my-harvests', {
+    title: 'My Harvests',
+    harvests,
+    totalLbs,
+    totalDonatedLbs,
+    totalCount,
+    seasons,
+    monthlyData,
+    filters: { season: season || '' },
+    page,
+    totalPages,
+    layout: 'member/layout'
+  });
+});
+
 // ── SELF-REPORTING: LOG HARVEST ─────────────────────────────
 router.get('/log-harvest', requireMember, (req, res) => {
   const db = req.app.locals.db;
@@ -489,9 +594,34 @@ router.post('/log-harvest', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const gid = req.session.memberGardenerId;
   const { season_id, harvest_date, crop, pounds, donated, donated_to, notes } = req.body;
+
+  // Validation
+  const lbs = parseFloat(pounds);
+  if (!lbs || lbs <= 0) {
+    req.session.memberFlash = { type: 'error', message: 'Pounds must be greater than zero.' };
+    return res.redirect('/member/log-harvest');
+  }
+  if (lbs > 500) {
+    req.session.memberFlash = { type: 'error', message: 'Pounds cannot exceed 500. Please double-check your entry.' };
+    return res.redirect('/member/log-harvest');
+  }
+  if (!harvest_date) {
+    req.session.memberFlash = { type: 'error', message: 'Harvest date is required.' };
+    return res.redirect('/member/log-harvest');
+  }
+  const today = new Date().toISOString().split('T')[0];
+  if (harvest_date > today) {
+    req.session.memberFlash = { type: 'error', message: 'Harvest date cannot be in the future.' };
+    return res.redirect('/member/log-harvest');
+  }
+  if (!crop || !crop.trim()) {
+    req.session.memberFlash = { type: 'error', message: 'Crop name is required.' };
+    return res.redirect('/member/log-harvest');
+  }
+
   try {
     db.prepare("INSERT INTO garden_harvests (gardener_id, season_id, harvest_date, crop, pounds, donated, donated_to, donation_status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)")
-      .run(gid, season_id || null, harvest_date, crop, parseFloat(pounds) || 0, donated ? 1 : 0, donated_to || null, notes || null);
+      .run(gid, season_id || null, harvest_date, crop.trim(), lbs, donated ? 1 : 0, donated_to || null, notes || null);
     req.session.memberFlash = { type: 'success', message: 'Harvest logged successfully.' };
   } catch (err) {
     req.session.memberFlash = { type: 'error', message: 'Failed to log harvest.' };
@@ -511,6 +641,7 @@ router.get('/log-hours', requireMember, (req, res) => {
     seasons,
     memberPrograms,
     selectedProgram,
+    programInfo: PROGRAM_INFO,
     layout: 'member/layout'
   });
 });
@@ -525,9 +656,30 @@ router.post('/log-hours', requireMember, (req, res) => {
     req.session.memberFlash = { type: 'error', message: 'Please select a valid program.' };
     return res.redirect('/member/log-hours');
   }
+
+  // Validation
+  const hrs = parseFloat(hours);
+  if (!hrs || hrs <= 0) {
+    req.session.memberFlash = { type: 'error', message: 'Hours must be greater than zero.' };
+    return res.redirect('/member/log-hours');
+  }
+  if (hrs > 24) {
+    req.session.memberFlash = { type: 'error', message: 'Hours cannot exceed 24 in a single entry.' };
+    return res.redirect('/member/log-hours');
+  }
+  if (!work_date) {
+    req.session.memberFlash = { type: 'error', message: 'Work date is required.' };
+    return res.redirect('/member/log-hours');
+  }
+  const today = new Date().toISOString().split('T')[0];
+  if (work_date > today) {
+    req.session.memberFlash = { type: 'error', message: 'Work date cannot be in the future.' };
+    return res.redirect('/member/log-hours');
+  }
+
   try {
     db.prepare("INSERT INTO garden_hours (gardener_id, program, season_id, work_date, hours, activity, notes) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .run(gid, program, (program === 'victory_garden' && season_id) ? season_id : null, work_date, parseFloat(hours) || 0, activity || null, notes || null);
+      .run(gid, program, (program === 'victory_garden' && season_id) ? season_id : null, work_date, hrs, activity || null, notes || null);
     req.session.memberFlash = { type: 'success', message: 'Volunteer hours logged.' };
   } catch (err) {
     req.session.memberFlash = { type: 'error', message: 'Failed to log hours.' };
@@ -576,11 +728,29 @@ router.post('/profile', requireMember, (req, res) => {
   const { email: gardenerEmail, phone, address, city, state, zip, date_of_birth,
     emergency_contact_name, emergency_contact_phone, tshirt_size, skills, availability } = req.body;
 
+  // Required field validation
+  if (!phone || !phone.trim()) {
+    req.session.memberFlash = { type: 'error', message: 'Phone number is required.' };
+    return res.redirect('/member/profile');
+  }
+  if (!gardenerEmail || !gardenerEmail.trim()) {
+    req.session.memberFlash = { type: 'error', message: 'Email address is required.' };
+    return res.redirect('/member/profile');
+  }
+  if (!emergency_contact_name || !emergency_contact_name.trim()) {
+    req.session.memberFlash = { type: 'error', message: 'Emergency contact name is required.' };
+    return res.redirect('/member/profile');
+  }
+  if (!emergency_contact_phone || !emergency_contact_phone.trim()) {
+    req.session.memberFlash = { type: 'error', message: 'Emergency contact phone is required.' };
+    return res.redirect('/member/profile');
+  }
+
   db.prepare(`UPDATE gardeners SET email = ?, phone = ?, address = ?, city = ?, state = ?, zip = ?,
     date_of_birth = ?, emergency_contact_name = ?, emergency_contact_phone = ?,
     tshirt_size = ?, skills = ?, availability = ? WHERE id = ?`)
-    .run(gardenerEmail || null, phone || null, address || null, city || null, state || null, zip || null,
-      date_of_birth || null, emergency_contact_name || null, emergency_contact_phone || null,
+    .run(gardenerEmail.trim(), phone.trim(), address || null, city || null, state || null, zip || null,
+      date_of_birth || null, emergency_contact_name.trim(), emergency_contact_phone.trim(),
       tshirt_size || null, skills || null, availability || null, gid);
 
   req.session.memberFlash = { type: 'success', message: 'Profile updated.' };
@@ -621,18 +791,39 @@ router.post('/change-password', requireMember, (req, res) => {
 router.get('/mailbox', requireMember, (req, res) => {
   const db = req.app.locals.db;
   const memberId = req.session.memberId;
-  // Get member's programs for targeted messages
   const gid = req.session.memberGardenerId;
   const memberProgs = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(r => r.program);
-  // Get all messages: general ones + program-targeted ones matching member's programs
-  const messages = db.prepare(`
+  const { search, type, from, to } = req.query;
+
+  let messages = db.prepare(`
     SELECT m.*, mr.read_at
     FROM member_messages m
     LEFT JOIN member_message_reads mr ON mr.message_id = m.id AND mr.member_id = ?
     WHERE m.target_program IS NULL OR m.target_program IN (${memberProgs.map(() => '?').join(',') || "''"})
     ORDER BY m.created_at DESC
   `).all(memberId, ...memberProgs);
-  res.render('member/mailbox', { title: 'Mailbox', messages, layout: 'member/layout' });
+
+  // Apply client-side filters
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    messages = messages.filter(m => (m.subject || '').toLowerCase().includes(q) || (m.body || '').toLowerCase().includes(q));
+  }
+  if (type) {
+    messages = messages.filter(m => m.message_type === type);
+  }
+  if (from) {
+    messages = messages.filter(m => m.created_at >= from);
+  }
+  if (to) {
+    messages = messages.filter(m => m.created_at.split('T')[0] <= to || m.created_at.split(' ')[0] <= to);
+  }
+
+  res.render('member/mailbox', {
+    title: 'Mailbox',
+    messages,
+    filters: { search: search || '', type: type || '', from: from || '', to: to || '' },
+    layout: 'member/layout'
+  });
 });
 
 router.get('/mailbox/:id', requireMember, (req, res) => {
@@ -647,6 +838,10 @@ router.get('/mailbox/:id', requireMember, (req, res) => {
   try {
     db.prepare('INSERT OR IGNORE INTO member_message_reads (message_id, member_id) VALUES (?, ?)').run(message.id, memberId);
   } catch (e) { /* already read */ }
+
+  const readRecord = db.prepare('SELECT read_at FROM member_message_reads WHERE message_id = ? AND member_id = ?').get(message.id, memberId);
+  message.read_at = readRecord ? readRecord.read_at : null;
+
   res.render('member/mailbox-detail', { title: message.subject, message, layout: 'member/layout' });
 });
 
@@ -656,6 +851,13 @@ router.post('/mailbox/:id/read', requireMember, (req, res) => {
     db.prepare('INSERT OR IGNORE INTO member_message_reads (message_id, member_id) VALUES (?, ?)').run(req.params.id, req.session.memberId);
   } catch (e) { /* already read */ }
   res.json({ success: true });
+});
+
+router.post('/mailbox/:id/unread', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  db.prepare('DELETE FROM member_message_reads WHERE message_id = ? AND member_id = ?').run(req.params.id, req.session.memberId);
+  req.session.memberFlash = { type: 'success', message: 'Message marked as unread.' };
+  res.redirect('/member/mailbox');
 });
 
 // ── MY HOURS (full history + export) ──────────────────────
@@ -754,6 +956,7 @@ router.get('/my-hours/export', requireMember, (req, res) => {
 // ── EVENTS CALENDAR ───────────────────────────────────
 router.get('/events', requireMember, (req, res) => {
   const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
   const filter = req.query.filter || 'upcoming';
 
   let events;
@@ -763,12 +966,48 @@ router.get('/events', requireMember, (req, res) => {
     events = db.prepare(`SELECT * FROM events WHERE event_date >= date('now') AND is_public = 1 ORDER BY event_date ASC`).all();
   }
 
+  // Attach RSVP info
+  const rsvps = db.prepare('SELECT event_id, status FROM event_rsvps WHERE gardener_id = ?').all(gid);
+  const rsvpMap = {};
+  for (const r of rsvps) { rsvpMap[r.event_id] = r.status; }
+
+  // Attach RSVP counts per event
+  const rsvpCounts = db.prepare("SELECT event_id, COUNT(*) as cnt FROM event_rsvps WHERE status = 'going' GROUP BY event_id").all();
+  const countMap = {};
+  for (const r of rsvpCounts) { countMap[r.event_id] = r.cnt; }
+
+  events = events.map(e => ({ ...e, myRsvp: rsvpMap[e.id] || null, goingCount: countMap[e.id] || 0 }));
+
   res.render('member/events', {
     title: 'Events',
     events,
     filter,
     layout: 'member/layout'
   });
+});
+
+router.post('/events/:id/rsvp', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const eventId = req.params.id;
+  const status = req.body.status;
+
+  const event = db.prepare('SELECT id FROM events WHERE id = ? AND is_public = 1').get(eventId);
+  if (!event) {
+    req.session.memberFlash = { type: 'error', message: 'Event not found.' };
+    return res.redirect('/member/events');
+  }
+
+  if (status === 'cancel') {
+    db.prepare('DELETE FROM event_rsvps WHERE event_id = ? AND gardener_id = ?').run(eventId, gid);
+    req.session.memberFlash = { type: 'success', message: 'RSVP cancelled.' };
+  } else if (status === 'going' || status === 'interested') {
+    db.prepare('INSERT INTO event_rsvps (event_id, gardener_id, status) VALUES (?, ?, ?) ON CONFLICT(event_id, gardener_id) DO UPDATE SET status = ?')
+      .run(eventId, gid, status, status);
+    req.session.memberFlash = { type: 'success', message: status === 'going' ? "You're going!" : 'Marked as interested.' };
+  }
+
+  res.redirect('/member/events' + (req.query.filter ? '?filter=' + req.query.filter : ''));
 });
 
 // ── RESOURCE CENTER ───────────────────────────────────
@@ -788,6 +1027,97 @@ router.get('/resources', requireMember, (req, res) => {
     programInfo: PROGRAM_INFO,
     layout: 'member/layout'
   });
+});
+
+// ── DOCUMENT DOWNLOADS (for volunteer resources) ─────
+router.get('/resources/:id/download', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const doc = db.prepare('SELECT * FROM board_documents WHERE id = ? AND is_confidential = 0').get(req.params.id);
+  if (!doc) {
+    req.session.memberFlash = { type: 'error', message: 'Document not found.' };
+    return res.redirect('/member/resources');
+  }
+  const filePath = path.join(__dirname, '..', 'uploads', 'board', doc.filename);
+  if (!fs.existsSync(filePath)) {
+    req.session.memberFlash = { type: 'error', message: 'File not found on server.' };
+    return res.redirect('/member/resources');
+  }
+  res.download(filePath, doc.original_name || doc.filename);
+});
+
+
+// ── EDIT HOUR ENTRY (within 7 days) ──────────────────────
+router.get('/hours/:id/edit', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const entry = db.prepare('SELECT * FROM garden_hours WHERE id = ? AND gardener_id = ?').get(req.params.id, gid);
+  if (!entry) {
+    req.session.memberFlash = { type: 'error', message: 'Hour entry not found.' };
+    return res.redirect('/member/my-hours');
+  }
+  // Check if within 7 days
+  const created = new Date(entry.log_date || entry.work_date);
+  const now = new Date();
+  const daysDiff = (now - created) / (1000 * 60 * 60 * 24);
+  if (daysDiff > 7) {
+    req.session.memberFlash = { type: 'error', message: 'Hour entries can only be edited within 7 days of creation.' };
+    return res.redirect('/member/my-hours');
+  }
+  const memberPrograms = db.prepare('SELECT program FROM volunteer_programs WHERE volunteer_id = ?').all(gid).map(p => p.program);
+  const seasons = db.prepare("SELECT * FROM garden_seasons WHERE status = 'active' ORDER BY year DESC").all();
+  res.render('member/edit-hours', {
+    title: 'Edit Hours',
+    entry,
+    seasons,
+    memberPrograms,
+    programInfo: PROGRAM_INFO,
+    layout: 'member/layout'
+  });
+});
+
+router.post('/hours/:id/edit', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const entry = db.prepare('SELECT * FROM garden_hours WHERE id = ? AND gardener_id = ?').get(req.params.id, gid);
+  if (!entry) {
+    req.session.memberFlash = { type: 'error', message: 'Hour entry not found.' };
+    return res.redirect('/member/my-hours');
+  }
+  const created = new Date(entry.log_date || entry.work_date);
+  const daysDiff = (new Date() - created) / (1000 * 60 * 60 * 24);
+  if (daysDiff > 7) {
+    req.session.memberFlash = { type: 'error', message: 'Hour entries can only be edited within 7 days.' };
+    return res.redirect('/member/my-hours');
+  }
+  const { work_date, hours, activity, notes } = req.body;
+  const hrs = parseFloat(hours);
+  if (!hrs || hrs <= 0 || hrs > 24) {
+    req.session.memberFlash = { type: 'error', message: 'Hours must be between 0 and 24.' };
+    return res.redirect('/member/hours/' + req.params.id + '/edit');
+  }
+  db.prepare('UPDATE garden_hours SET work_date = ?, hours = ?, activity = ?, notes = ? WHERE id = ? AND gardener_id = ?')
+    .run(work_date || entry.work_date, hrs, activity || null, notes || null, req.params.id, gid);
+  req.session.memberFlash = { type: 'success', message: 'Hour entry updated.' };
+  res.redirect('/member/my-hours');
+});
+
+router.post('/hours/:id/delete', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const entry = db.prepare('SELECT * FROM garden_hours WHERE id = ? AND gardener_id = ?').get(req.params.id, gid);
+  if (!entry) {
+    req.session.memberFlash = { type: 'error', message: 'Hour entry not found.' };
+    return res.redirect('/member/my-hours');
+  }
+  const created = new Date(entry.log_date || entry.work_date);
+  const daysDiff = (new Date() - created) / (1000 * 60 * 60 * 24);
+  if (daysDiff > 7) {
+    req.session.memberFlash = { type: 'error', message: 'Hour entries can only be deleted within 7 days.' };
+    return res.redirect('/member/my-hours');
+  }
+  db.prepare('DELETE FROM garden_hours WHERE id = ? AND gardener_id = ?').run(req.params.id, gid);
+  req.session.memberFlash = { type: 'success', message: 'Hour entry deleted.' };
+  res.redirect('/member/my-hours');
 });
 
 module.exports = router;

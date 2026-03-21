@@ -2,6 +2,9 @@
   <div>
     <a href="/director/meetings" class="text-muted" style="font-size: 0.85rem;">&larr; All Meetings</a>
     <h1 class="page-title"><%= meeting.title %></h1>
+  <div class="page-header__actions" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+    <a href="/director/meetings/<%= meeting.id %>/print" class="btn btn--outline btn--sm" target="_blank">🖨 Print Minutes</a>
+  </div>
     <p class="page-subtitle">
       <%= new Date(meeting.meeting_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>
       <% if (meeting.meeting_time) { %> &middot; <%= meeting.meeting_time %><% } %>

@@ -38,24 +38,32 @@
             </div>
             <div class="director-vote-card__actions">
               <% if (!myVotes[v.id]) { %>
-                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;">
+                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;" onsubmit="return confirm('Cast your vote FOR this motion?')">
                   <input type="hidden" name="vote" value="for">
                   <button type="submit" class="btn btn--sm" style="background:#2D6A3F;color:#fff;">Vote For</button>
                 </form>
-                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;">
+                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;" onsubmit="return confirm('Cast your vote AGAINST this motion?')">
                   <input type="hidden" name="vote" value="against">
                   <button type="submit" class="btn btn--sm" style="background:#c0392b;color:#fff;">Vote Against</button>
                 </form>
-                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;">
+                <form method="POST" action="/director/votes/<%= v.id %>/cast" style="display:inline;" onsubmit="return confirm('Record your ABSTENTION on this motion?')">
                   <input type="hidden" name="vote" value="abstain">
                   <button type="submit" class="btn btn--outline btn--sm">Abstain</button>
                 </form>
               <% } else { %>
                 <span class="badge badge--garden">You voted: <%= myVotes[v.id] %></span>
               <% } %>
-              <form method="POST" action="/director/votes/<%= v.id %>/close" style="display:inline; margin-left:0.5rem;">
-                <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Close this vote? The result will be calculated based on current tallies.')">Close Vote</button>
-              </form>
+              <% if (typeof director !== 'undefined' && director && director.isOfficer) { %>
+                <form method="POST" action="/director/votes/<%= v.id %>/close" style="display:inline; margin-left:0.5rem;" onsubmit="return confirm('Close this vote? The result will be calculated based on current tallies.')">
+                  <button type="submit" class="btn btn--outline btn--sm">Close Vote</button>
+                </form>
+                <form method="POST" action="/director/votes/<%= v.id %>/table" style="display:inline;" onsubmit="return confirm('Table this motion? It will be set aside for future consideration.')">
+                  <button type="submit" class="btn btn--outline btn--sm">Table</button>
+                </form>
+                <form method="POST" action="/director/votes/<%= v.id %>/withdraw" style="display:inline;" onsubmit="return confirm('Withdraw this motion? It will be permanently removed from voting.')">
+                  <button type="submit" class="btn btn--outline btn--sm" style="color:#c0392b">Withdraw</button>
+                </form>
+              <% } %>
             </div>
           </div>
         </div>
@@ -93,7 +101,9 @@
               <td><%= v.votes_for %></td>
               <td><%= v.votes_against %></td>
               <td><%= v.votes_abstain %></td>
-              <td><span class="badge badge--<%= v.status === 'passed' ? 'garden' : v.status === 'failed' ? 'social' : 'meeting' %>"><%= v.status %></span></td>
+              <td>
+          <% if (v.resolution_number) { %><span style="font-size: 0.72rem; color: var(--primary); font-weight: 600; display: block; margin-bottom: 0.15rem;"><%= v.resolution_number %></span><% } %>
+          <span class="badge badge--<%= v.status === 'passed' ? 'garden' : v.status === 'failed' ? 'social' : 'meeting' %>"><%= v.status %></span></td>
               <td class="text-muted"><%= v.voted_at ? new Date(v.voted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' %></td>
             </tr>
           <% }); %>
@@ -119,16 +129,27 @@
         <label for="motion_text">Full Motion Text</label>
         <textarea id="motion_text" name="motion_text" class="form-control" rows="5" required placeholder="The full text of the motion..."></textarea>
       </div>
-      <div class="form-group">
-        <label for="motion_type">Type</label>
-        <select id="motion_type" name="motion_type" class="form-control">
-          <option value="resolution">Resolution</option>
-          <option value="policy">Policy</option>
-          <option value="budget">Budget</option>
-          <option value="appointment">Appointment</option>
-          <option value="amendment">Amendment</option>
-          <option value="other">Other</option>
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="motion_type">Type</label>
+          <select id="motion_type" name="motion_type" class="form-control">
+            <option value="resolution">Resolution</option>
+            <option value="policy">Policy</option>
+            <option value="budget">Budget</option>
+            <option value="appointment">Appointment</option>
+            <option value="amendment">Amendment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="meeting_id">Meeting (optional)</label>
+          <select id="meeting_id" name="meeting_id" class="form-control">
+            <option value="">— No meeting —</option>
+            <% if (typeof recentMeetings !== 'undefined') { recentMeetings.forEach(m => { %>
+              <option value="<%= m.id %>"><%= m.title %> (<%= m.meeting_date %>)</option>
+            <% }); } %>
+          </select>
+        </div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn--outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>

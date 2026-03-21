@@ -4,7 +4,17 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { requireDirector } = require('../middleware/director-auth');
+const { logActivity, getRecentActivity } = require('../lib/activity-log');
 const router = express.Router();
+
+// Helper: check if current director is an officer
+function requireOfficer(req, res) {
+  if (!req.session.directorIsOfficer) {
+    req.session.directorFlash = { type: 'error', message: 'This action is restricted to officers.' };
+    return false;
+  }
+  return true;
+}
 
 // File upload for board documents
 const boardUploadsDir = path.join(__dirname, '..', 'uploads', 'board');
@@ -43,9 +53,10 @@ router.post('/login', (req, res) => {
     return res.render('director/login', { title: 'Director Login', error: 'Email and password are required.', layout: false });
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
   const member = db.prepare(`
     SELECT * FROM board_members WHERE email = ?
-  `).get(email);
+  `).get(normalizedEmail);
 
   if (!member) {
     return res.render('director/login', { title: 'Director Login', error: 'Invalid email or password.', layout: false });
@@ -86,14 +97,9 @@ router.post('/login', (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  delete req.session.directorId;
-  delete req.session.directorBoardMemberId;
-  delete req.session.directorName;
-  delete req.session.directorEmail;
-  delete req.session.directorTitle;
-  delete req.session.directorIsOfficer;
-  delete req.session.directorOfficerTitle;
-  res.redirect('/director/login');
+  req.session.destroy(() => {
+    res.redirect('/director/login');
+  });
 });
 
 // ── ONBOARDING ──────────────────────────────────────────────
@@ -201,14 +207,41 @@ router.post('/onboarding/coi', requireDirector, (req, res) => {
 });
 
 // Onboarding Step 4: Complete onboarding
-router.post('/onboarding/complete', requireDirector, (req, res) => {
+// Onboarding Step 4: Acknowledge documents
+router.post('/onboarding/documents', requireDirector, (req, res) => {
   const db = req.app.locals.db;
   const mid = req.session.directorBoardMemberId;
+  const acknowledged = req.body.acknowledged_docs || [];
+  const docsToAck = Array.isArray(acknowledged) ? acknowledged : [acknowledged];
 
+  // Get required docs
+  const keyDocs = db.prepare(`SELECT id FROM board_documents WHERE category IN ('bylaws', 'policy', 'compliance')`).all();
+  const requiredIds = keyDocs.map(d => String(d.id));
+
+  // Check all required docs are acknowledged
+  const allChecked = requiredIds.every(id => docsToAck.includes(id));
+  if (!allChecked) {
+    req.session.directorFlash = { type: 'error', message: 'Please acknowledge all required documents before continuing.' };
+    return res.redirect('/director/onboarding');
+  }
+
+  // Record each acknowledgment
+  const ip = req.ip || req.connection.remoteAddress;
+  const insertAck = db.prepare(`INSERT OR IGNORE INTO document_acknowledgments (document_id, user_type, user_id, ip_address) VALUES (?, 'director', ?, ?)`);
+  for (const docId of docsToAck) {
+    insertAck.run(parseInt(docId), mid, ip);
+  }
+
+  db.prepare('UPDATE board_members SET documents_acknowledged = 1 WHERE id = ?').run(mid);
   db.prepare("UPDATE board_members SET onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(mid);
   req.session.directorOnboardingCompleted = 1;
   req.session.directorFlash = { type: 'success', message: 'Welcome aboard! Your onboarding is complete. You now have full access to the Board Portal.' };
   res.redirect('/director');
+});
+
+// Legacy complete route (redirect)
+router.post('/onboarding/complete', requireDirector, (req, res) => {
+  res.redirect('/director/onboarding');
 });
 
 // ── DASHBOARD ───────────────────────────────────────────────
@@ -296,6 +329,9 @@ router.get('/', requireDirector, (req, res) => {
     ORDER BY p.created_at DESC LIMIT 3
   `).all(mid);
 
+  // Recent activity
+  const recentActivity = getRecentActivity(db, 10);
+
   res.render('director/dashboard', {
     title: 'Board Dashboard',
     nextMeeting,
@@ -312,6 +348,7 @@ router.get('/', requireDirector, (req, res) => {
     myTasks,
     overdueCount,
     openPolls,
+    recentActivity,
     layout: 'director/layout'
   });
 });
@@ -430,6 +467,7 @@ router.get('/meetings/:id', requireDirector, (req, res) => {
 
 // Create new meeting (officers only)
 router.post('/meetings', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/meetings');
   const db = req.app.locals.db;
   const { title, meeting_date, meeting_time, location, meeting_type, agenda } = req.body;
 
@@ -439,9 +477,65 @@ router.post('/meetings', requireDirector, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(title, meeting_date, meeting_time || null, location || null, meeting_type || 'regular', agenda || null, req.session.directorBoardMemberId);
 
+    logActivity(db, { userId: req.session.directorBoardMemberId, userName: req.session.directorName, action: 'created', entityType: 'meeting', entityLabel: title });
     req.session.directorFlash = { type: 'success', message: 'Meeting scheduled.' };
   } catch (err) {
     req.session.directorFlash = { type: 'error', message: 'Failed to create meeting.' };
+  }
+  res.redirect('/director/meetings');
+});
+
+// Edit meeting (officers only)
+router.get('/meetings/:id/edit', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/meetings');
+  const db = req.app.locals.db;
+  const meeting = db.prepare('SELECT * FROM board_meetings WHERE id = ?').get(req.params.id);
+  if (!meeting) return res.redirect('/director/meetings');
+
+  res.render('director/meeting-edit', {
+    title: 'Edit Meeting — ' + meeting.title,
+    meeting,
+    layout: 'director/layout'
+  });
+});
+
+router.post('/meetings/:id/edit', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/meetings');
+  const db = req.app.locals.db;
+  const { title, meeting_date, meeting_time, location, meeting_type, agenda } = req.body;
+
+  try {
+    db.prepare(`
+      UPDATE board_meetings SET title = ?, meeting_date = ?, meeting_time = ?, location = ?, meeting_type = ?, agenda = ?
+      WHERE id = ?
+    `).run(title, meeting_date, meeting_time || null, location || null, meeting_type || 'regular', agenda || null, req.params.id);
+
+    logActivity(db, { userId: req.session.directorBoardMemberId, userName: req.session.directorName, action: 'updated', entityType: 'meeting', entityId: parseInt(req.params.id), entityLabel: title });
+    req.session.directorFlash = { type: 'success', message: 'Meeting updated.' };
+  } catch (err) {
+    req.session.directorFlash = { type: 'error', message: 'Failed to update meeting.' };
+  }
+  res.redirect('/director/meetings/' + req.params.id);
+});
+
+// Delete meeting (officers only) — cascades to agenda items, attendance, RSVPs
+router.post('/meetings/:id/delete', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/meetings');
+  const db = req.app.locals.db;
+  const meeting = db.prepare('SELECT title FROM board_meetings WHERE id = ?').get(req.params.id);
+
+  try {
+    const tx = db.transaction(() => {
+      db.prepare('DELETE FROM board_agenda_items WHERE meeting_id = ?').run(req.params.id);
+      db.prepare('DELETE FROM board_attendance WHERE meeting_id = ?').run(req.params.id);
+      db.prepare('DELETE FROM meeting_rsvps WHERE meeting_id = ?').run(req.params.id);
+      db.prepare('DELETE FROM board_meetings WHERE id = ?').run(req.params.id);
+    });
+    tx();
+    logActivity(db, { userId: req.session.directorBoardMemberId, userName: req.session.directorName, action: 'deleted', entityType: 'meeting', entityLabel: meeting ? meeting.title : 'Unknown' });
+    req.session.directorFlash = { type: 'success', message: 'Meeting deleted.' };
+  } catch (err) {
+    req.session.directorFlash = { type: 'error', message: 'Failed to delete meeting.' };
   }
   res.redirect('/director/meetings');
 });
@@ -502,8 +596,9 @@ router.post('/meetings/:id/attendance', requireDirector, (req, res) => {
   res.redirect('/director/meetings/' + meetingId);
 });
 
-// Approve minutes
+// Approve minutes (officers only)
 router.post('/meetings/:id/approve-minutes', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/meetings/' + req.params.id);
   const db = req.app.locals.db;
   db.prepare("UPDATE board_meetings SET minutes_approved = 1, minutes_approved_date = date('now') WHERE id = ?").run(req.params.id);
   req.session.directorFlash = { type: 'success', message: 'Minutes approved.' };
@@ -546,8 +641,9 @@ router.get('/documents', requireDirector, (req, res) => {
   });
 });
 
-// Upload document
+// Upload document (officers only)
 router.post('/documents', requireDirector, upload.single('file'), (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/documents');
   const db = req.app.locals.db;
   const { title, description, category, is_confidential } = req.body;
 
@@ -570,6 +666,7 @@ router.post('/documents', requireDirector, upload.single('file'), (req, res) => 
       req.session.directorBoardMemberId,
       is_confidential ? 1 : 0
     );
+    logActivity(db, { userId: req.session.directorBoardMemberId, userName: req.session.directorName, action: 'uploaded', entityType: 'document', entityLabel: title || req.file.originalname });
     req.session.directorFlash = { type: 'success', message: 'Document uploaded.' };
   } catch (err) {
     req.session.directorFlash = { type: 'error', message: 'Failed to upload document.' };
@@ -591,8 +688,9 @@ router.get('/documents/:id/download', requireDirector, (req, res) => {
   res.download(filePath, doc.original_name || doc.filename);
 });
 
-// Delete document
+// Delete document (officers only)
 router.post('/documents/:id/delete', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/documents');
   const db = req.app.locals.db;
   const doc = db.prepare('SELECT * FROM board_documents WHERE id = ?').get(req.params.id);
   if (doc) {
@@ -636,11 +734,15 @@ router.get('/votes', requireDirector, (req, res) => {
     myVotes[v.id] = record ? record.vote : null;
   }
 
+  // Recent meetings for the new motion form
+  const recentMeetings = db.prepare(`SELECT id, title, meeting_date FROM board_meetings ORDER BY meeting_date DESC LIMIT 10`).all();
+
   res.render('director/votes', {
     title: 'Votes & Resolutions',
     openVotes,
     closedVotes,
     myVotes,
+    recentMeetings,
     layout: 'director/layout'
   });
 });
@@ -690,6 +792,7 @@ router.post('/votes/:id/cast', requireDirector, (req, res) => {
       WHERE id = ?
     `).run(counts.votes_for || 0, counts.votes_against || 0, counts.votes_abstain || 0, req.params.id);
 
+    logActivity(db, { userId: mid, userName: req.session.directorName, action: 'voted', entityType: 'vote', entityId: parseInt(req.params.id), entityLabel: vote, details: vote });
     req.session.directorFlash = { type: 'success', message: 'Vote recorded.' };
   } catch (err) {
     req.session.directorFlash = { type: 'error', message: 'Failed to cast vote.' };
@@ -697,15 +800,40 @@ router.post('/votes/:id/cast', requireDirector, (req, res) => {
   res.redirect('/director/votes');
 });
 
-// Close a vote
+// Close a vote (officers only)
 router.post('/votes/:id/close', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/votes');
   const db = req.app.locals.db;
   const vote = db.prepare('SELECT * FROM board_votes WHERE id = ?').get(req.params.id);
   if (!vote) return res.redirect('/director/votes');
 
   const result = vote.votes_for > vote.votes_against ? 'passed' : 'failed';
-  db.prepare("UPDATE board_votes SET status = ?, voted_at = datetime('now') WHERE id = ?").run(result, req.params.id);
+  let resNum = null;
+  if (result === 'passed') {
+    const year = new Date().getFullYear();
+    const count = db.prepare("SELECT COUNT(*) as c FROM board_votes WHERE resolution_number LIKE ?").get('ICAN-' + year + '-%').c;
+    resNum = 'ICAN-' + year + '-' + String(count + 1).padStart(3, '0');
+  }
+  db.prepare("UPDATE board_votes SET status = ?, voted_at = datetime('now'), resolution_number = ? WHERE id = ?").run(result, resNum, req.params.id);
   req.session.directorFlash = { type: 'success', message: `Motion ${result}.` };
+  res.redirect('/director/votes');
+});
+
+// Table a motion (officers only)
+router.post('/votes/:id/table', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/votes');
+  const db = req.app.locals.db;
+  db.prepare("UPDATE board_votes SET status = 'tabled', voted_at = datetime('now') WHERE id = ?").run(req.params.id);
+  req.session.directorFlash = { type: 'success', message: 'Motion tabled.' };
+  res.redirect('/director/votes');
+});
+
+// Withdraw a motion (officers only)
+router.post('/votes/:id/withdraw', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/votes');
+  const db = req.app.locals.db;
+  db.prepare("UPDATE board_votes SET status = 'withdrawn', voted_at = datetime('now') WHERE id = ?").run(req.params.id);
+  req.session.directorFlash = { type: 'success', message: 'Motion withdrawn.' };
   res.redirect('/director/votes');
 });
 
@@ -856,10 +984,26 @@ router.get('/financials', requireDirector, (req, res) => {
     GROUP BY month ORDER BY month
   `).all();
 
+  // Volunteer hours by program
+  let hoursByProgram = [];
+  try {
+    hoursByProgram = db.prepare(`
+      SELECT program, COALESCE(SUM(hours), 0) as total_hours, COUNT(DISTINCT gardener_id) as volunteers
+      FROM garden_hours
+      WHERE log_date >= date('now', '-1 year')
+      GROUP BY program ORDER BY total_hours DESC
+    `).all();
+  } catch (e) { /* program column may not exist */ }
+
+  // Active board members count
+  const boardMemberCount = db.prepare("SELECT COUNT(*) as c FROM board_members WHERE status = 'active'").get().c;
+
   res.render('director/financials', {
     title: 'Financial Overview',
     stats: { totalDonatedLbs, totalGardeners, totalSubscribers, totalSubmissions, totalVolunteerHours, totalEvents },
     harvestTrends,
+    hoursByProgram,
+    boardMemberCount,
     layout: 'director/layout'
   });
 });
@@ -888,6 +1032,39 @@ router.get('/calendar', requireDirector, (req, res) => {
     AND strftime('%Y-%m', created_at) = ?
   `).all(`${year}-${monthStr}`);
 
+  // Action items with due dates this month
+  const mid = req.session.directorBoardMemberId;
+  let actionItems = [];
+  try {
+    actionItems = db.prepare(`
+      SELECT id, title, due_date, priority, status, assigned_to
+      FROM board_action_items
+      WHERE strftime('%Y-%m', due_date) = ? AND status IN ('open', 'in_progress')
+      ORDER BY due_date
+    `).all(`${year}-${monthStr}`);
+  } catch (e) { /* ignore */ }
+
+  // Open polls
+  let polls = [];
+  try {
+    polls = db.prepare(`
+      SELECT id, question, created_at, status
+      FROM board_polls
+      WHERE status = 'open' AND strftime('%Y-%m', created_at) = ?
+    `).all(`${year}-${monthStr}`);
+  } catch (e) { /* ignore */ }
+
+  // Events this month
+  let events = [];
+  try {
+    events = db.prepare(`
+      SELECT id, title, event_date, event_time
+      FROM events
+      WHERE strftime('%Y-%m', event_date) = ?
+      ORDER BY event_date
+    `).all(`${year}-${monthStr}`);
+  } catch (e) { /* ignore */ }
+
   // COI filing deadlines (if it's January, remind about annual filing)
   const coiReminder = month === 1;
 
@@ -895,6 +1072,7 @@ router.get('/calendar', requireDirector, (req, res) => {
     title: 'Board Calendar',
     month, year,
     meetings, votes,
+    actionItems, polls, events,
     coiReminder,
     layout: 'director/layout'
   });
@@ -958,9 +1136,45 @@ router.post('/announcements', requireDirector, (req, res) => {
     const ann = db.prepare('SELECT last_insert_rowid() as id').get();
     db.prepare('INSERT OR IGNORE INTO board_announcement_reads (announcement_id, member_id) VALUES (?, ?)').run(ann.id, mid);
 
+    logActivity(db, { userId: mid, userName: req.session.directorName, action: 'posted', entityType: 'announcement', entityLabel: title });
     req.session.directorFlash = { type: 'success', message: 'Announcement posted.' };
   } catch (err) {
     req.session.directorFlash = { type: 'error', message: 'Failed to create announcement.' };
+  }
+  res.redirect('/director/announcements');
+});
+
+// Edit announcement (author or officer)
+router.get('/announcements/:id/edit', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const ann = db.prepare('SELECT * FROM board_announcements WHERE id = ?').get(req.params.id);
+  if (!ann || (ann.author_id !== mid && !req.session.directorIsOfficer)) {
+    req.session.directorFlash = { type: 'error', message: 'You cannot edit this announcement.' };
+    return res.redirect('/director/announcements');
+  }
+  res.render('director/announcement-edit', {
+    title: 'Edit Announcement',
+    announcement: ann,
+    layout: 'director/layout'
+  });
+});
+
+router.post('/announcements/:id/edit', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const ann = db.prepare('SELECT * FROM board_announcements WHERE id = ?').get(req.params.id);
+  if (!ann || (ann.author_id !== mid && !req.session.directorIsOfficer)) {
+    req.session.directorFlash = { type: 'error', message: 'You cannot edit this announcement.' };
+    return res.redirect('/director/announcements');
+  }
+  const { title, body, priority, pinned } = req.body;
+  try {
+    db.prepare('UPDATE board_announcements SET title = ?, body = ?, priority = ?, pinned = ? WHERE id = ?')
+      .run(title, body, priority || 'normal', pinned ? 1 : 0, req.params.id);
+    req.session.directorFlash = { type: 'success', message: 'Announcement updated.' };
+  } catch (err) {
+    req.session.directorFlash = { type: 'error', message: 'Failed to update announcement.' };
   }
   res.redirect('/director/announcements');
 });
@@ -1080,10 +1294,14 @@ router.post('/tasks/:id/status', requireDirector, (req, res) => {
   }
 
   try {
+    const task = db.prepare('SELECT title FROM board_action_items WHERE id = ?').get(req.params.id);
     if (status === 'completed') {
       db.prepare("UPDATE board_action_items SET status = ?, completed_at = datetime('now') WHERE id = ?").run(status, req.params.id);
     } else {
       db.prepare('UPDATE board_action_items SET status = ?, completed_at = NULL WHERE id = ?').run(status, req.params.id);
+    }
+    if (status === 'completed' && task) {
+      logActivity(db, { userId: req.session.directorBoardMemberId, userName: req.session.directorName, action: 'completed', entityType: 'action_item', entityId: req.params.id, entityLabel: task.title });
     }
     req.session.directorFlash = { type: 'success', message: 'Task status updated.' };
   } catch (err) {
@@ -1409,6 +1627,7 @@ router.get('/committees', requireDirector, (req, res) => {
 
 // Create committee (officers only)
 router.post('/committees', requireDirector, (req, res) => {
+  if (!requireOfficer(req, res)) return res.redirect('/director/committees');
   const db = req.app.locals.db;
   const { name, description, chair_id } = req.body;
 
@@ -1423,6 +1642,7 @@ router.post('/committees', requireDirector, (req, res) => {
     if (chair_id) {
       db.prepare("INSERT OR IGNORE INTO board_committee_members (committee_id, member_id, role) VALUES (?, ?, 'chair')").run(result.lastInsertRowid, chair_id);
     }
+    logActivity(db, { userId: req.session.directorBoardMemberId, userName: req.session.directorName, action: 'created', entityType: 'committee', entityLabel: name });
     req.session.directorFlash = { type: 'success', message: 'Committee created.' };
   } catch (err) {
     req.session.directorFlash = { type: 'error', message: 'Failed to create committee.' };
@@ -1449,6 +1669,49 @@ router.post('/committees/:cid/members/:mid/remove', requireDirector, (req, res) 
   db.prepare('DELETE FROM board_committee_members WHERE committee_id = ? AND member_id = ?').run(req.params.cid, req.params.mid);
   req.session.directorFlash = { type: 'success', message: 'Member removed from committee.' };
   res.redirect('/director/committees');
+});
+
+
+// ── PRINTABLE MEETING MINUTES ────────────────────────────
+router.get('/meetings/:id/print', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const meeting = db.prepare('SELECT * FROM board_meetings WHERE id = ?').get(req.params.id);
+  if (!meeting) return res.redirect('/director/meetings');
+
+  const attendance = db.prepare(`
+    SELECT a.status, b.first_name, b.last_name, b.title, b.officer_title
+    FROM board_attendance a
+    JOIN board_members b ON a.member_id = b.id
+    WHERE a.meeting_id = ?
+    ORDER BY b.last_name
+  `).all(req.params.id);
+
+  const agendaItems = db.prepare(`
+    SELECT * FROM board_agenda_items WHERE meeting_id = ? ORDER BY sort_order
+  `).all(req.params.id);
+
+  const votes = db.prepare(`
+    SELECT v.*, b.first_name || ' ' || b.last_name as introduced_by_name
+    FROM board_votes v
+    LEFT JOIN board_members b ON v.introduced_by = b.id
+    WHERE v.meeting_id = ?
+    ORDER BY v.created_at
+  `).all(req.params.id);
+
+  // Active board count for quorum calc
+  const totalActiveMembers = db.prepare("SELECT COUNT(*) as c FROM board_members WHERE status = 'active'").get().c;
+  const quorumNeeded = Math.ceil(totalActiveMembers / 2);
+
+  res.render('director/meeting-print', {
+    title: 'Minutes — ' + meeting.title,
+    meeting,
+    attendance,
+    agendaItems,
+    votes,
+    totalActiveMembers,
+    quorumNeeded,
+    layout: false
+  });
 });
 
 module.exports = router;

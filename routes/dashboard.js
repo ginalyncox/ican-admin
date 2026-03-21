@@ -65,12 +65,30 @@ router.get('/', requireAuth, (req, res) => {
     totalMessages = db.prepare('SELECT COUNT(*) as count FROM member_messages').get().count;
   } catch (e) { /* table may not exist */ }
 
+  // Additional board/governance stats
+  let openActionItems = 0;
+  let openPolls = 0;
+  let pendingCoiReviews = 0;
+  let recentActivityCount = 0;
+  try {
+    openActionItems = db.prepare("SELECT COUNT(*) as count FROM board_action_items WHERE status IN ('open', 'in_progress')").get().count;
+  } catch (e) { /* table may not exist */ }
+  try {
+    openPolls = db.prepare("SELECT COUNT(*) as count FROM board_polls WHERE status = 'open'").get().count;
+  } catch (e) { /* table may not exist */ }
+  try {
+    pendingCoiReviews = db.prepare("SELECT COUNT(*) as count FROM coi_disclosures WHERE reviewed_by IS NULL").get().count;
+  } catch (e) { /* table may not exist */ }
+  try {
+    recentActivityCount = db.prepare("SELECT COUNT(*) as count FROM activity_log WHERE created_at >= datetime('now', '-7 days')").get().count;
+  } catch (e) { /* table may not exist */ }
+
   // Recent activity
   const recentActivity = getRecentActivity(db, 15);
 
   res.render('dashboard', {
     title: 'Dashboard',
-    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, totalMessages },
+    stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, totalMessages, openActionItems, openPolls, pendingCoiReviews, recentActivityCount },
     recentPosts,
     recentSubmissions,
     recentActivity

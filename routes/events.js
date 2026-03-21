@@ -28,15 +28,33 @@ router.get('/new', requireRole('admin', 'editor'), (req, res) => {
   });
 });
 
+// Event detail view
+router.get('/:id', requireAuth, (req, res, next) => {
+  if (req.params.id === 'new') return next();
+  const db = req.app.locals.db;
+  const event = db.prepare('SELECT e.*, u.name as creator_name FROM events e LEFT JOIN users u ON e.created_by = u.id WHERE e.id = ?').get(req.params.id);
+  if (!event) {
+    req.session.flash = { type: 'error', message: 'Event not found.' };
+    return res.redirect('/admin/events');
+  }
+  res.render('events/detail', { title: event.title, event });
+});
+
 router.post('/', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
   const { title, description, location, event_date, event_time, end_time, event_type, is_public } = req.body;
+
+  if (!title || !event_date) {
+    req.session.flash = { type: 'error', message: 'Title and date are required.' };
+    return res.redirect('/admin/events/new');
+  }
+
   try {
     db.prepare(`INSERT INTO events (title, description, location, event_date, event_time, end_time, event_type, is_public, created_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       title, description || null, location || null, event_date,
       event_time || null, end_time || null, event_type || 'general',
-      is_public ? 1 : 0, req.session.userId
+      is_public === '1' || is_public === 'on' ? 1 : 0, req.session.userId
     );
     req.session.flash = { type: 'success', message: 'Event created.' };
   } catch (err) {
@@ -55,11 +73,17 @@ router.get('/:id/edit', requireRole('admin', 'editor'), (req, res) => {
 router.post('/:id', requireRole('admin', 'editor'), (req, res) => {
   const db = req.app.locals.db;
   const { title, description, location, event_date, event_time, end_time, event_type, is_public } = req.body;
+
+  if (!title || !event_date) {
+    req.session.flash = { type: 'error', message: 'Title and date are required.' };
+    return res.redirect('/admin/events/' + req.params.id + '/edit');
+  }
+
   try {
     db.prepare(`UPDATE events SET title = ?, description = ?, location = ?, event_date = ?, event_time = ?, end_time = ?, event_type = ?, is_public = ? WHERE id = ?`).run(
       title, description || null, location || null, event_date,
       event_time || null, end_time || null, event_type || 'general',
-      is_public ? 1 : 0, req.params.id
+      is_public === '1' || is_public === 'on' ? 1 : 0, req.params.id
     );
     req.session.flash = { type: 'success', message: 'Event updated.' };
   } catch (err) {
