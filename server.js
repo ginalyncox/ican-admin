@@ -545,6 +545,7 @@ app.use((req, res, next) => {
 
 // Apply rate limiting to unified login POST route
 app.post('/login', loginLimiter);
+app.post('/register', loginLimiter);
 
 // Google OAuth (optional — only enabled if GOOGLE_CLIENT_ID is set)
 const { setupGoogleAuth } = require('./lib/google-auth');
@@ -707,6 +708,47 @@ app.get('/', (req, res) => {
     if (roles.length > 1) return res.redirect('/portal-select');
   }
   res.redirect('/login');
+});
+
+// Public API: document library (non-confidential, public-audience documents)
+app.get('/api/documents', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  try {
+    const docs = db.prepare(`
+      SELECT id, title, description, category, doc_type, version, original_name,
+        audience, file_size, created_at
+      FROM board_documents
+      WHERE is_confidential = 0 AND audience IN ('all', 'volunteer')
+      ORDER BY sort_order ASC, category ASC, title ASC
+    `).all();
+    res.json(docs);
+  } catch (e) {
+    // Fallback if some columns don't exist
+    try {
+      const docs = db.prepare(`
+        SELECT id, title, description, category, original_name, created_at
+        FROM board_documents
+        WHERE is_confidential = 0
+        ORDER BY category ASC, title ASC
+      `).all();
+      res.json(docs);
+    } catch (e2) {
+      res.json([]);
+    }
+  }
+});
+
+// Public document download (non-confidential only)
+app.get('/api/documents/:id/download', (req, res) => {
+  try {
+    const doc = db.prepare("SELECT * FROM board_documents WHERE id = ? AND is_confidential = 0 AND audience IN ('all', 'volunteer')").get(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    const filePath = path.join(__dirname, 'uploads', 'board', doc.filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+    res.download(filePath, doc.original_name || doc.filename);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to retrieve document' });
+  }
 });
 
 // 404

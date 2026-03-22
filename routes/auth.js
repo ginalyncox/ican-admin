@@ -168,6 +168,89 @@ router.post('/portal-select', (req, res) => {
   res.redirect('/portal-select');
 });
 
+// ── SELF-REGISTRATION ────────────────────────────────────────
+router.get('/register', (req, res) => {
+  if (req.session.accountId) return res.redirect('/');
+  res.render('register', { title: 'Create Account — ICAN', error: null, layout: false });
+});
+
+router.post('/register', (req, res) => {
+  const { first_name, last_name, email, password, confirm_password } = req.body;
+  const db = req.app.locals.db;
+
+  // Validation
+  if (!first_name || !last_name || !email || !password || !confirm_password) {
+    return res.render('register', { title: 'Create Account — ICAN', error: 'All fields are required.', layout: false });
+  }
+  if (password !== confirm_password) {
+    return res.render('register', { title: 'Create Account — ICAN', error: 'Passwords do not match.', layout: false });
+  }
+  if (password.length < 8) {
+    return res.render('register', { title: 'Create Account — ICAN', error: 'Password must be at least 8 characters.', layout: false });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check if email already exists
+  const existing = db.prepare('SELECT id FROM accounts WHERE email = ?').get(normalizedEmail);
+  if (existing) {
+    return res.render('register', { title: 'Create Account — ICAN', error: 'An account with that email already exists. Try signing in instead.', layout: false });
+  }
+
+  const hash = bcrypt.hashSync(password, 10);
+  const fullName = first_name.trim() + ' ' + last_name.trim();
+
+  try {
+    const tx = db.transaction(() => {
+      // Create gardener (volunteer profile)
+      const gardener = db.prepare(
+        'INSERT INTO gardeners (first_name, last_name, email, status) VALUES (?, ?, ?, ?)'
+      ).run(first_name.trim(), last_name.trim(), normalizedEmail, 'active');
+
+      // Create member credentials
+      const mc = db.prepare(
+        'INSERT INTO member_credentials (gardener_id, email, password_hash, must_change_password, onboarding_completed, documents_acknowledged, agreement_signed) VALUES (?, ?, ?, 0, 0, 0, 0)'
+      ).run(gardener.lastInsertRowid, normalizedEmail, hash);
+
+      // Create unified account
+      db.prepare(
+        'INSERT INTO accounts (email, password_hash, name, roles, gardener_id, must_change_password, onboarding_completed, status) VALUES (?, ?, ?, ?, ?, 0, 0, ?)'
+      ).run(normalizedEmail, hash, fullName, JSON.stringify(['volunteer']), gardener.lastInsertRowid, 'active');
+
+      // Auto-subscribe to newsletter
+      try {
+        db.prepare("INSERT OR IGNORE INTO subscribers (email, name, source, status) VALUES (?, ?, 'registration', 'active')")
+          .run(normalizedEmail, fullName);
+      } catch (e) { /* ignore if subscribers table doesn't exist */ }
+
+      return { gardenerId: gardener.lastInsertRowid, mcId: mc.lastInsertRowid };
+    });
+
+    const result = tx();
+
+    // Auto-login
+    const account = db.prepare('SELECT * FROM accounts WHERE email = ?').get(normalizedEmail);
+    req.session.accountId = account.id;
+    req.session.accountEmail = account.email;
+    req.session.accountName = account.name;
+    req.session.accountRoles = ['volunteer'];
+
+    // Set member session vars
+    req.session.memberId = result.mcId;
+    req.session.memberGardenerId = result.gardenerId;
+    req.session.memberName = fullName;
+    req.session.memberEmail = normalizedEmail;
+    req.session.memberMustChangePassword = 0;
+    req.session.memberOnboardingCompleted = 0;
+
+    // Redirect to onboarding
+    res.redirect('/member/onboarding');
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.render('register', { title: 'Create Account — ICAN', error: 'Registration failed. Please try again.', layout: false });
+  }
+});
+
 // ── LOGOUT ──────────────────────────────────────────────────
 router.get('/logout', (req, res) => {
   req.session.destroy(() => {
