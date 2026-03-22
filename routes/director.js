@@ -39,66 +39,13 @@ const upload = multer({
   }
 });
 
-// ── LOGIN ───────────────────────────────────────────────────
-router.get('/login', (req, res) => {
-  if (req.session.directorId) return res.redirect('/director');
-  res.render('director/login', { title: 'Director Login', error: null, layout: false });
-});
-
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  const db = req.app.locals.db;
-
-  if (!email || !password) {
-    return res.render('director/login', { title: 'Director Login', error: 'Email and password are required.', layout: false });
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-  const member = db.prepare(`
-    SELECT * FROM board_members WHERE email = ?
-  `).get(normalizedEmail);
-
-  if (!member) {
-    return res.render('director/login', { title: 'Director Login', error: 'Invalid email or password.', layout: false });
-  }
-
-  if (member.status === 'locked') {
-    return res.render('director/login', { title: 'Director Login', error: 'Your account has been locked by an administrator. Please contact the board chair for assistance.', layout: false });
-  }
-
-  if (member.status !== 'active') {
-    return res.render('director/login', { title: 'Director Login', error: 'Your account is not active. Please contact the administrator.', layout: false });
-  }
-
-  const valid = bcrypt.compareSync(password, member.password_hash);
-  if (!valid) {
-    return res.render('director/login', { title: 'Director Login', error: 'Invalid email or password.', layout: false });
-  }
-
-  // Update last login
-  db.prepare("UPDATE board_members SET last_login = datetime('now') WHERE id = ?").run(member.id);
-
-  req.session.directorId = member.id;
-  req.session.directorBoardMemberId = member.id; // same as directorId — kept for legacy template compatibility
-  req.session.directorName = member.first_name + ' ' + member.last_name;
-  req.session.directorEmail = member.email;
-  req.session.directorTitle = member.title;
-  req.session.directorIsOfficer = member.is_officer;
-  req.session.directorOfficerTitle = member.officer_title;
-  req.session.directorMustChangePassword = member.must_change_password;
-  req.session.directorOnboardingCompleted = member.onboarding_completed;
-
-  // Redirect to onboarding if not completed
-  if (member.must_change_password || !member.onboarding_completed) {
-    return res.redirect('/director/onboarding');
-  }
-
-  res.redirect('/director');
-});
+// ── LOGIN (redirect to unified login) ────────────────────────
+router.get('/login', (req, res) => res.redirect('/login'));
+router.post('/login', (req, res) => res.redirect('/login'));
 
 router.get('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/director/login');
+    res.redirect('/login');
   });
 });
 

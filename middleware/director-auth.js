@@ -5,7 +5,7 @@ function requireDirector(req, res, next) {
     const member = db.prepare('SELECT status FROM board_members WHERE id = ?').get(req.session.directorBoardMemberId);
     if (!member || member.status !== 'active') {
       req.session.destroy(() => {
-        res.redirect('/director/login');
+        res.redirect('/login');
       });
       return;
     }
@@ -20,7 +20,7 @@ function requireDirector(req, res, next) {
     }
     return next();
   }
-  res.redirect('/director/login');
+  res.redirect('/login');
 }
 
 function setDirectorLocals(req, res, next) {

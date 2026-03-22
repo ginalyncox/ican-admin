@@ -1,0 +1,107 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Initiatives</h1>
+      <p class="page-header__subtitle">SDG-aligned programs — <%= initiatives.length %> total</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/initiatives/new" class="btn btn--primary btn--sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Initiative
+      </a>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1rem;">
+  <% initiatives.forEach(init => { %>
+    <%
+      const visColors = { public: '#2D6A3F', private: '#5E6B52', archived: '#ef4444' };
+      const visLabels = { public: 'Public', private: 'Private', archived: 'Archived' };
+      const vCount = volunteerCounts[init.slug] || 0;
+    %>
+    <div class="card" style="border-left: 5px solid <%= init.sdg_color %>; overflow: hidden; <%= init.visibility === 'archived' ? 'opacity: 0.6;' : '' %>">
+      <div class="card__body" style="padding: 1rem;">
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <!-- SDG Number Badge -->
+          <div style="min-width: 48px; height: 48px; border-radius: 10px; background: <%= init.sdg_color %>; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 1.3rem; font-weight: 800; line-height: 1;"><%= init.sdg_number %></span>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <!-- SDG Label -->
+            <div style="font-size: 0.72rem; font-weight: 700; color: <%= init.sdg_color %>; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.15rem;">
+              SDG <%= init.sdg_number %>: <%= init.sdg_label %>
+            </div>
+            <!-- Program Name -->
+            <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
+              <span style="font-size: 1.1rem;"><%= init.icon %></span>
+              <h3 style="font-size: 1rem; font-weight: 700; margin: 0;"><%= init.program_name %></h3>
+            </div>
+            <!-- Description -->
+            <p style="font-size: 0.8rem; color: var(--color-muted); margin: 0.25rem 0 0.5rem 0; line-height: 1.45;"><%= init.description || '' %></p>
+            <!-- Badges row -->
+            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+              <!-- Visibility badge -->
+              <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.68rem; font-weight: 600; background: <%= visColors[init.visibility] %>18; color: <%= visColors[init.visibility] %>;">
+                <%= visLabels[init.visibility] %>
+              </span>
+              <!-- Volunteer count -->
+              <span style="font-size: 0.72rem; color: var(--color-muted);">
+                <%= vCount %> volunteer<%= vCount !== 1 ? 's' : '' %>
+              </span>
+              <!-- Slug -->
+              <span style="font-size: 0.68rem; color: var(--color-muted); font-family: monospace; background: var(--color-border); padding: 0.1rem 0.35rem; border-radius: 3px;">
+                <%= init.slug %>
+              </span>
+              <!-- Sort order -->
+              <span style="font-size: 0.68rem; color: var(--color-muted);">
+                #<%= init.sort_order %>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border); align-items: center;">
+          <a href="/admin/initiatives/<%= init.id %>/edit" class="btn btn--outline btn--sm" style="font-size: 0.75rem;">Edit</a>
+          <% if (init.visibility === 'private') { %>
+            <form method="POST" action="/admin/initiatives/<%= init.id %>/visibility" style="margin: 0;">
+              <input type="hidden" name="visibility" value="public">
+              <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.72rem; color: #2D6A3F;">Make Public</button>
+            </form>
+          <% } else if (init.visibility === 'public') { %>
+            <form method="POST" action="/admin/initiatives/<%= init.id %>/visibility" style="margin: 0;">
+              <input type="hidden" name="visibility" value="private">
+              <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.72rem;">Make Private</button>
+            </form>
+          <% } %>
+          <% if (init.visibility !== 'archived') { %>
+            <form method="POST" action="/admin/initiatives/<%= init.id %>/visibility" style="margin: 0;">
+              <input type="hidden" name="visibility" value="archived">
+              <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.72rem; color: #ef4444;">Archive</button>
+            </form>
+          <% } else { %>
+            <form method="POST" action="/admin/initiatives/<%= init.id %>/visibility" style="margin: 0;">
+              <input type="hidden" name="visibility" value="private">
+              <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.72rem; color: #f59e0b;">Unarchive</button>
+            </form>
+          <% } %>
+          <% if (vCount === 0) { %>
+            <form method="POST" action="/admin/initiatives/<%= init.id %>/delete" style="margin: 0; margin-left: auto;">
+              <button type="submit" class="btn btn--ghost btn--sm" style="font-size: 0.72rem; color: #ef4444;" onclick="return confirm('Delete this initiative?')">Delete</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<% if (initiatives.length === 0) { %>
+  <div class="card">
+    <div class="card__body" style="text-align: center; padding: 2rem;">
+      <p class="text-muted">No initiatives yet. Create one to get started.</p>
+      <a href="/admin/initiatives/new" class="btn btn--primary" style="margin-top: 1rem;">Create First Initiative</a>
+    </div>
+  </div>
+<% } %>

@@ -6,62 +6,13 @@ const { requireMember } = require('../middleware/member-auth');
 const { PROGRAM_INFO, VALID_PROGRAMS } = require('../lib/constants');
 const router = express.Router();
 
-// ── LOGIN ───────────────────────────────────────────────────
-router.get('/login', (req, res) => {
-  if (req.session.memberId) return res.redirect('/member');
-  res.render('member/login', { title: 'Volunteer Login', error: null, layout: false });
-});
-
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  const db = req.app.locals.db;
-
-  if (!email || !password) {
-    return res.render('member/login', { title: 'Volunteer Login', error: 'Email and password are required.', layout: false });
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-  const cred = db.prepare(`
-    SELECT mc.*, g.first_name, g.last_name, g.id as gardener_id, g.status as gardener_status
-    FROM member_credentials mc
-    JOIN gardeners g ON mc.gardener_id = g.id
-    WHERE mc.email = ?
-  `).get(normalizedEmail);
-
-  if (!cred) {
-    return res.render('member/login', { title: 'Volunteer Login', error: 'Invalid email or password.', layout: false });
-  }
-
-  if (cred.gardener_status !== 'active') {
-    return res.render('member/login', { title: 'Volunteer Login', error: 'Your account is not active. Please contact the administrator.', layout: false });
-  }
-
-  const valid = bcrypt.compareSync(password, cred.password_hash);
-  if (!valid) {
-    return res.render('member/login', { title: 'Volunteer Login', error: 'Invalid email or password.', layout: false });
-  }
-
-  // Update last login
-  db.prepare("UPDATE member_credentials SET last_login = datetime('now') WHERE id = ?").run(cred.id);
-
-  req.session.memberId = cred.id;
-  req.session.memberGardenerId = cred.gardener_id;
-  req.session.memberName = cred.first_name + ' ' + cred.last_name;
-  req.session.memberEmail = cred.email;
-  req.session.memberMustChangePassword = cred.must_change_password;
-  req.session.memberOnboardingCompleted = cred.onboarding_completed;
-
-  // Redirect to onboarding if not completed
-  if (cred.must_change_password || !cred.onboarding_completed) {
-    return res.redirect('/member/onboarding');
-  }
-
-  res.redirect('/member');
-});
+// ── LOGIN (redirect to unified login) ────────────────────────
+router.get('/login', (req, res) => res.redirect('/login'));
+router.post('/login', (req, res) => res.redirect('/login'));
 
 router.get('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/member/login');
+    res.redirect('/login');
   });
 });
 

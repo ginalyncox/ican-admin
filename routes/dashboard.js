@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { getRecentActivity } = require('../lib/activity-log');
+const { PROGRAM_INFO } = require('../lib/constants');
 const router = express.Router();
 
 router.get('/', requireAuth, (req, res) => {
@@ -89,6 +90,7 @@ router.get('/', requireAuth, (req, res) => {
   res.render('dashboard', {
     title: 'Dashboard',
     stats: { totalPosts, publishedPosts, unreadSubmissions, totalSubscribers, activeVolunteers, totalVolunteers, pendingVerifications, pendingApplications, programCounts, upcomingEvents, totalNewsletterSends, activeBoardMembers, memberPortalUsers, openBoardVotes, upcomingBoardMeetings, totalMessages, openActionItems, openPolls, pendingCoiReviews, recentActivityCount },
+    programInfo: PROGRAM_INFO,
     recentPosts,
     recentSubmissions,
     recentActivity

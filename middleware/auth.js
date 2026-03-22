@@ -2,13 +2,13 @@ function requireAuth(req, res, next) {
   if (req.session && req.session.userId) {
     return next();
   }
-  res.redirect('/admin/login');
+  res.redirect('/login');
 }
 
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.session || !req.session.userId) {
-      return res.redirect('/admin/login');
+      return res.redirect('/login');
     }
     if (!roles.includes(req.session.userRole)) {
       return res.status(403).render('error', {
@@ -29,6 +29,7 @@ function setLocals(req, res, next) {
     email: req.session.userEmail,
     role: req.session.userRole
   } : null;
+  res.locals.accountRoles = req.session.accountRoles || [];
   res.locals.path = req.originalUrl.split('?')[0];
 
   // Sidebar badge counts (only for authenticated admin users)

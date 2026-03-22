@@ -272,6 +272,70 @@ db.exec(`CREATE TABLE IF NOT EXISTS site_settings (
   for (const [key, value] of defaultSettings) upsert.run(key, value);
 }
 
+// ── Migration: SDG-aligned Initiatives ──────────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS initiatives (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT NOT NULL UNIQUE,
+  sdg_number INTEGER NOT NULL,
+  sdg_label TEXT NOT NULL,
+  program_name TEXT NOT NULL,
+  description TEXT,
+  color TEXT NOT NULL,
+  sdg_color TEXT NOT NULL,
+  icon TEXT DEFAULT '🌱',
+  visibility TEXT DEFAULT 'private' CHECK(visibility IN ('public', 'private', 'archived')),
+  requires_application INTEGER DEFAULT 1,
+  volunteer_instructions TEXT,
+  sort_order INTEGER DEFAULT 99,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// Seed initiatives (only once)
+{
+  const initCount = db.prepare('SELECT COUNT(*) as c FROM initiatives').get().c;
+  if (initCount === 0) {
+    const seedInitiatives = [
+      ['victory_garden', 2, 'Zero Hunger', 'Victory Garden Initiative', 'Grow food for Iowans in need. Log harvests, track volunteer hours, and compete on the seasonal leaderboard.', '#2D6A3F', '#DDA63A', '🌾', 'public', 1, 1],
+      ['legislative', 16, 'Peace, Justice & Strong Institutions', 'Legislative Action', 'Help advance cannabis policy in Iowa. Attend lobby days, write legislators, and support grassroots advocacy campaigns.', '#6366f1', '#00689D', '⚖️', 'public', 1, 2],
+      ['outreach', 11, 'Sustainable Cities & Communities', 'Community Outreach', 'Be the face of ICAN in your community. Staff event booths, give presentations, and build relationships with local organizations.', '#f59e0b', '#FD9D24', '🏘️', 'public', 1, 3],
+      ['fundraising', 17, 'Partnerships for the Goals', 'Fundraising', 'Help sustain ICAN\'s mission. Organize events, coordinate donor campaigns, and assist with grant writing.', '#10b981', '#19486A', '🤝', 'public', 1, 4],
+      ['communications', 4, 'Quality Education', 'Communications', 'Shape ICAN\'s public voice. Write newsletter content, manage social media posts, and create marketing materials.', '#8b5cf6', '#C5192D', '📢', 'public', 1, 5],
+      ['membership', 10, 'Reduced Inequalities', 'Membership', 'Grow our volunteer base. Recruit new members, plan onboarding events, and help with retention outreach.', '#ec4899', '#DD1367', '🤗', 'public', 1, 6],
+      ['health_wellness', 3, 'Good Health & Well-Being', 'Health & Wellness Advocacy', 'Medical cannabis patient advocacy, harm reduction education, and community wellness programs.', '#4C9F38', '#4C9F38', '💚', 'private', 1, 7],
+      ['economic_equity', 8, 'Decent Work & Economic Growth', 'Economic Equity', 'Cannabis workforce development, expungement support, and economic equity in licensing.', '#A21942', '#A21942', '📈', 'private', 1, 8],
+      ['sustainable_cultivation', 12, 'Responsible Consumption & Production', 'Sustainable Cultivation', 'Sustainable cultivation practices, environmental standards, and responsible production education.', '#BF8B2E', '#BF8B2E', '♻️', 'private', 1, 9],
+      ['climate_action', 13, 'Climate Action', 'Climate & Regenerative Agriculture', 'Regenerative agriculture in Victory Gardens, carbon offset tracking, and environmental stewardship.', '#3F7E44', '#3F7E44', '🌍', 'private', 1, 10],
+      ['land_stewardship', 15, 'Life on Land', 'Land Stewardship', 'Pollinator gardens, native plant integration, soil health programs, and biodiversity conservation.', '#56C02B', '#56C02B', '🌿', 'private', 1, 11],
+    ];
+    const insertInit = db.prepare('INSERT INTO initiatives (slug, sdg_number, sdg_label, program_name, description, color, sdg_color, icon, visibility, requires_application, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const init of seedInitiatives) insertInit.run(...init);
+    console.log('Seeded', seedInitiatives.length, 'initiatives');
+  }
+}
+
+// Load initiatives into constants
+const { loadInitiatives } = require('./lib/constants');
+loadInitiatives(db);
+
+// ── Migration: Unified Accounts table ───────────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  roles TEXT NOT NULL DEFAULT '[]',
+  gardener_id INTEGER,
+  board_member_id INTEGER,
+  admin_user_id INTEGER,
+  must_change_password INTEGER DEFAULT 0,
+  onboarding_completed INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'locked')),
+  last_login DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
@@ -281,6 +345,95 @@ if (userCount === 0) {
     'Gina Cox', 'hello@iowacannabisaction.org', hash, 'admin'
   );
   console.log('Default admin user created: hello@iowacannabisaction.org / changeme123');
+}
+
+// Data migration: populate accounts from existing auth tables (run once, after user seed)
+{
+  const accountCount = db.prepare('SELECT COUNT(*) as c FROM accounts').get().c;
+  if (accountCount === 0) {
+    const migratedEmails = new Set();
+
+    // 1. Migrate admin users
+    try {
+      const adminUsers = db.prepare('SELECT * FROM users').all();
+      for (const u of adminUsers) {
+        const email = u.email.toLowerCase().trim();
+        if (migratedEmails.has(email)) continue;
+        const roles = ['admin'];
+        let gardenerId = null;
+        try {
+          const mc = db.prepare('SELECT mc.id, mc.gardener_id FROM member_credentials mc WHERE LOWER(mc.email) = ?').get(email);
+          if (mc) { roles.push('volunteer'); gardenerId = mc.gardener_id; }
+        } catch (e) {}
+        let boardMemberId = null;
+        try {
+          const bm = db.prepare("SELECT id FROM board_members WHERE LOWER(email) = ? AND status IN ('active', 'locked')").get(email);
+          if (bm) { roles.push('director'); boardMemberId = bm.id; }
+        } catch (e) {}
+        db.prepare('INSERT INTO accounts (email, password_hash, name, roles, gardener_id, board_member_id, admin_user_id, must_change_password, onboarding_completed, status) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)').run(
+          email, u.password_hash, u.name, JSON.stringify(roles), gardenerId, boardMemberId, u.id, 'active'
+        );
+        migratedEmails.add(email);
+      }
+    } catch (e) { console.log('Admin migration note:', e.message); }
+
+    // 2. Migrate director (board_members) accounts
+    try {
+      const directors = db.prepare("SELECT * FROM board_members WHERE password_hash IS NOT NULL AND status IN ('active', 'locked')").all();
+      for (const d of directors) {
+        const email = d.email.toLowerCase().trim();
+        if (migratedEmails.has(email)) {
+          const existing = db.prepare('SELECT id, roles FROM accounts WHERE email = ?').get(email);
+          if (existing) {
+            const existingRoles = JSON.parse(existing.roles);
+            if (!existingRoles.includes('director')) existingRoles.push('director');
+            db.prepare('UPDATE accounts SET roles = ?, board_member_id = ? WHERE id = ?').run(JSON.stringify(existingRoles), d.id, existing.id);
+          }
+          continue;
+        }
+        const roles = ['director'];
+        let gardenerId = null;
+        try {
+          const mc = db.prepare('SELECT mc.id, mc.gardener_id FROM member_credentials mc WHERE LOWER(mc.email) = ?').get(email);
+          if (mc) { roles.push('volunteer'); gardenerId = mc.gardener_id; }
+        } catch (e) {}
+        const status = d.status === 'locked' ? 'locked' : 'active';
+        db.prepare('INSERT INTO accounts (email, password_hash, name, roles, gardener_id, board_member_id, must_change_password, onboarding_completed, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+          email, d.password_hash, d.first_name + ' ' + d.last_name, JSON.stringify(roles), gardenerId, d.id, d.must_change_password || 0, d.onboarding_completed || 0, status
+        );
+        migratedEmails.add(email);
+      }
+    } catch (e) { console.log('Director migration note:', e.message); }
+
+    // 3. Migrate volunteer (member_credentials) accounts
+    try {
+      const members = db.prepare(`
+        SELECT mc.*, g.first_name, g.last_name, g.status as gardener_status
+        FROM member_credentials mc
+        JOIN gardeners g ON mc.gardener_id = g.id
+      `).all();
+      for (const m of members) {
+        const email = m.email.toLowerCase().trim();
+        if (migratedEmails.has(email)) {
+          const existing = db.prepare('SELECT id, roles FROM accounts WHERE email = ?').get(email);
+          if (existing) {
+            const existingRoles = JSON.parse(existing.roles);
+            if (!existingRoles.includes('volunteer')) existingRoles.push('volunteer');
+            db.prepare('UPDATE accounts SET roles = ?, gardener_id = ? WHERE id = ?').run(JSON.stringify(existingRoles), m.gardener_id, existing.id);
+          }
+          continue;
+        }
+        const roles = ['volunteer'];
+        const status = m.gardener_status === 'active' ? 'active' : 'inactive';
+        db.prepare('INSERT INTO accounts (email, password_hash, name, roles, gardener_id, must_change_password, onboarding_completed, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+          email, m.password_hash, m.first_name + ' ' + m.last_name, JSON.stringify(roles), m.gardener_id, m.must_change_password || 0, m.onboarding_completed || 0, status
+        );
+        migratedEmails.add(email);
+      }
+    } catch (e) { console.log('Volunteer migration note:', e.message); }
+
+    console.log('Migrated', migratedEmails.size, 'accounts into unified accounts table');
+  }
 }
 
 // Make db available to routes
@@ -333,13 +486,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply rate limiting to all login POST routes
-app.post('/admin/login', loginLimiter);
-app.post('/member/login', loginLimiter);
-app.post('/director/login', loginLimiter);
+// Apply rate limiting to unified login POST route
+app.post('/login', loginLimiter);
+
+// Google OAuth (optional — only enabled if GOOGLE_CLIENT_ID is set)
+const { setupGoogleAuth } = require('./lib/google-auth');
+const googleAuthEnabled = setupGoogleAuth(app, db);
+app.locals.googleAuthEnabled = googleAuthEnabled;
+
+// Unified auth routes (mounted at root — /login, /logout, /portal-select)
+app.use('/', require('./routes/auth'));
+
+// Legacy login/logout redirects (old bookmarks + existing layout links)
+app.get('/admin/login', (req, res) => res.redirect('/login'));
+app.get('/member/login', (req, res) => res.redirect('/login'));
+app.get('/director/login', (req, res) => res.redirect('/login'));
+app.get('/admin/logout', (req, res) => {
+  req.session.destroy(() => { res.redirect('/login'); });
+});
 
 // Routes
-app.use('/admin', require('./routes/auth'));
 app.use('/admin', require('./routes/dashboard'));
 app.use('/admin/posts', require('./routes/posts'));
 app.use('/admin/submissions', require('./routes/submissions'));
@@ -355,6 +521,7 @@ app.use('/admin/messages', require('./routes/messages'));
 app.use('/admin/reports', require('./routes/reports'));
 app.use('/admin/search', require('./routes/search'));
 app.use('/admin/documents', require('./routes/doc-library'));
+app.use('/admin/initiatives', require('./routes/initiatives'));
 app.use('/admin/crm', require('./routes/crm'));
 app.use('/admin/retention', require('./routes/retention'));
 app.use('/admin/site', require('./routes/site-manager'));
@@ -439,8 +606,19 @@ app.use('/member', setMemberLocals, require('./routes/member'));
 const { setDirectorLocals } = require('./middleware/director-auth');
 app.use('/director', setDirectorLocals, require('./routes/director'));
 
-// Redirect root to admin
-app.get('/', (req, res) => res.redirect('/admin'));
+// Redirect root based on session state
+app.get('/', (req, res) => {
+  if (req.session.accountId) {
+    const roles = req.session.accountRoles || [];
+    if (roles.length === 1) {
+      if (roles[0] === 'admin') return res.redirect('/admin');
+      if (roles[0] === 'volunteer') return res.redirect('/member');
+      if (roles[0] === 'director') return res.redirect('/director');
+    }
+    if (roles.length > 1) return res.redirect('/portal-select');
+  }
+  res.redirect('/login');
+});
 
 // 404
 app.use((req, res) => {

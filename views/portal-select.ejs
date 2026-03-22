@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z' fill='%232D6A3F'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/admin/static/admin.css">
+  <style>
+    .portal-select-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #F5F3ED;
+      padding: 1rem;
+    }
+    .portal-select-container {
+      width: 100%;
+      max-width: 560px;
+    }
+    .portal-select-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .portal-select-header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1E2418;
+      margin: 0.5rem 0 0.25rem;
+    }
+    .portal-select-header p {
+      font-size: 0.85rem;
+      color: #5E6B52;
+      margin: 0;
+    }
+    .portal-select-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .portal-option {
+      background: #fff;
+      border: 2px solid #D4D1C7;
+      border-radius: 10px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .portal-option:hover {
+      border-color: #2D6A3F;
+      box-shadow: 0 2px 12px rgba(45, 106, 63, 0.1);
+      transform: translateY(-1px);
+    }
+    .portal-option__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .portal-option__icon--admin {
+      background: rgba(30, 36, 24, 0.08);
+      color: #1E2418;
+    }
+    .portal-option__icon--volunteer {
+      background: rgba(184, 134, 43, 0.1);
+      color: #B8862B;
+    }
+    .portal-option__icon--director {
+      background: rgba(45, 106, 63, 0.1);
+      color: #2D6A3F;
+    }
+    .portal-option__info h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+      color: #1E2418;
+    }
+    .portal-option__info p {
+      font-size: 0.8rem;
+      color: #5E6B52;
+      margin: 0.2rem 0 0;
+    }
+    .portal-option__arrow {
+      margin-left: auto;
+      color: #5E6B52;
+      font-size: 1.1rem;
+    }
+    .portal-select-footer {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.78rem;
+    }
+    .portal-select-footer a {
+      color: #5E6B52;
+      text-decoration: none;
+    }
+    .portal-select-footer a:hover {
+      color: #2D6A3F;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body class="portal-select-page">
+  <div class="portal-select-container">
+    <div class="portal-select-header">
+      <svg viewBox="0 0 32 32" fill="none" width="40" height="40">
+        <path d="M16 2 C16 2 13 8 9 12 C5 16 4 20 6 24 C8 28 12 30 16 30 C20 30 24 28 26 24 C28 20 27 16 23 12 C19 8 16 2 16 2Z" fill="#2D6A3F" opacity="0.9"/>
+        <path d="M16 8 L16 24" stroke="#F5F3ED" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M16 14 L12 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M16 14 L20 11" stroke="#F5F3ED" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <h1>Welcome, <%= accountName %></h1>
+      <p>Choose a portal to continue</p>
+    </div>
+
+    <div class="portal-select-grid">
+      <% if (roles.includes('admin')) { %>
+        <form method="POST" action="/portal-select" style="margin:0;">
+          <input type="hidden" name="portal" value="admin">
+          <button type="submit" class="portal-option" style="width:100;border:2px solid #D4D1C7;background:#fff;">
+            <div class="portal-option__icon portal-option__icon--admin">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09"/></svg>
+            </div>
+            <div class="portal-option__info">
+              <h3>Staff Admin</h3>
+              <p>Manage volunteers, content, events, and all portals</p>
+            </div>
+            <span class="portal-option__arrow">&rarr;</span>
+          </button>
+        </form>
+      <% } %>
+
+      <% if (roles.includes('director')) { %>
+        <form method="POST" action="/portal-select" style="margin:0;">
+          <input type="hidden" name="portal" value="director">
+          <button type="submit" class="portal-option" style="width:100%;border:2px solid #D4D1C7;background:#fff;">
+            <div class="portal-option__icon portal-option__icon--director">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="portal-option__info">
+              <h3>Director Portal</h3>
+              <p>Board meetings, votes, governance, and COI disclosures</p>
+            </div>
+            <span class="portal-option__arrow">&rarr;</span>
+          </button>
+        </form>
+      <% } %>
+
+      <% if (roles.includes('volunteer')) { %>
+        <form method="POST" action="/portal-select" style="margin:0;">
+          <input type="hidden" name="portal" value="volunteer">
+          <button type="submit" class="portal-option" style="width:100%;border:2px solid #D4D1C7;background:#fff;">
+            <div class="portal-option__icon portal-option__icon--volunteer">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v8"/><path d="M8 10l4-4 4 4"/></svg>
+            </div>
+            <div class="portal-option__info">
+              <h3>Volunteer Portal</h3>
+              <p>Log hours, view programs, messages, and resources</p>
+            </div>
+            <span class="portal-option__arrow">&rarr;</span>
+          </button>
+        </form>
+      <% } %>
+    </div>
+
+    <div class="portal-select-footer">
+      <a href="/logout">Sign out</a>
+    </div>
+  </div>
+</body>
+</html>

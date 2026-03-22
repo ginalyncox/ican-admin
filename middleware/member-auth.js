@@ -10,7 +10,7 @@ function requireMember(req, res, next) {
     }
     return next();
   }
-  res.redirect('/member/login');
+  res.redirect('/login');
 }
 
 function setMemberLocals(req, res, next) {

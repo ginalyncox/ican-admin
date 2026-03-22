@@ -1,0 +1,221 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title"><%= isEdit ? 'Edit Initiative' : 'New Initiative' %></h1>
+      <p class="page-header__subtitle"><%= isEdit ? initiative.program_name : 'Create a new SDG-aligned initiative' %></p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/initiatives" class="btn btn--outline btn--sm">&larr; Back</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__body">
+    <form method="POST" action="<%= isEdit ? '/admin/initiatives/' + initiative.id : '/admin/initiatives' %>">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+
+        <!-- SDG Number -->
+        <div class="form-field">
+          <label>SDG Number (1-17)</label>
+          <select name="sdg_number" id="sdgNumber" class="form-select" onchange="updateSDG()" required>
+            <% for (let i = 1; i <= 17; i++) { %>
+              <option value="<%= i %>" <%= isEdit && initiative.sdg_number === i ? 'selected' : '' %>><%= i %></option>
+            <% } %>
+          </select>
+        </div>
+
+        <!-- SDG Label (auto-fills) -->
+        <div class="form-field">
+          <label>SDG Label</label>
+          <input type="text" name="sdg_label" id="sdgLabel" class="form-input" value="<%= isEdit ? initiative.sdg_label : 'No Poverty' %>" required>
+        </div>
+
+        <!-- Program Name -->
+        <div class="form-field">
+          <label>Program Name</label>
+          <input type="text" name="program_name" id="programName" class="form-input" value="<%= isEdit ? initiative.program_name : '' %>" placeholder="e.g. Victory Garden Initiative" required
+            <% if (!isEdit) { %>oninput="generateSlug()"<% } %>>
+        </div>
+
+        <!-- Slug -->
+        <div class="form-field">
+          <label>Slug (identifier)</label>
+          <input type="text" name="slug" id="slugField" class="form-input" value="<%= isEdit ? initiative.slug : '' %>" placeholder="auto_generated_from_name"
+            style="font-family: monospace; font-size: 0.85rem;"
+            <% if (isEdit) { %>readonly style="font-family: monospace; font-size: 0.85rem; background: var(--color-border); cursor: not-allowed;"<% } %>
+            required>
+        </div>
+
+        <!-- Colors -->
+        <div class="form-field">
+          <label>Program Color</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="color" name="color" id="colorPicker" value="<%= isEdit ? initiative.color : '#5E6B52' %>" style="width: 40px; height: 32px; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer;">
+            <input type="text" id="colorHex" class="form-input" value="<%= isEdit ? initiative.color : '#5E6B52' %>" style="flex: 1; font-family: monospace; font-size: 0.85rem;" onchange="document.getElementById('colorPicker').value = this.value" readonly>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>SDG Color</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="color" name="sdg_color" id="sdgColorPicker" value="<%= isEdit ? initiative.sdg_color : '#E5243B' %>" style="width: 40px; height: 32px; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer;">
+            <input type="text" id="sdgColorHex" class="form-input" value="<%= isEdit ? initiative.sdg_color : '#E5243B' %>" style="flex: 1; font-family: monospace; font-size: 0.85rem;" readonly>
+          </div>
+        </div>
+
+        <!-- Icon -->
+        <div class="form-field">
+          <label>Icon (emoji)</label>
+          <input type="text" name="icon" class="form-input" value="<%= isEdit ? initiative.icon : '🌱' %>" style="font-size: 1.2rem;" maxlength="4">
+        </div>
+
+        <!-- Sort Order -->
+        <div class="form-field">
+          <label>Sort Order</label>
+          <input type="number" name="sort_order" class="form-input" value="<%= isEdit ? initiative.sort_order : 99 %>" min="0">
+        </div>
+
+        <!-- Visibility -->
+        <div class="form-field">
+          <label>Visibility</label>
+          <div style="display: flex; gap: 1rem; margin-top: 0.25rem;">
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.85rem;">
+              <input type="radio" name="visibility" value="public" <%= (isEdit && initiative.visibility === 'public') || !isEdit ? 'checked' : '' %>>
+              <span style="color: #2D6A3F; font-weight: 600;">Public</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.85rem;">
+              <input type="radio" name="visibility" value="private" <%= isEdit && initiative.visibility === 'private' ? 'checked' : '' %>>
+              <span style="color: #5E6B52; font-weight: 600;">Private</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.85rem;">
+              <input type="radio" name="visibility" value="archived" <%= isEdit && initiative.visibility === 'archived' ? 'checked' : '' %>>
+              <span style="color: #ef4444; font-weight: 600;">Archived</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Requires Application -->
+        <div class="form-field">
+          <label>&nbsp;</label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 0.35rem;">
+            <input type="checkbox" name="requires_application" value="1" <%= (isEdit && initiative.requires_application) || !isEdit ? 'checked' : '' %>>
+            <span style="font-size: 0.85rem;">Requires Application</span>
+          </label>
+        </div>
+
+        <!-- Description -->
+        <div class="form-field" style="grid-column: 1 / -1;">
+          <label>Description</label>
+          <textarea name="description" class="form-input" rows="3" placeholder="Describe this initiative..."><%= isEdit ? initiative.description || '' : '' %></textarea>
+        </div>
+
+        <!-- Volunteer Instructions -->
+        <div class="form-field" style="grid-column: 1 / -1;">
+          <label>Volunteer Instructions (shown in member portal)</label>
+          <textarea name="volunteer_instructions" class="form-input" rows="3" placeholder="Instructions for enrolled volunteers..."><%= isEdit ? initiative.volunteer_instructions || '' : '' %></textarea>
+        </div>
+      </div>
+
+      <!-- Preview Card -->
+      <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border);">
+        <h3 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--color-muted);">Preview</h3>
+        <div id="previewCard" style="border-left: 5px solid #E5243B; padding: 1rem; border-radius: var(--radius); background: var(--card-bg, #fff); border: 1px solid var(--color-border); max-width: 420px;">
+          <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+            <div id="previewBadge" style="min-width: 44px; height: 44px; border-radius: 10px; background: #E5243B; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800;">1</div>
+            <div>
+              <div id="previewSdg" style="font-size: 0.68rem; font-weight: 700; color: #E5243B; text-transform: uppercase;">SDG 1: No Poverty</div>
+              <div id="previewName" style="font-size: 0.95rem; font-weight: 700; margin: 0.1rem 0;">🌱 Initiative Name</div>
+              <div id="previewDesc" style="font-size: 0.78rem; color: var(--color-muted);">Description...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+        <button type="submit" class="btn btn--primary"><%= isEdit ? 'Update Initiative' : 'Create Initiative' %></button>
+        <a href="/admin/initiatives" class="btn btn--outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const SDG_DATA = {
+  1: { label: 'No Poverty', color: '#E5243B' },
+  2: { label: 'Zero Hunger', color: '#DDA63A' },
+  3: { label: 'Good Health & Well-Being', color: '#4C9F38' },
+  4: { label: 'Quality Education', color: '#C5192D' },
+  5: { label: 'Gender Equality', color: '#FF3A21' },
+  6: { label: 'Clean Water & Sanitation', color: '#26BDE2' },
+  7: { label: 'Affordable & Clean Energy', color: '#FCC30B' },
+  8: { label: 'Decent Work & Economic Growth', color: '#A21942' },
+  9: { label: 'Industry, Innovation & Infrastructure', color: '#FD6925' },
+  10: { label: 'Reduced Inequalities', color: '#DD1367' },
+  11: { label: 'Sustainable Cities & Communities', color: '#FD9D24' },
+  12: { label: 'Responsible Consumption & Production', color: '#BF8B2E' },
+  13: { label: 'Climate Action', color: '#3F7E44' },
+  14: { label: 'Life Below Water', color: '#0A97D9' },
+  15: { label: 'Life on Land', color: '#56C02B' },
+  16: { label: 'Peace, Justice & Strong Institutions', color: '#00689D' },
+  17: { label: 'Partnerships for the Goals', color: '#19486A' },
+};
+
+function updateSDG() {
+  const num = document.getElementById('sdgNumber').value;
+  const sdg = SDG_DATA[num];
+  if (sdg) {
+    document.getElementById('sdgLabel').value = sdg.label;
+    document.getElementById('sdgColorPicker').value = sdg.color;
+    document.getElementById('sdgColorHex').value = sdg.color;
+  }
+  updatePreview();
+}
+
+function generateSlug() {
+  const name = document.getElementById('programName').value;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  document.getElementById('slugField').value = slug;
+  updatePreview();
+}
+
+// Color picker sync
+document.getElementById('colorPicker').addEventListener('input', function() {
+  document.getElementById('colorHex').value = this.value;
+  updatePreview();
+});
+document.getElementById('sdgColorPicker').addEventListener('input', function() {
+  document.getElementById('sdgColorHex').value = this.value;
+  updatePreview();
+});
+
+function updatePreview() {
+  const num = document.getElementById('sdgNumber').value;
+  const label = document.getElementById('sdgLabel').value;
+  const name = document.getElementById('programName').value || 'Initiative Name';
+  const desc = document.querySelector('textarea[name="description"]').value || 'Description...';
+  const icon = document.querySelector('input[name="icon"]').value || '🌱';
+  const sdgColor = document.getElementById('sdgColorPicker').value;
+
+  document.getElementById('previewCard').style.borderLeftColor = sdgColor;
+  document.getElementById('previewBadge').style.background = sdgColor;
+  document.getElementById('previewBadge').textContent = num;
+  document.getElementById('previewSdg').style.color = sdgColor;
+  document.getElementById('previewSdg').textContent = 'SDG ' + num + ': ' + label;
+  document.getElementById('previewName').textContent = icon + ' ' + name;
+  document.getElementById('previewDesc').textContent = desc.substring(0, 120) + (desc.length > 120 ? '...' : '');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  <% if (isEdit) { %>
+  updatePreview();
+  <% } else { %>
+  updateSDG();
+  <% } %>
+
+  // Listen for changes on text fields too
+  document.querySelector('textarea[name="description"]').addEventListener('input', updatePreview);
+  document.querySelector('input[name="icon"]').addEventListener('input', updatePreview);
+});
+</script>

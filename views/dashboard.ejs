@@ -123,21 +123,16 @@
     <a href="/admin/garden/applications" class="card__link">Review Applications</a>
   </div>
   <div class="card__body">
-    <% const programInfo = [
-      { key: 'victory_garden', label: 'Victory Garden', color: '#2D6A3F', icon: '🌱' },
-      { key: 'legislative', label: 'Legislative Action', color: '#6366f1', icon: '🏛️' },
-      { key: 'outreach', label: 'Community Outreach', color: '#f59e0b', icon: '📢' },
-      { key: 'fundraising', label: 'Fundraising', color: '#10b981', icon: '💰' },
-      { key: 'communications', label: 'Communications', color: '#8b5cf6', icon: '✉️' },
-      { key: 'membership', label: 'Membership', color: '#ec4899', icon: '👥' }
-    ]; %>
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
-      <% programInfo.forEach(p => { %>
-        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: var(--radius); border: 1px solid var(--color-border);">
-          <div style="width: 36px; height: 36px; border-radius: 8px; background: <%= p.color %>15; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;"><%= p.icon %></div>
+      <% Object.entries(programInfo).filter(([k,v]) => v.visibility === 'public').forEach(([key, info]) => { %>
+        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--card-bg, #fff);">
+          <div style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: <%= info.sdgColor || info.color %>20; color: <%= info.sdgColor || info.color %>;">
+            <%= info.icon || '🌱' %>
+          </div>
           <div>
-            <div style="font-weight: 600; font-size: 0.85rem;"><%= p.label %></div>
-            <div style="font-size: 0.8rem; color: var(--color-muted);"><%= (stats.programCounts[p.key] || 0) %> volunteer<%= (stats.programCounts[p.key] || 0) !== 1 ? 's' : '' %></div>
+            <div style="font-size: 0.72rem; color: <%= info.sdgColor || info.color %>; font-weight: 600;"><%= info.sdgLabel || '' %></div>
+            <div style="font-weight: 600; font-size: 0.85rem;"><%= info.label %></div>
+            <div style="font-size: 0.72rem; color: var(--color-muted);"><%= stats.programCounts[key] || 0 %> volunteers</div>
           </div>
         </div>
       <% }); %>
