@@ -436,6 +436,22 @@ if (userCount === 0) {
   }
 }
 
+// Migration: Update test emails to production emails
+(function() {
+  const oldEmail = 'gina@test.com';
+  const newEmail = 'gina@iowacannabisaction.org';
+  const hasOld = db.prepare('SELECT id FROM accounts WHERE email = ?').get(oldEmail);
+  if (hasOld) {
+    db.prepare('UPDATE accounts SET email = ? WHERE email = ?').run(newEmail, oldEmail);
+    try { db.prepare('UPDATE member_credentials SET email = ? WHERE email = ?').run(newEmail, oldEmail); } catch(e) {}
+    try { db.prepare('UPDATE gardeners SET email = ? WHERE email = ?').run(newEmail, oldEmail); } catch(e) {}
+    try { db.prepare('UPDATE board_members SET email = ? WHERE email = ?').run(newEmail, oldEmail); } catch(e) {}
+    try { db.prepare('UPDATE subscribers SET email = ? WHERE email = ?').run(newEmail, oldEmail); } catch(e) {}
+    try { db.prepare('UPDATE signed_agreements SET user_email = ? WHERE user_email = ?').run(newEmail, oldEmail); } catch(e) {}
+    console.log('Migrated emails from ' + oldEmail + ' to ' + newEmail);
+  }
+})();
+
 // Make db available to routes
 app.locals.db = db;
 
