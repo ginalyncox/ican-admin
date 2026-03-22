@@ -120,6 +120,42 @@ function mapDocCategoryToResourceCategory(cat) {
   return map[cat] || 'general';
 }
 
+
+// ── SIGNED AGREEMENTS ─────────────────────────────────────
+router.get('/agreements', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+
+  const agreements = db.prepare(`
+    SELECT * FROM signed_agreements ORDER BY signed_at DESC
+  `).all();
+
+  // Stats
+  const totalVolunteers = db.prepare("SELECT COUNT(*) as c FROM member_credentials").get().c;
+  const totalDirectors = db.prepare("SELECT COUNT(*) as c FROM board_members WHERE status = 'active'").get().c;
+  const signedVolunteers = db.prepare("SELECT COUNT(*) as c FROM signed_agreements WHERE agreement_type = 'volunteer_service'").get().c;
+  const signedDirectors = db.prepare("SELECT COUNT(*) as c FROM signed_agreements WHERE agreement_type = 'board_commitment'").get().c;
+
+  res.render('doc-library/agreements', {
+    title: 'Signed Agreements',
+    agreements,
+    stats: { totalVolunteers, totalDirectors, signedVolunteers, signedDirectors }
+  });
+});
+
+// View individual agreement
+router.get('/agreements/:id', requireAuth, (req, res) => {
+  const db = req.app.locals.db;
+  const agreement = db.prepare('SELECT * FROM signed_agreements WHERE id = ?').get(req.params.id);
+  if (!agreement) {
+    req.session.flash = { type: 'error', message: 'Agreement not found.' };
+    return res.redirect('/admin/documents/agreements');
+  }
+  res.render('doc-library/agreement-detail', {
+    title: agreement.user_name + ' — ' + agreement.agreement_type.replace(/_/g, ' '),
+    agreement
+  });
+});
+
 // ── ACKNOWLEDGMENT DASHBOARD ──────────────────────────────
 router.get('/ack/dashboard', requireAuth, (req, res) => {
   const db = req.app.locals.db;

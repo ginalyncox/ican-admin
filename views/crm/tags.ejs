@@ -1,0 +1,83 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Manage Tags</h1>
+      <p class="page-header__subtitle">Create and manage contact tags</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/crm" class="btn btn--outline btn--sm">&larr; Dashboard</a>
+      <a href="/admin/crm/contacts" class="btn btn--outline btn--sm">Contacts</a>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Create Tag -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Create Tag</h2></div>
+    <div class="card__body">
+      <form method="POST" action="/admin/crm/tags">
+        <div class="form-field">
+          <label>Tag Name</label>
+          <input type="text" name="tag_name" class="form-input" placeholder="e.g. Major Donor" required>
+        </div>
+        <div class="form-field">
+          <label>Color</label>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <%
+              const presetColors = ['#2D6A3F', '#6366f1', '#B8862B', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#3b82f6', '#ec4899', '#5E6B52'];
+            %>
+            <% presetColors.forEach((c, i) => { %>
+              <label style="cursor: pointer;">
+                <input type="radio" name="color" value="<%= c %>" <%= i === 0 ? 'checked' : '' %> style="display: none;">
+                <span style="display: inline-block; width: 28px; height: 28px; border-radius: 50%; background: <%= c %>; border: 3px solid transparent; cursor: pointer;" onclick="this.parentElement.querySelector('input').checked=true; document.querySelectorAll('input[name=color]').forEach(r=>{r.parentElement.querySelector('span').style.borderColor='transparent'}); this.style.borderColor='var(--text)'"></span>
+              </label>
+            <% }); %>
+          </div>
+        </div>
+        <button type="submit" class="btn btn--primary btn--sm">Create Tag</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Existing Tags -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Existing Tags (<%= tags.length %>)</h2></div>
+    <div class="card__body">
+      <% if (tags.length === 0) { %>
+        <p class="text-muted">No tags created yet.</p>
+      <% } else { %>
+        <table class="table">
+          <thead>
+            <tr><th>Tag</th><th>Used</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% tags.forEach(t => { %>
+              <tr>
+                <td>
+                  <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: <%= t.color %>;"></span>
+                    <strong><%= t.tag_name %></strong>
+                  </span>
+                </td>
+                <td><%= t.usage_count %> contacts</td>
+                <td style="text-align: right;">
+                  <% if (t.usage_count === 0) { %>
+                    <form method="POST" action="/admin/crm/tags/<%= t.id %>/delete" style="display: inline;">
+                      <button type="submit" class="btn btn--ghost btn--sm" style="color: #ef4444; font-size: 0.75rem;" onclick="return confirm('Delete this tag?')">Delete</button>
+                    </form>
+                  <% } else { %>
+                    <a href="/admin/crm/contacts?tag=<%= t.id %>" class="btn btn--ghost btn--sm" style="font-size: 0.75rem;">View contacts</a>
+                    <form method="POST" action="/admin/crm/tags/<%= t.id %>/delete" style="display: inline;">
+                      <button type="submit" class="btn btn--ghost btn--sm" style="color: #ef4444; font-size: 0.75rem;" onclick="return confirm('Delete this tag and remove it from <%= t.usage_count %> contacts?')">Delete</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>

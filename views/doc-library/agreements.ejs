@@ -1,0 +1,57 @@
+<div class="page-header">
+  <h1 class="page-header__title">Signed Agreements</h1>
+  <p class="page-header__subtitle">Track signed service agreements and board commitments</p>
+</div>
+
+<div class="stats-grid" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= stats.signedVolunteers %> / <%= stats.totalVolunteers %></span>
+      <span class="stat-card__label">Volunteer Agreements</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__info">
+      <span class="stat-card__value"><%= stats.signedDirectors %> / <%= stats.totalDirectors %></span>
+      <span class="stat-card__label">Board Commitments</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Agreement Type</th>
+          <th>Role</th>
+          <th>Signed</th>
+          <th>IP</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (agreements.length === 0) { %>
+          <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No agreements signed yet</td></tr>
+        <% } %>
+        <% agreements.forEach(a => { %>
+        <tr>
+          <td><strong><%= a.user_name %></strong></td>
+          <td><%= a.user_email %></td>
+          <td>
+            <span class="badge badge--<%= a.agreement_type === 'volunteer_service' ? 'success' : 'default' %>">
+              <%= a.agreement_type === 'volunteer_service' ? 'Volunteer Service' : a.agreement_type === 'board_commitment' ? 'Board Commitment' : a.agreement_type.replace(/_/g, ' ') %>
+            </span>
+          </td>
+          <td><%= a.user_type %></td>
+          <td style="font-size: 0.8rem;"><%= new Date(a.signed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></td>
+          <td style="font-size: 0.75rem; color: var(--text-muted);"><%= a.ip_address || '—' %></td>
+          <td><a href="/admin/documents/agreements/<%= a.id %>" class="btn btn--sm btn--outline">View</a></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>

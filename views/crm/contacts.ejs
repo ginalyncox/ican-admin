@@ -1,0 +1,130 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Contacts</h1>
+      <p class="page-header__subtitle"><%= totalCount %> contacts found</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/crm" class="btn btn--outline btn--sm">Dashboard</a>
+      <a href="/admin/crm/tags" class="btn btn--outline btn--sm">Tags</a>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__body" style="padding: 0.75rem 1rem;">
+    <form method="GET" action="/admin/crm/contacts" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+      <div class="form-field" style="margin-bottom: 0; flex: 1; min-width: 160px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Search</label>
+        <input type="text" name="q" value="<%= filters.q %>" placeholder="Name or email..." class="form-input" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+      </div>
+      <div class="form-field" style="margin-bottom: 0; min-width: 130px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Type</label>
+        <select name="type" class="form-select" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All Types</option>
+          <option value="volunteer" <%= filters.type === 'volunteer' ? 'selected' : '' %>>Volunteers</option>
+          <option value="director" <%= filters.type === 'director' ? 'selected' : '' %>>Directors</option>
+          <option value="subscriber" <%= filters.type === 'subscriber' ? 'selected' : '' %>>Subscribers</option>
+        </select>
+      </div>
+      <div class="form-field" style="margin-bottom: 0; min-width: 130px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Tag</label>
+        <select name="tag" class="form-select" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All Tags</option>
+          <% availableTags.forEach(t => { %>
+            <option value="<%= t.id %>" <%= filters.tag == t.id ? 'selected' : '' %>><%= t.tag_name %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-field" style="margin-bottom: 0; min-width: 120px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Status</label>
+        <select name="status" class="form-select" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All</option>
+          <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= filters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+      <% if (filters.q || filters.type || filters.tag || filters.status) { %>
+        <a href="/admin/crm/contacts" class="btn btn--ghost btn--sm">Clear</a>
+      <% } %>
+    </form>
+  </div>
+</div>
+
+<!-- Contact List -->
+<div class="card">
+  <div class="card__body" style="padding: 0;">
+    <% if (contacts.length === 0) { %>
+      <div style="padding: 2rem; text-align: center;">
+        <p class="text-muted">No contacts match your filters.</p>
+      </div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Tags</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% contacts.forEach(c => { %>
+              <%
+                const typeLabels = { volunteer: 'Volunteer', director: 'Director', subscriber: 'Subscriber' };
+                const typeColors = { volunteer: '#2D6A3F', director: '#6366f1', subscriber: '#10b981' };
+                const name = `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email;
+              %>
+              <tr>
+                <td>
+                  <a href="/admin/crm/contacts/<%= c.contact_type %>/<%= c.id %>" style="font-weight: 600;">
+                    <%= name %>
+                  </a>
+                </td>
+                <td style="font-size: 0.85rem;"><%= c.email || '' %></td>
+                <td>
+                  <span style="display: inline-block; padding: 0.15rem 0.5rem; background: <%= typeColors[c.contact_type] %>18; color: <%= typeColors[c.contact_type] %>; border-radius: 999px; font-size: 0.72rem; font-weight: 600;">
+                    <%= typeLabels[c.contact_type] %>
+                  </span>
+                </td>
+                <td>
+                  <span style="display: inline-block; padding: 0.15rem 0.5rem; background: <%= c.status === 'active' ? '#2D6A3F18' : '#ef444418' %>; color: <%= c.status === 'active' ? '#2D6A3F' : '#ef4444' %>; border-radius: 999px; font-size: 0.72rem; font-weight: 600;">
+                    <%= c.status || 'active' %>
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                    <% c.tags.forEach(t => { %>
+                      <span style="display: inline-block; padding: 0.1rem 0.4rem; background: <%= t.color %>18; color: <%= t.color %>; border-radius: 999px; font-size: 0.65rem; font-weight: 600;"><%= t.name %></span>
+                    <% }); %>
+                  </div>
+                </td>
+                <td>
+                  <a href="/admin/crm/contacts/<%= c.contact_type %>/<%= c.id %>" class="btn btn--ghost btn--sm" style="font-size: 0.75rem;">View</a>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- Pagination -->
+<% if (totalPages > 1) { %>
+  <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;">
+    <% if (page > 1) { %>
+      <a href="/admin/crm/contacts?page=<%= page - 1 %>&q=<%= filters.q %>&type=<%= filters.type %>&tag=<%= filters.tag %>&status=<%= filters.status %>" class="btn btn--outline btn--sm">&larr; Prev</a>
+    <% } %>
+    <span style="font-size: 0.85rem; color: var(--color-muted); line-height: 2;">Page <%= page %> of <%= totalPages %></span>
+    <% if (page < totalPages) { %>
+      <a href="/admin/crm/contacts?page=<%= page + 1 %>&q=<%= filters.q %>&type=<%= filters.type %>&tag=<%= filters.tag %>&status=<%= filters.status %>" class="btn btn--outline btn--sm">Next &rarr;</a>
+    <% } %>
+  </div>
+<% } %>

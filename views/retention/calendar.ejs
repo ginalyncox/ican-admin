@@ -1,0 +1,58 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Renewal Calendar — <%= year %></h1>
+      <p class="page-header__subtitle">Monthly overview of upcoming renewals</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/retention/calendar?year=<%= year - 1 %>" class="btn btn--outline btn--sm">&larr; <%= year - 1 %></a>
+      <a href="/admin/retention/calendar?year=<%= year + 1 %>" class="btn btn--outline btn--sm"><%= year + 1 %> &rarr;</a>
+      <a href="/admin/retention" class="btn btn--outline btn--sm">Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+  <%
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const today = new Date().toISOString().split('T')[0];
+  %>
+  <% for (let m = 1; m <= 12; m++) { %>
+    <%
+      const key = `${year}-${String(m).padStart(2, '0')}`;
+      const items = byMonth[key] || [];
+      const isCurrentMonth = (new Date().getMonth() + 1 === m && new Date().getFullYear() === year);
+    %>
+    <div class="card" style="<%= isCurrentMonth ? 'border: 2px solid var(--primary);' : '' %>">
+      <div class="card__header" style="padding: 0.6rem 1rem;">
+        <h2 class="card__title" style="font-size: 0.9rem; <%= isCurrentMonth ? 'color: var(--primary);' : '' %>">
+          <%= monthNames[m - 1] %>
+          <% if (items.length > 0) { %>
+            <span style="font-weight: 400; color: var(--color-muted);">(<%= items.length %>)</span>
+          <% } %>
+        </h2>
+      </div>
+      <div class="card__body" style="padding: 0.5rem 1rem; min-height: 60px;">
+        <% if (items.length === 0) { %>
+          <p style="font-size: 0.78rem; color: var(--color-muted); margin: 0;">No renewals</p>
+        <% } else { %>
+          <% items.forEach(item => { %>
+            <%
+              const statusColors = { current: '#2D6A3F', due_soon: '#f59e0b', overdue: '#ef4444', expired: '#94a3b8' };
+              const color = statusColors[item.status] || '#5E6B52';
+              const expDay = item.expires_at ? new Date(item.expires_at).getDate() : '?';
+            %>
+            <div style="display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.35rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.78rem;">
+              <span style="min-width: 22px; text-align: center; font-weight: 700; color: <%= color %>;"><%= expDay %></span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><%= item.title %></div>
+                <div style="color: var(--color-muted); font-size: 0.72rem;"><%= item.related_name %></div>
+              </div>
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: <%= color %>; flex-shrink: 0; margin-top: 4px;" title="<%= item.status %>"></span>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+</div>

@@ -1,0 +1,213 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title"><%= contact.first_name %> <%= contact.last_name || '' %></h1>
+      <p class="page-header__subtitle">
+        <%
+          const typeLabels = { volunteer: 'Volunteer', director: 'Board Director', subscriber: 'Subscriber' };
+          const typeColors = { volunteer: '#2D6A3F', director: '#6366f1', subscriber: '#10b981' };
+        %>
+        <span style="display: inline-block; padding: 0.15rem 0.5rem; background: <%= typeColors[contact.contact_type] %>18; color: <%= typeColors[contact.contact_type] %>; border-radius: 999px; font-size: 0.78rem; font-weight: 600;">
+          <%= typeLabels[contact.contact_type] %>
+        </span>
+        <% if (contact.status) { %>
+          <span style="display: inline-block; padding: 0.15rem 0.5rem; background: <%= contact.status === 'active' ? '#2D6A3F18' : '#ef444418' %>; color: <%= contact.status === 'active' ? '#2D6A3F' : '#ef4444' %>; border-radius: 999px; font-size: 0.78rem; font-weight: 600; margin-left: 0.25rem;">
+            <%= contact.status %>
+          </span>
+        <% } %>
+      </p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/crm/contacts" class="btn btn--outline btn--sm">&larr; Back to Contacts</a>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Contact Info -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Contact Information</h2></div>
+    <div class="card__body">
+      <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.85rem;">
+        <% if (contact.email) { %>
+          <span class="text-muted" style="font-weight: 600;">Email</span>
+          <span><a href="mailto:<%= contact.email %>"><%= contact.email %></a></span>
+        <% } %>
+        <% if (contact.phone) { %>
+          <span class="text-muted" style="font-weight: 600;">Phone</span>
+          <span><%= contact.phone %></span>
+        <% } %>
+        <% if (contact.address) { %>
+          <span class="text-muted" style="font-weight: 600;">Address</span>
+          <span><%= contact.address %><%= contact.city ? ', ' + contact.city : '' %><%= contact.state ? ', ' + contact.state : '' %> <%= contact.zip || '' %></span>
+        <% } %>
+        <% if (contact.title && contact.contact_type === 'director') { %>
+          <span class="text-muted" style="font-weight: 600;">Title</span>
+          <span><%= contact.title %><%= contact.officer_title ? ' (' + contact.officer_title + ')' : '' %></span>
+        <% } %>
+        <% if (contact.term_start) { %>
+          <span class="text-muted" style="font-weight: 600;">Term</span>
+          <span><%= contact.term_start %> &mdash; <%= contact.term_end || 'Present' %></span>
+        <% } %>
+        <% if (contact.joined_date) { %>
+          <span class="text-muted" style="font-weight: 600;">Joined</span>
+          <span><%= contact.joined_date %></span>
+        <% } %>
+        <% if (contact.subscribed_at) { %>
+          <span class="text-muted" style="font-weight: 600;">Subscribed</span>
+          <span><%= new Date(contact.subscribed_at).toLocaleDateString() %></span>
+        <% } %>
+      </div>
+
+      <!-- Quick Stats -->
+      <% if (contact.contact_type === 'volunteer') { %>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+          <div style="text-align: center; padding: 0.5rem; background: var(--primary-bg, rgba(45,106,63,0.05)); border-radius: var(--radius);">
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);"><%= Number(stats.totalHours).toFixed(1) %></div>
+            <div style="font-size: 0.7rem; color: var(--color-muted);">Total Hours</div>
+          </div>
+          <div style="text-align: center; padding: 0.5rem; background: rgba(16,185,129,0.05); border-radius: var(--radius);">
+            <div style="font-size: 1.2rem; font-weight: 700; color: #10b981;"><%= Number(stats.totalHarvest).toFixed(1) %></div>
+            <div style="font-size: 0.7rem; color: var(--color-muted);">Lbs Harvested</div>
+          </div>
+        </div>
+        <% if (stats.programs && stats.programs.length > 0) { %>
+          <div style="margin-top: 0.75rem;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-muted);">Programs:</span>
+            <% stats.programs.forEach(p => { %>
+              <span style="display: inline-block; padding: 0.1rem 0.4rem; background: #2D6A3F18; color: #2D6A3F; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 0.25rem;"><%= p %></span>
+            <% }); %>
+          </div>
+        <% } %>
+        <% if (stats.eventsAttended > 0) { %>
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--color-muted);"><%= stats.eventsAttended %> events attended</div>
+        <% } %>
+      <% } %>
+
+      <% if (contact.contact_type === 'director') { %>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+          <div style="text-align: center; padding: 0.5rem; background: rgba(99,102,241,0.05); border-radius: var(--radius);">
+            <div style="font-size: 1.2rem; font-weight: 700; color: #6366f1;"><%= stats.meetingsAttended %></div>
+            <div style="font-size: 0.7rem; color: var(--color-muted);">Meetings Attended</div>
+          </div>
+          <div style="text-align: center; padding: 0.5rem; background: rgba(99,102,241,0.05); border-radius: var(--radius);">
+            <div style="font-size: 1.2rem; font-weight: 700; color: #6366f1;"><%= stats.votesParticipated %></div>
+            <div style="font-size: 0.7rem; color: var(--color-muted);">Votes Cast</div>
+          </div>
+        </div>
+        <% if (stats.committees && stats.committees.length > 0) { %>
+          <div style="margin-top: 0.75rem;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-muted);">Committees:</span>
+            <% stats.committees.forEach(c => { %>
+              <span style="display: inline-block; padding: 0.1rem 0.4rem; background: #6366f118; color: #6366f1; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 0.25rem;"><%= c %></span>
+            <% }); %>
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Tags & Add Interaction -->
+  <div>
+    <!-- Tags -->
+    <div class="card" style="margin-bottom: 1rem;">
+      <div class="card__header"><h2 class="card__title">Tags</h2></div>
+      <div class="card__body">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem;">
+          <% if (contactTags.length === 0) { %>
+            <span class="text-muted" style="font-size: 0.8rem;">No tags assigned</span>
+          <% } else { %>
+            <% contactTags.forEach(t => { %>
+              <span style="display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem; background: <%= t.color %>18; color: <%= t.color %>; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: <%= t.color %>;"></span>
+                <%= t.tag_name %>
+                <form method="POST" action="/admin/crm/contacts/<%= contact.contact_type %>/<%= contact.id %>/untag/<%= t.id %>" style="display: inline; margin: 0;">
+                  <button type="submit" style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; font-size: 0.85rem; padding: 0 2px;" title="Remove tag">&times;</button>
+                </form>
+              </span>
+            <% }); %>
+          <% } %>
+        </div>
+        <form method="POST" action="/admin/crm/contacts/<%= contact.contact_type %>/<%= contact.id %>/tag" style="display: flex; gap: 0.5rem;">
+          <select name="tag_id" class="form-select" style="flex: 1; padding: 0.3rem 0.5rem; font-size: 0.8rem;">
+            <option value="">Add a tag...</option>
+            <% allTags.forEach(t => { %>
+              <% const already = contactTags.some(ct => ct.id === t.id); %>
+              <% if (!already) { %>
+                <option value="<%= t.id %>"><%= t.tag_name %></option>
+              <% } %>
+            <% }); %>
+          </select>
+          <button type="submit" class="btn btn--primary btn--sm" style="font-size: 0.75rem;">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Interaction -->
+    <div class="card">
+      <div class="card__header"><h2 class="card__title">Log Interaction</h2></div>
+      <div class="card__body">
+        <form method="POST" action="/admin/crm/contacts/<%= contact.contact_type %>/<%= contact.id %>/interaction">
+          <div class="form-field">
+            <label>Type</label>
+            <select name="interaction_type" class="form-select" required>
+              <option value="note">Note</option>
+              <option value="email">Email</option>
+              <option value="call">Phone Call</option>
+              <option value="meeting">Meeting</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Title</label>
+            <input type="text" name="title" class="form-input" placeholder="Brief summary..." required>
+          </div>
+          <div class="form-field">
+            <label>Details (optional)</label>
+            <textarea name="body" class="form-input" rows="3" placeholder="Additional notes..."></textarea>
+          </div>
+          <button type="submit" class="btn btn--primary btn--sm">Log Interaction</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header"><h2 class="card__title">Interaction Timeline</h2></div>
+  <div class="card__body">
+    <% if (interactions.length === 0) { %>
+      <p class="text-muted">No interactions recorded yet. Use the form above to log the first one.</p>
+    <% } else { %>
+      <div style="position: relative; padding-left: 1.5rem;">
+        <div style="position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: var(--color-border);"></div>
+        <% interactions.forEach(i => { %>
+          <%
+            const typeColors = { note: '#5E6B52', email: '#3b82f6', call: '#f59e0b', meeting: '#6366f1', event: '#10b981', application: '#B8862B', system: '#94a3b8' };
+            const color = typeColors[i.interaction_type] || '#5E6B52';
+          %>
+          <div style="position: relative; padding-bottom: 1rem;">
+            <div style="position: absolute; left: -1.5rem; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: <%= color %>; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white;"></div>
+            </div>
+            <div style="padding: 0.5rem 0.75rem; background: var(--card-bg, #fff); border: 1px solid var(--color-border); border-radius: var(--radius);">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.25rem;">
+                <span style="font-weight: 600; font-size: 0.85rem;"><%= i.title %></span>
+                <span style="font-size: 0.7rem; color: var(--color-muted);"><%= new Date(i.created_at).toLocaleDateString() %> <%= new Date(i.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></span>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem;">
+                <span style="display: inline-block; padding: 0.1rem 0.4rem; background: <%= color %>18; color: <%= color %>; border-radius: 999px; font-size: 0.65rem; font-weight: 600; text-transform: capitalize;"><%= i.interaction_type %></span>
+                <% if (i.created_by) { %>
+                  <span style="font-size: 0.7rem; color: var(--color-muted);">by <%= i.created_by %></span>
+                <% } %>
+              </div>
+              <% if (i.body) { %>
+                <p style="font-size: 0.82rem; color: var(--color-muted); margin: 0.25rem 0 0 0; white-space: pre-wrap;"><%= i.body %></p>
+              <% } %>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</div>

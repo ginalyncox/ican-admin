@@ -1,0 +1,183 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Renewals & Retention</h1>
+      <p class="page-header__subtitle">Track agreements, certifications, and compliance deadlines</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/retention/calendar" class="btn btn--outline btn--sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Calendar
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Status Summary Cards -->
+<div class="stats-grid stats-grid--3" style="margin-bottom: 1.5rem;">
+  <div class="stat-card" style="border-left: 4px solid #2D6A3F;">
+    <div class="stat-card__label">Current</div>
+    <div class="stat-card__value" style="color: #2D6A3F;"><%= currentCount %></div>
+    <div class="stat-card__detail">up to date</div>
+  </div>
+  <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+    <div class="stat-card__label">Due Soon</div>
+    <div class="stat-card__value" style="color: #f59e0b;"><%= dueSoonCount %></div>
+    <div class="stat-card__detail">within 30 days</div>
+  </div>
+  <div class="stat-card" style="border-left: 4px solid #ef4444;">
+    <div class="stat-card__label">Overdue</div>
+    <div class="stat-card__value" style="color: #ef4444;"><%= overdueCount %></div>
+    <div class="stat-card__detail">needs attention</div>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card__body" style="padding: 0.5rem 1rem;">
+    <form method="GET" action="/admin/retention" style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;">
+      <div class="form-field" style="margin-bottom: 0; min-width: 160px;">
+        <label style="font-size: 0.75rem; font-weight: 600;">Filter by Type</label>
+        <select name="type" class="form-select" style="padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+          <option value="">All Types</option>
+          <% itemTypes.forEach(t => { %>
+            <option value="<%= t.value %>" <%= filters.type === t.value ? 'selected' : '' %>><%= t.label %></option>
+          <% }); %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+      <% if (filters.type) { %>
+        <a href="/admin/retention" class="btn btn--ghost btn--sm">Clear</a>
+      <% } %>
+    </form>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Overdue Items -->
+  <div class="card">
+    <div class="card__header" style="border-left: 4px solid #ef4444;">
+      <h2 class="card__title" style="color: #ef4444;">Overdue (<%= overdue.length %>)</h2>
+    </div>
+    <div class="card__body">
+      <% if (overdue.length === 0) { %>
+        <p class="text-muted" style="font-size: 0.85rem;">No overdue items. Great job staying on top of renewals!</p>
+      <% } else { %>
+        <% overdue.forEach(item => { %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--color-border);">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem;"><%= item.title %></div>
+              <div style="font-size: 0.75rem; color: var(--color-muted);">
+                <%= item.related_name %> &middot;
+                <span style="text-transform: capitalize;"><%= item.item_type.replace('_', ' ') %></span> &middot;
+                <span style="color: #ef4444; font-weight: 600;"><%= item.days_overdue %> days overdue</span>
+              </div>
+            </div>
+            <form method="POST" action="/admin/retention/<%= item.id %>/renew" style="margin: 0;">
+              <button type="submit" class="btn btn--primary btn--sm" style="font-size: 0.75rem;">Renew</button>
+            </form>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Upcoming Renewals -->
+  <div class="card">
+    <div class="card__header" style="border-left: 4px solid #f59e0b;">
+      <h2 class="card__title">Upcoming (next 90 days)</h2>
+    </div>
+    <div class="card__body">
+      <% if (upcoming.length === 0) { %>
+        <p class="text-muted" style="font-size: 0.85rem;">No renewals coming up in the next 90 days.</p>
+      <% } else { %>
+        <% upcoming.forEach(item => { %>
+          <%
+            const expDate = new Date(item.expires_at);
+            const daysUntil = Math.ceil((expDate - new Date()) / 86400000);
+            const urgencyColor = daysUntil <= 7 ? '#ef4444' : daysUntil <= 30 ? '#f59e0b' : '#2D6A3F';
+          %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--color-border);">
+            <div>
+              <div style="font-weight: 600; font-size: 0.85rem;"><%= item.title %></div>
+              <div style="font-size: 0.75rem; color: var(--color-muted);">
+                <%= item.related_name %> &middot;
+                <span style="text-transform: capitalize;"><%= item.item_type.replace('_', ' ') %></span>
+              </div>
+            </div>
+            <div style="text-align: right; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.75rem; font-weight: 600; color: <%= urgencyColor %>;"><%= daysUntil %> days</span>
+              <form method="POST" action="/admin/retention/<%= item.id %>/renew" style="margin: 0;">
+                <button type="submit" class="btn btn--outline btn--sm" style="font-size: 0.75rem;">Renew</button>
+              </form>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Create Renewal Item -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header"><h2 class="card__title">Add Renewal Item</h2></div>
+  <div class="card__body">
+    <form method="POST" action="/admin/retention/items" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="form-field">
+        <label>Type</label>
+        <select name="item_type" class="form-select" required>
+          <% itemTypes.forEach(t => { %>
+            <option value="<%= t.value %>"><%= t.label %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Title</label>
+        <input type="text" name="title" class="form-input" placeholder="e.g. Annual Volunteer Agreement" required>
+      </div>
+      <div class="form-field">
+        <label>Related To</label>
+        <select name="related_type" class="form-select" id="relatedType" onchange="updateRelatedId()">
+          <option value="organization">Organization</option>
+          <option value="volunteer">Volunteer</option>
+          <option value="director">Director</option>
+        </select>
+      </div>
+      <div class="form-field" id="relatedIdField">
+        <label>Person</label>
+        <select name="related_id" class="form-select" id="relatedId">
+          <option value="">N/A (organization-wide)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Expires At</label>
+        <input type="date" name="expires_at" class="form-input">
+      </div>
+      <div class="form-field">
+        <label>Renewal Interval (days)</label>
+        <input type="number" name="renewal_interval_days" class="form-input" value="365" min="1">
+      </div>
+      <div class="form-field" style="grid-column: 1 / -1;">
+        <label>Notes</label>
+        <textarea name="notes" class="form-input" rows="2" placeholder="Optional notes..."></textarea>
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <button type="submit" class="btn btn--primary">Create Renewal Item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const volunteers = <%- JSON.stringify(volunteers) %>;
+  const directors = <%- JSON.stringify(directors) %>;
+  function updateRelatedId() {
+    const type = document.getElementById('relatedType').value;
+    const sel = document.getElementById('relatedId');
+    sel.innerHTML = '<option value="">N/A</option>';
+    const list = type === 'volunteer' ? volunteers : type === 'director' ? directors : [];
+    list.forEach(p => {
+      sel.innerHTML += '<option value="' + p.id + '">' + p.name + '</option>';
+    });
+  }
+</script>

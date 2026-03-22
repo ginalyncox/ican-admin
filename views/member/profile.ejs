@@ -210,3 +210,25 @@ const nextMilestone = hourMilestones.find(m => totalHrs < m.threshold);
     </div>
   </div>
 </div>
+
+<!-- Signed Agreements -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+    <h3 style="font-size: 0.95rem; font-weight: 600;">Signed Agreements</h3>
+  </div>
+  <div style="padding: 1.25rem;">
+    <% if (typeof myAgreements !== 'undefined' && myAgreements && myAgreements.length > 0) { %>
+      <% myAgreements.forEach(a => { %>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
+        <div>
+          <strong style="font-size: 0.9rem;"><%= a.agreement_type === 'volunteer_service' ? 'Volunteer Service Agreement' : a.agreement_type.replace(/_/g, ' ') %></strong>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Signed <%= new Date(a.signed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></div>
+        </div>
+        <span style="color: var(--primary); font-size: 0.8rem; font-weight: 600;">✓ Signed</span>
+      </div>
+      <% }); %>
+    <% } else { %>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">No agreements on file.</p>
+    <% } %>
+  </div>
+</div>

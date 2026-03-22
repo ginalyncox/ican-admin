@@ -192,3 +192,62 @@
   </div>
 </div>
 <% } %>
+
+<!-- Step 5: Board Commitment Agreement -->
+<% if (step === 'agreement') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Board Commitment Agreement
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1rem; color: var(--color-muted);">As a final step, please read and sign the Board Commitment Agreement.</p>
+
+    <div style="background: #fff; border: 1px solid var(--color-border); border-radius: 8px; padding: 1.5rem; max-height: 350px; overflow-y: auto; margin-bottom: 1.5rem; font-size: 0.88rem; line-height: 1.7;">
+      <h3 style="color: var(--primary); margin-bottom: 0.75rem; font-size: 1rem;">Board of Directors Commitment Agreement</h3>
+      <p style="color: var(--color-muted); margin-bottom: 0.75rem;">Iowa Cannabis Action Network, Inc.</p>
+
+      <p style="margin-bottom: 0.75rem;">By signing this agreement, I accept my appointment to the Board and commit to:</p>
+      <ol style="padding-left: 1.25rem; margin-bottom: 1rem;">
+        <li style="margin-bottom: 0.5rem;">Attend monthly board meetings (in person or remotely) and notify the Chair in advance of any absence.</li>
+        <li style="margin-bottom: 0.5rem;">Serve on at least one board committee.</li>
+        <li style="margin-bottom: 0.5rem;">Participate in the annual strategic planning process.</li>
+        <li style="margin-bottom: 0.5rem;">Actively support ICAN's fundraising and development efforts.</li>
+        <li style="margin-bottom: 0.5rem;">File an annual Conflict of Interest disclosure.</li>
+        <li style="margin-bottom: 0.5rem;">Act in the best interests of ICAN and fulfill my fiduciary duties of care, loyalty, and obedience.</li>
+        <li style="margin-bottom: 0.5rem;">Maintain confidentiality of board deliberations and sensitive organizational information.</li>
+        <li style="margin-bottom: 0.5rem;">Review meeting materials in advance and come prepared to participate.</li>
+        <li style="margin-bottom: 0.5rem;">I understand that failure to attend three consecutive meetings without notice may result in removal from the board.</li>
+      </ol>
+    </div>
+
+    <form method="POST" action="/director/onboarding/agreement">
+      <div style="padding: 1.25rem; background: rgba(45,106,63,0.08); border-radius: 8px; border: 1px solid rgba(45,106,63,0.15);">
+        <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; margin-bottom: 1rem;">
+          <input type="checkbox" name="agree_terms" value="1" id="dirAgreeCheck" style="margin-top: 3px; width: 18px; height: 18px; accent-color: #2D6A3F;">
+          <span style="font-size: 0.9rem;">I have read, understand, and accept the Board Commitment Agreement above.</span>
+        </label>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="printed_name" style="font-weight: 600; font-size: 0.85rem;">Print Your Full Legal Name (Electronic Signature)</label>
+          <input type="text" id="printed_name" name="printed_name" class="form-control" required placeholder="Your full name" value="<%= member.first_name %> <%= member.last_name %>">
+        </div>
+        <p style="font-size: 0.75rem; color: var(--color-muted); margin-bottom: 1rem;">
+          By typing your name and clicking below, you are electronically signing this agreement.
+        </p>
+        <button type="submit" class="btn btn--primary" id="dirAgreeBtn" disabled style="opacity: 0.5;">Sign Agreement &amp; Enter Board Portal</button>
+      </div>
+    </form>
+
+    <script>
+    document.getElementById('dirAgreeCheck').addEventListener('change', function() {
+      var btn = document.getElementById('dirAgreeBtn');
+      btn.disabled = !this.checked;
+      btn.style.opacity = this.checked ? '1' : '0.5';
+    });
+    </script>
+  </div>
+</div>
+<% } %>
+

@@ -1,0 +1,121 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">Site Manager</h1>
+      <p class="page-header__subtitle">Organization settings and website management</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/site/deploy" class="btn btn--primary btn--sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4z"/></svg>
+        Deploy Website
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Organization Settings -->
+  <div class="card" style="grid-column: 1 / -1;">
+    <div class="card__header"><h2 class="card__title">Organization Settings</h2></div>
+    <div class="card__body">
+      <form method="POST" action="/admin/site/settings">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-field">
+            <label>Organization Name</label>
+            <input type="text" name="org_name" class="form-input" value="<%= settings.org_name || '' %>">
+          </div>
+          <div class="form-field">
+            <label>Legal Name</label>
+            <input type="text" name="org_legal_name" class="form-input" value="<%= settings.org_legal_name || '' %>">
+          </div>
+          <div class="form-field">
+            <label>Email</label>
+            <input type="email" name="org_email" class="form-input" value="<%= settings.org_email || '' %>">
+          </div>
+          <div class="form-field">
+            <label>Phone</label>
+            <input type="tel" name="org_phone" class="form-input" value="<%= settings.org_phone || '' %>">
+          </div>
+          <div class="form-field" style="grid-column: 1 / -1;">
+            <label>Address</label>
+            <input type="text" name="org_address" class="form-input" value="<%= settings.org_address || '' %>">
+          </div>
+          <div class="form-field">
+            <label>EIN</label>
+            <input type="text" name="org_ein" class="form-input" value="<%= settings.org_ein || '' %>">
+          </div>
+          <div class="form-field">
+            <label>Website URL</label>
+            <input type="url" name="org_website" class="form-input" value="<%= settings.org_website || '' %>">
+          </div>
+          <div class="form-field">
+            <label>Facebook URL</label>
+            <input type="url" name="org_facebook" class="form-input" value="<%= settings.org_facebook || '' %>">
+          </div>
+          <div class="form-field">
+            <label>Web3Forms API Key</label>
+            <input type="text" name="web3forms_key" class="form-input" value="<%= settings.web3forms_key || '' %>" style="font-family: monospace; font-size: 0.82rem;">
+          </div>
+          <div class="form-field" style="grid-column: 1 / -1;">
+            <label>Tagline</label>
+            <input type="text" name="org_tagline" class="form-input" value="<%= settings.org_tagline || '' %>">
+          </div>
+          <div class="form-field" style="grid-column: 1 / -1;">
+            <label>Mission Statement</label>
+            <textarea name="org_mission" class="form-input" rows="3"><%= settings.org_mission || '' %></textarea>
+          </div>
+        </div>
+        <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center;">
+          <button type="submit" class="btn btn--primary">Save Settings</button>
+          <span class="text-muted" style="font-size: 0.8rem;">Changes are saved to the database and will be used in the next deploy.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid" style="margin-top: 1.5rem;">
+  <!-- Website Status -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Website Status</h2></div>
+    <div class="card__body">
+      <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; font-size: 0.85rem;">
+        <span class="text-muted" style="font-weight: 600;">Domain</span>
+        <span><a href="<%= settings.org_website || '#' %>" target="_blank"><%= settings.org_website || 'Not configured' %></a></span>
+
+        <span class="text-muted" style="font-weight: 600;">Last Deploy</span>
+        <span>
+          <% if (lastDeploy) { %>
+            <%= new Date(lastDeploy).toLocaleString() %>
+            <% if (lastDeployBy) { %><span class="text-muted"> by <%= lastDeployBy %></span><% } %>
+          <% } else { %>
+            Never deployed
+          <% } %>
+        </span>
+
+        <span class="text-muted" style="font-weight: 600;">Repository</span>
+        <span style="font-family: monospace; font-size: 0.8rem;">ginalyncox/IowaCannabisAction</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Deploys -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">Recent Deploys</h2></div>
+    <div class="card__body">
+      <% if (deployHistory.length === 0) { %>
+        <p class="text-muted" style="font-size: 0.85rem;">No deploys yet.</p>
+      <% } else { %>
+        <% deployHistory.forEach(d => { %>
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.8rem;">
+            <span><%= d.by %></span>
+            <span>
+              <span style="display: inline-block; padding: 0.1rem 0.35rem; border-radius: 999px; font-size: 0.68rem; font-weight: 600; background: <%= d.status === 'pending' ? '#f59e0b18' : '#2D6A3F18' %>; color: <%= d.status === 'pending' ? '#f59e0b' : '#2D6A3F' %>;"><%= d.status %></span>
+              <span class="text-muted" style="margin-left: 0.5rem;"><%= new Date(d.at).toLocaleDateString() %></span>
+            </span>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+</div>

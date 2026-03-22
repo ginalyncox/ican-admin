@@ -109,15 +109,21 @@ router.get('/onboarding', requireDirector, (req, res) => {
   const member = db.prepare('SELECT * FROM board_members WHERE id = ?').get(mid);
   const currentYear = new Date().getFullYear();
 
-  // Determine current step
-  let step = 'password'; // Step 1: change password
+  // Determine current step (5 steps: password, profile, coi, documents, agreement)
+  let step = 'password';
   if (!member.must_change_password) {
-    step = 'profile'; // Step 2: complete profile
+    step = 'profile';
     if (member.phone && member.bio) {
-      step = 'coi'; // Step 3: file COI
+      step = 'coi';
       const coiFiled = db.prepare('SELECT id FROM coi_disclosures WHERE member_id = ? AND disclosure_year = ?').get(mid, currentYear);
       if (coiFiled) {
-        step = 'documents'; // Step 4: review key documents
+        step = 'documents';
+        if (member.documents_acknowledged) {
+          step = 'agreement';
+          if (member.agreement_signed) {
+            // All done — mark complete
+          }
+        }
       }
     }
   }
@@ -236,6 +242,56 @@ router.post('/onboarding/documents', requireDirector, (req, res) => {
   db.prepare("UPDATE board_members SET onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(mid);
   req.session.directorOnboardingCompleted = 1;
   req.session.directorFlash = { type: 'success', message: 'Welcome aboard! Your onboarding is complete. You now have full access to the Board Portal.' };
+  res.redirect('/director');
+});
+
+
+// Onboarding: Sign Board Commitment Agreement
+router.post('/onboarding/agreement', requireDirector, (req, res) => {
+  const db = req.app.locals.db;
+  const mid = req.session.directorBoardMemberId;
+  const member = db.prepare('SELECT * FROM board_members WHERE id = ?').get(mid);
+  const { agree_terms, printed_name } = req.body;
+
+  if (!agree_terms || !printed_name || !printed_name.trim()) {
+    req.session.directorFlash = { type: 'error', message: 'You must check the agreement box and print your name.' };
+    return res.redirect('/director/onboarding');
+  }
+
+  const ip = req.ip || req.connection.remoteAddress;
+  const fullName = member.first_name + ' ' + member.last_name;
+
+  const agreementText = `BOARD OF DIRECTORS COMMITMENT AGREEMENT — Iowa Cannabis Action Network, Inc.
+
+I, ${printed_name.trim()}, accept appointment to the Board of Directors of the Iowa Cannabis Action Network, Inc. (ICAN) and commit to the following:
+
+1. I will attend monthly board meetings (in person or remotely) and notify the Chair in advance of any absence.
+2. I will serve on at least one board committee.
+3. I will participate in the annual strategic planning process.
+4. I will actively support ICAN's fundraising and development efforts.
+5. I will file an annual Conflict of Interest disclosure.
+6. I will act in the best interests of ICAN and fulfill my fiduciary duties of care, loyalty, and obedience.
+7. I will maintain confidentiality of board deliberations and sensitive organizational information.
+8. I will review meeting materials in advance and come prepared to participate.
+9. I understand that failure to attend three consecutive meetings without notice may result in removal from the board.
+
+Signed electronically by: ${printed_name.trim()}
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+IP Address: ${ip}`;
+
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO signed_agreements (agreement_type, user_type, user_id, user_name, user_email, ip_address, agreement_version, agreement_text)
+      VALUES ('board_commitment', 'director', ?, ?, ?, ?, 1, ?)
+    `).run(mid, fullName, member.email, ip, agreementText);
+
+    db.prepare("UPDATE board_members SET agreement_signed = 1, onboarding_completed = 1, onboarding_completed_at = datetime('now') WHERE id = ?").run(mid);
+    req.session.directorOnboardingCompleted = 1;
+    req.session.directorFlash = { type: 'success', message: 'Board Commitment Agreement signed. Welcome to the Board Portal!' };
+  } catch (err) {
+    console.error('Agreement error:', err);
+    req.session.directorFlash = { type: 'error', message: 'Failed to record agreement.' };
+  }
   res.redirect('/director');
 });
 

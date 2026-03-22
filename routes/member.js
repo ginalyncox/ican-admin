@@ -76,7 +76,7 @@ router.get('/onboarding', requireMember, (req, res) => {
     return res.redirect('/member');
   }
 
-  // Determine current step (6 steps: password, personal, preferences, programs, documents, welcome)
+  // Determine current step (7 steps: password, personal, preferences, programs, documents, agreement, welcome)
   let step = 'password';
   if (!cred.must_change_password) {
     step = 'personal';
@@ -88,7 +88,10 @@ router.get('/onboarding', requireMember, (req, res) => {
         if (hasApplied > 0) {
           step = 'documents';
           if (cred.documents_acknowledged) {
-            step = 'welcome';
+            step = 'agreement';
+            if (cred.agreement_signed) {
+              step = 'welcome';
+            }
           }
         }
       }
@@ -246,7 +249,57 @@ router.post('/onboarding/documents', requireMember, (req, res) => {
   res.redirect('/member/onboarding');
 });
 
-// Onboarding Step 6: Complete onboarding
+
+// Onboarding Step 6: Sign Volunteer Service Agreement
+router.post('/onboarding/agreement', requireMember, (req, res) => {
+  const db = req.app.locals.db;
+  const gid = req.session.memberGardenerId;
+  const gardener = db.prepare('SELECT * FROM gardeners WHERE id = ?').get(gid);
+  const cred = db.prepare('SELECT email FROM member_credentials WHERE id = ?').get(req.session.memberId);
+  const { agree_terms, printed_name } = req.body;
+
+  if (!agree_terms || !printed_name || !printed_name.trim()) {
+    req.session.memberFlash = { type: 'error', message: 'You must check the agreement box and print your name to continue.' };
+    return res.redirect('/member/onboarding');
+  }
+
+  const ip = req.ip || req.connection.remoteAddress;
+  const fullName = gardener.first_name + ' ' + gardener.last_name;
+
+  const agreementText = `VOLUNTEER SERVICE AGREEMENT — Iowa Cannabis Action Network, Inc.
+
+I, ${printed_name.trim()}, voluntarily offer my services to the Iowa Cannabis Action Network (ICAN) and agree to the following terms:
+
+1. I will perform my volunteer duties to the best of my ability.
+2. I understand that I am not an employee of ICAN and will not receive compensation.
+3. I agree to follow all ICAN policies, including the Code of Conduct and safety protocols.
+4. I will maintain the confidentiality of any sensitive information I encounter.
+5. I understand that ICAN may terminate my volunteer service at any time.
+6. I will report any injuries, safety concerns, or incidents to my program coordinator.
+7. I agree to accurately log my volunteer hours in the ICAN Volunteer Portal.
+
+RELEASE AND WAIVER: I release and hold harmless Iowa Cannabis Action Network, Inc., its officers, directors, agents, and other volunteers from any and all claims arising out of my volunteer activities, except those caused by willful misconduct.
+
+Signed electronically by: ${printed_name.trim()}
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+IP Address: ${ip}`;
+
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO signed_agreements (agreement_type, user_type, user_id, user_name, user_email, ip_address, agreement_version, agreement_text)
+      VALUES ('volunteer_service', 'volunteer', ?, ?, ?, ?, 1, ?)
+    `).run(gid, fullName, cred.email, ip, agreementText);
+
+    db.prepare('UPDATE member_credentials SET agreement_signed = 1 WHERE id = ?').run(req.session.memberId);
+    req.session.memberFlash = { type: 'success', message: 'Volunteer Service Agreement signed. Welcome aboard!' };
+  } catch (err) {
+    console.error('Agreement error:', err);
+    req.session.memberFlash = { type: 'error', message: 'Failed to record agreement. Please try again.' };
+  }
+  res.redirect('/member/onboarding');
+});
+
+// Onboarding Step 7: Complete onboarding
 router.post('/onboarding/complete', requireMember, (req, res) => {
   const db = req.app.locals.db;
 
@@ -710,6 +763,10 @@ router.get('/profile', requireMember, (req, res) => {
   const totalEntries = db.prepare('SELECT COUNT(*) as c FROM garden_hours WHERE gardener_id = ?').get(gid).c;
   const memberSince = cred ? cred.created_at : gardener.joined_date;
 
+  // Signed agreements
+  let myAgreements = [];
+  try { myAgreements = db.prepare("SELECT * FROM signed_agreements WHERE user_type = 'volunteer' AND user_id = ? ORDER BY signed_at DESC").all(gid); } catch (e) {}
+
   res.render('member/profile', {
     title: 'My Profile',
     gardener,
@@ -718,6 +775,7 @@ router.get('/profile', requireMember, (req, res) => {
     programLabels,
     profileStats: { totalHrs, totalEntries },
     memberSince,
+    myAgreements,
     layout: 'member/layout'
   });
 });

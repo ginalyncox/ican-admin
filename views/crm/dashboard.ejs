@@ -1,0 +1,122 @@
+<div class="page-header">
+  <div class="page-header__row">
+    <div>
+      <h1 class="page-header__title">People Dashboard</h1>
+      <p class="page-header__subtitle">CRM overview of all contacts and engagement</p>
+    </div>
+    <div class="page-header__actions">
+      <a href="/admin/crm/contacts" class="btn btn--primary btn--sm">View All Contacts</a>
+      <a href="/admin/crm/tags" class="btn btn--outline btn--sm">Manage Tags</a>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid stats-grid--4" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <div class="stat-card__label">Total Contacts</div>
+    <div class="stat-card__value"><%= totalContacts %></div>
+    <div class="stat-card__detail">across all sources</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Active Volunteers</div>
+    <div class="stat-card__value"><%= activeVolunteers %></div>
+    <div class="stat-card__detail">of <%= totalVolunteers %> total</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">New This Month</div>
+    <div class="stat-card__value"><%= newThisMonth %></div>
+    <div class="stat-card__detail">volunteers + subscribers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__label">Active This Month</div>
+    <div class="stat-card__value"><%= activeThisMonth %></div>
+    <div class="stat-card__detail">logged activity</div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Pipeline -->
+  <div class="card">
+    <div class="card__header"><h2 class="card__title">People Pipeline</h2></div>
+    <div class="card__body">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+        <div style="flex: 1; text-align: center; padding: 1rem; background: rgba(16,185,129,0.1); border-radius: var(--radius);">
+          <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;"><%= totalSubscribers %></div>
+          <div style="font-size: 0.75rem; color: var(--color-muted);">Subscribers</div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <div style="flex: 1; text-align: center; padding: 1rem; background: rgba(45,106,63,0.1); border-radius: var(--radius);">
+          <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"><%= totalVolunteers %></div>
+          <div style="font-size: 0.75rem; color: var(--color-muted);">Volunteers</div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <div style="flex: 1; text-align: center; padding: 1rem; background: rgba(99,102,241,0.1); border-radius: var(--radius);">
+          <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;"><%= onBoardMembers %></div>
+          <div style="font-size: 0.75rem; color: var(--color-muted);">Board Members</div>
+        </div>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--color-muted);">
+        <strong><%= withPortalAccess %></strong> volunteers have portal access
+      </div>
+    </div>
+  </div>
+
+  <!-- Tags Overview -->
+  <div class="card">
+    <div class="card__header" style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 class="card__title">Tags</h2>
+      <a href="/admin/crm/tags" style="font-size: 0.8rem;">Manage</a>
+    </div>
+    <div class="card__body">
+      <% if (tagUsage.length === 0) { %>
+        <p class="text-muted">No tags created yet.</p>
+      <% } else { %>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          <% tagUsage.forEach(t => { %>
+            <a href="/admin/crm/contacts?tag=<%= t.id %>" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.65rem; background: <%= t.color %>22; color: <%= t.color %>; border-radius: 999px; font-size: 0.78rem; font-weight: 600; text-decoration: none; border: 1px solid <%= t.color %>33;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: <%= t.color %>;"></span>
+              <%= t.tag_name %>
+              <span style="opacity: 0.7;">(<%= t.usage_count %>)</span>
+            </a>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Interactions -->
+<div class="card" style="margin-top: 1.5rem;">
+  <div class="card__header"><h2 class="card__title">Recent Interactions</h2></div>
+  <div class="card__body">
+    <% if (recentInteractions.length === 0) { %>
+      <p class="text-muted">No interactions logged yet. Visit a contact's profile to add notes, calls, or meetings.</p>
+    <% } else { %>
+      <div style="max-height: 400px; overflow-y: auto;">
+        <% recentInteractions.forEach(i => { %>
+          <%
+            const typeColors = { note: '#5E6B52', email: '#3b82f6', call: '#f59e0b', meeting: '#6366f1', event: '#10b981', application: '#B8862B', system: '#94a3b8' };
+            const typeIcons = { note: 'N', email: 'E', call: 'C', meeting: 'M', event: 'V', application: 'A', system: 'S' };
+            const color = typeColors[i.interaction_type] || '#5E6B52';
+          %>
+          <div style="display: flex; gap: 0.75rem; padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: <%= color %>22; color: <%= color %>; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;">
+              <%= typeIcons[i.interaction_type] || '?' %>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <a href="/admin/crm/contacts/<%= i.contact_type %>/<%= i.contact_id %>" style="font-weight: 600; font-size: 0.85rem;"><%= i.contact_name || 'Unknown' %></a>
+                <span style="font-size: 0.7rem; color: var(--color-muted); white-space: nowrap;"><%= new Date(i.created_at).toLocaleDateString() %></span>
+              </div>
+              <div style="font-size: 0.82rem;"><%= i.title %></div>
+              <% if (i.created_by) { %>
+                <div style="font-size: 0.7rem; color: var(--color-muted);">by <%= i.created_by %></div>
+              <% } %>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</div>

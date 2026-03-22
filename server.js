@@ -160,6 +160,118 @@ try { db.exec(`ALTER TABLE document_acknowledgments ADD COLUMN document_version 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_doc_ack_lookup ON document_acknowledgments(document_id, user_type, user_id)`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_doc_audience ON board_documents(audience)`);
 
+
+// ── Migration: Signed Agreements tracking ─────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS signed_agreements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  agreement_type TEXT NOT NULL CHECK(agreement_type IN ('volunteer_service', 'board_commitment', 'media_release', 'liability_waiver')),
+  user_type TEXT NOT NULL CHECK(user_type IN ('volunteer', 'director')),
+  user_id INTEGER NOT NULL,
+  user_name TEXT,
+  user_email TEXT,
+  signed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ip_address TEXT,
+  agreement_version INTEGER DEFAULT 1,
+  agreement_text TEXT,
+  UNIQUE(agreement_type, user_type, user_id)
+)`);
+try { db.exec(`ALTER TABLE member_credentials ADD COLUMN agreement_signed INTEGER DEFAULT 0`); } catch (e) { /* exists */ }
+try { db.exec(`ALTER TABLE board_members ADD COLUMN agreement_signed INTEGER DEFAULT 0`); } catch (e) { /* exists */ }
+
+// ── Migration: CRM tables ───────────────────────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS contact_interactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  contact_type TEXT NOT NULL CHECK(contact_type IN ('volunteer', 'director', 'subscriber', 'lead')),
+  contact_id INTEGER NOT NULL,
+  interaction_type TEXT NOT NULL CHECK(interaction_type IN ('note', 'email', 'call', 'meeting', 'event', 'application', 'system')),
+  title TEXT,
+  body TEXT,
+  created_by TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS contact_tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tag_name TEXT NOT NULL UNIQUE,
+  color TEXT DEFAULT '#5E6B52'
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS contact_tag_assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  contact_type TEXT NOT NULL,
+  contact_id INTEGER NOT NULL,
+  tag_id INTEGER NOT NULL REFERENCES contact_tags(id) ON DELETE CASCADE,
+  UNIQUE(contact_type, contact_id, tag_id)
+)`);
+
+// Seed default CRM tags
+const defaultTags = [
+  ['Active Volunteer', '#2D6A3F'], ['Board Member', '#6366f1'], ['Major Donor', '#B8862B'],
+  ['Newsletter Subscriber', '#10b981'], ['Lapsed', '#ef4444'], ['VIP', '#8b5cf6'],
+  ['Prospect', '#f59e0b'], ['Legislative Contact', '#3b82f6']
+];
+const insertTag = db.prepare("INSERT OR IGNORE INTO contact_tags (tag_name, color) VALUES (?, ?)");
+for (const [name, color] of defaultTags) insertTag.run(name, color);
+
+// ── Migration: Retention & Renewal tracking ─────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS renewal_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_type TEXT NOT NULL CHECK(item_type IN ('agreement', 'coi', 'background_check', 'policy_review', 'certification')),
+  related_type TEXT NOT NULL CHECK(related_type IN ('volunteer', 'director', 'organization')),
+  related_id INTEGER,
+  title TEXT NOT NULL,
+  last_completed DATETIME,
+  expires_at DATETIME,
+  renewal_interval_days INTEGER DEFAULT 365,
+  status TEXT DEFAULT 'current' CHECK(status IN ('current', 'due_soon', 'overdue', 'expired')),
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+try { db.exec(`ALTER TABLE signed_agreements ADD COLUMN expires_at DATETIME`); } catch(e) {}
+
+// Seed default renewal items (Gina's agreements + org-wide)
+{
+  const existing = db.prepare("SELECT COUNT(*) as c FROM renewal_items").get().c;
+  if (existing === 0) {
+    const gina = db.prepare("SELECT id FROM board_members WHERE email = 'hello@iowacannabisaction.org'").get();
+    const ginaId = gina ? gina.id : null;
+    const seedItems = [
+      ['agreement', 'director', ginaId, "Gina's Volunteer Agreement", '2027-03-21', 365],
+      ['agreement', 'director', ginaId, "Gina's Board Commitment", '2027-03-21', 365],
+      ['coi', 'organization', null, 'Annual COI Disclosure Reminder', '2027-01-01', 365],
+      ['policy_review', 'organization', null, 'Bylaws Review', '2028-03-21', 730]
+    ];
+    const ins = db.prepare("INSERT INTO renewal_items (item_type, related_type, related_id, title, last_completed, expires_at, renewal_interval_days, status) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, 'current')");
+    for (const [type, rType, rId, title, exp, interval] of seedItems) {
+      ins.run(type, rType, rId, title, exp, interval);
+    }
+  }
+}
+
+// ── Migration: Site Settings ────────────────────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS site_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// Seed default site settings
+{
+  const defaultSettings = [
+    ['org_name', 'Iowa Cannabis Action Network'],
+    ['org_legal_name', 'Iowa Cannabis Action Network, Inc.'],
+    ['org_email', 'hello@iowacannabisaction.org'],
+    ['org_phone', ''],
+    ['org_address', ''],
+    ['org_ein', '41-2746368'],
+    ['org_website', 'https://iowacannabisaction.org'],
+    ['org_facebook', 'https://facebook.com/61584583045381'],
+    ['org_mission', 'Advancing cannabis policy reform, education, and community programs in Iowa.'],
+    ['org_tagline', 'Cultivating Change Across Iowa'],
+    ['web3forms_key', '5e7d5fb9-ab04-4c26-ac16-c3afea67cdf6'],
+  ];
+  const upsert = db.prepare("INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)");
+  for (const [key, value] of defaultSettings) upsert.run(key, value);
+}
+
 // Seed default admin user if no users exist
 const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
 if (userCount === 0) {
@@ -243,6 +355,9 @@ app.use('/admin/messages', require('./routes/messages'));
 app.use('/admin/reports', require('./routes/reports'));
 app.use('/admin/search', require('./routes/search'));
 app.use('/admin/documents', require('./routes/doc-library'));
+app.use('/admin/crm', require('./routes/crm'));
+app.use('/admin/retention', require('./routes/retention'));
+app.use('/admin/site', require('./routes/site-manager'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');

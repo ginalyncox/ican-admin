@@ -35,8 +35,13 @@
     <div class="onboarding-step__label">Documents</div>
   </div>
   <div class="onboarding-step__line <%= docsDone ? 'onboarding-step__line--done' : '' %>"></div>
+  <div class="onboarding-step <%= step === 'agreement' ? 'onboarding-step--active' : (cred.agreement_signed ? 'onboarding-step--done' : '') %>">
+    <div class="onboarding-step__number"><% if (cred.agreement_signed) { %>&#10003;<% } else { %>6<% } %></div>
+    <div class="onboarding-step__label">Agreement</div>
+  </div>
+  <div class="onboarding-step__line <%= cred.agreement_signed ? 'onboarding-step__line--done' : '' %>"></div>
   <div class="onboarding-step <%= step === 'welcome' ? 'onboarding-step--active' : '' %>">
-    <div class="onboarding-step__number">6</div>
+    <div class="onboarding-step__number">7</div>
     <div class="onboarding-step__label">Get Started</div>
   </div>
 </div>
@@ -296,7 +301,68 @@
 </div>
 <% } %>
 
-<!-- Step 6: Welcome & Finish -->
+
+<!-- Step 6: Volunteer Service Agreement -->
+<% if (step === 'agreement') { %>
+<div class="card onboarding-card">
+  <div class="card__header">
+    <h2 class="card__title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Step 6: Volunteer Service Agreement
+    </h2>
+  </div>
+  <div class="card__body">
+    <p style="margin-bottom:1rem; color: var(--color-muted);">Please read and accept the Volunteer Service Agreement below. This is required before accessing your portal.</p>
+
+    <div style="background: #fff; border: 1px solid var(--color-border); border-radius: 8px; padding: 1.5rem; max-height: 350px; overflow-y: auto; margin-bottom: 1.5rem; font-size: 0.88rem; line-height: 1.7;">
+      <h3 style="color: var(--primary); margin-bottom: 0.75rem; font-size: 1rem;">Volunteer Service Agreement</h3>
+      <p style="color: var(--color-muted); margin-bottom: 0.75rem;">Iowa Cannabis Action Network, Inc.</p>
+
+      <p style="margin-bottom: 0.75rem;">By signing this agreement, I voluntarily offer my services to ICAN and agree to the following:</p>
+      <ol style="padding-left: 1.25rem; margin-bottom: 1rem;">
+        <li style="margin-bottom: 0.5rem;">I will perform my volunteer duties to the best of my ability.</li>
+        <li style="margin-bottom: 0.5rem;">I understand that I am not an employee of ICAN and will not receive compensation.</li>
+        <li style="margin-bottom: 0.5rem;">I agree to follow all ICAN policies, including the Code of Conduct and safety protocols.</li>
+        <li style="margin-bottom: 0.5rem;">I will maintain the confidentiality of any sensitive information I encounter.</li>
+        <li style="margin-bottom: 0.5rem;">I understand that ICAN may terminate my volunteer service at any time.</li>
+        <li style="margin-bottom: 0.5rem;">I will report any injuries, safety concerns, or incidents to my program coordinator.</li>
+        <li style="margin-bottom: 0.5rem;">I agree to accurately log my volunteer hours in the ICAN Volunteer Portal.</li>
+      </ol>
+
+      <h4 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 0.92rem;">Release and Waiver</h4>
+      <p>I release and hold harmless Iowa Cannabis Action Network, Inc., its officers, directors, agents, and other volunteers from any and all claims arising out of my volunteer activities, except those caused by willful misconduct.</p>
+    </div>
+
+    <form method="POST" action="/member/onboarding/agreement">
+      <div style="padding: 1.25rem; background: rgba(45,106,63,0.08); border-radius: 8px; border: 1px solid rgba(45,106,63,0.15);">
+        <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; margin-bottom: 1rem;">
+          <input type="checkbox" name="agree_terms" value="1" id="agreeCheck" style="margin-top: 3px; width: 18px; height: 18px; accent-color: #2D6A3F;">
+          <span style="font-size: 0.9rem;">I have read, understand, and agree to the terms of the Volunteer Service Agreement above.</span>
+        </label>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="printed_name" style="font-weight: 600; font-size: 0.85rem;">Print Your Full Legal Name (Electronic Signature)</label>
+          <input type="text" id="printed_name" name="printed_name" class="form-control" required placeholder="Your full name as your electronic signature" value="<%= gardener.first_name %> <%= gardener.last_name %>">
+        </div>
+        <p style="font-size: 0.75rem; color: var(--color-muted); margin-bottom: 1rem;">
+          By typing your name and clicking below, you are electronically signing this agreement.
+          Your IP address and timestamp will be recorded.
+        </p>
+        <button type="submit" class="btn btn--primary" id="agreeBtn" disabled style="opacity: 0.5;">Sign Agreement &amp; Continue</button>
+      </div>
+    </form>
+
+    <script>
+    document.getElementById('agreeCheck').addEventListener('change', function() {
+      var btn = document.getElementById('agreeBtn');
+      btn.disabled = !this.checked;
+      btn.style.opacity = this.checked ? '1' : '0.5';
+    });
+    </script>
+  </div>
+</div>
+<% } %>
+
+<!-- Step 7: Welcome & Finish -->
 <% if (step === 'welcome') { %>
 <div class="card onboarding-card">
   <div class="card__header">
