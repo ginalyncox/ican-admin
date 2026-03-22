@@ -35,18 +35,9 @@ function setMemberLocals(req, res, next) {
     res.locals.memberPrograms = [];
   }
 
-  // Check if volunteer also has director access (matching board_member email)
-  if (req.session.memberEmail) {
-    try {
-      const db = req.app.locals.db;
-      const boardMatch = db.prepare('SELECT id FROM board_members WHERE email = ? AND status IN (\'active\', \'locked\')').get(req.session.memberEmail);
-      res.locals.hasDirectorAccess = !!boardMatch;
-    } catch (e) {
-      res.locals.hasDirectorAccess = false;
-    }
-  } else {
-    res.locals.hasDirectorAccess = false;
-  }
+  // Cross-portal access flags (session-based from unified login)
+  res.locals.hasAdminAccess = !!req.session.userId;
+  res.locals.hasDirectorAccess = !!req.session.directorId;
 
   // Unread message count for mailbox badge
   if (req.session.memberId && req.session.memberGardenerId) {

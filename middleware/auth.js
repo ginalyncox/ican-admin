@@ -30,6 +30,8 @@ function setLocals(req, res, next) {
     role: req.session.userRole
   } : null;
   res.locals.accountRoles = req.session.accountRoles || [];
+  res.locals.hasVolunteerAccess = !!req.session.memberId;
+  res.locals.hasDirectorAccess = !!req.session.directorId;
   res.locals.path = req.originalUrl.split('?')[0];
 
   // Sidebar badge counts (only for authenticated admin users)

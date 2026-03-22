@@ -35,18 +35,9 @@ function setDirectorLocals(req, res, next) {
   } : null;
   res.locals.path = req.originalUrl.split('?')[0];
 
-  // Check if director also has volunteer access (matching member_credentials email)
-  if (req.session.directorEmail) {
-    try {
-      const db = req.app.locals.db;
-      const volMatch = db.prepare('SELECT id FROM member_credentials WHERE email = ?').get(req.session.directorEmail);
-      res.locals.hasVolunteerAccess = !!volMatch;
-    } catch (e) {
-      res.locals.hasVolunteerAccess = false;
-    }
-  } else {
-    res.locals.hasVolunteerAccess = false;
-  }
+  // Cross-portal access flags (session-based from unified login)
+  res.locals.hasAdminAccess = !!req.session.userId;
+  res.locals.hasVolunteerAccess = !!req.session.memberId;
 
   // Flash messages for director portal
   res.locals.directorFlash = req.session.directorFlash || null;

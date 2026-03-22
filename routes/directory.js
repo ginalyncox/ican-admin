@@ -7,49 +7,90 @@ router.get('/', requireAuth, (req, res) => {
   const search = (req.query.q || '').trim();
   const filter = req.query.filter || 'all';
 
-  // Counts for filter tabs
-  const volunteerCount = db.prepare(`SELECT COUNT(*) as c FROM gardeners g JOIN member_credentials mc ON mc.gardener_id = g.id`).get().c;
-  const directorCount = db.prepare(`SELECT COUNT(*) as c FROM board_members WHERE status IN ('active','locked')`).get().c;
-  const subscriberCount = db.prepare(`SELECT COUNT(*) as c FROM subscribers WHERE status = 'active'`).get().c;
-  const totalCount = volunteerCount + directorCount + subscriberCount;
-
-  let rows = [];
+  // Build unified people list from accounts table
   const like = search ? `%${search}%` : null;
 
-  if (filter === 'all' || filter === 'volunteers') {
-    const volSQL = `
-      SELECT g.id, g.first_name, g.last_name, mc.email, g.phone, 'volunteer' as role, mc.last_login
-      FROM gardeners g JOIN member_credentials mc ON mc.gardener_id = g.id
-      ${like ? "WHERE (g.first_name||' '||g.last_name LIKE ? OR mc.email LIKE ?)" : ''}
-      ORDER BY g.last_name ASC`;
-    const volRows = like ? db.prepare(volSQL).all(like, like) : db.prepare(volSQL).all();
-    rows = rows.concat(volRows);
+  let query = `
+    SELECT 
+      a.id as account_id,
+      a.email,
+      a.name,
+      a.roles,
+      a.status,
+      a.last_login,
+      a.gardener_id,
+      a.board_member_id,
+      a.admin_user_id,
+      g.first_name,
+      g.last_name,
+      g.phone,
+      g.leadership_role,
+      g.leadership_program,
+      bm.title as board_title,
+      bm.officer_title,
+      bm.is_officer
+    FROM accounts a
+    LEFT JOIN gardeners g ON a.gardener_id = g.id
+    LEFT JOIN board_members bm ON a.board_member_id = bm.id
+    WHERE a.status = 'active'
+  `;
+  const params = [];
+
+  if (search) {
+    query += ` AND (a.name LIKE ? OR a.email LIKE ? OR g.first_name LIKE ? OR g.last_name LIKE ? OR g.phone LIKE ?)`;
+    params.push(like, like, like, like, like);
   }
-  if (filter === 'all' || filter === 'directors') {
-    const dirSQL = `
-      SELECT id, first_name, last_name, email, phone, 'director' as role, last_login
-      FROM board_members WHERE status IN ('active','locked')
-      ${like ? "AND (first_name||' '||last_name LIKE ? OR email LIKE ?)" : ''}
-      ORDER BY last_name ASC`;
-    const dirRows = like ? db.prepare(dirSQL).all(like, like) : db.prepare(dirSQL).all();
-    rows = rows.concat(dirRows);
+
+  if (filter === 'admin') {
+    query += ` AND a.roles LIKE '%admin%'`;
+  } else if (filter === 'volunteers') {
+    query += ` AND a.roles LIKE '%volunteer%'`;
+  } else if (filter === 'directors') {
+    query += ` AND a.roles LIKE '%director%'`;
   }
+
+  query += ` ORDER BY COALESCE(g.last_name, a.name) ASC`;
+
+  const people = db.prepare(query).all(...params);
+
+  // Also get subscribers who don't have accounts
+  let subscribers = [];
   if (filter === 'all' || filter === 'subscribers') {
-    const subSQL = `
-      SELECT id, name as first_name, '' as last_name, email, '' as phone, 'subscriber' as role, NULL as last_login
-      FROM subscribers WHERE status = 'active'
-      ${like ? "AND (name LIKE ? OR email LIKE ?)" : ''}
-      ORDER BY name ASC`;
-    const subRows = like ? db.prepare(subSQL).all(like, like) : db.prepare(subSQL).all();
-    rows = rows.concat(subRows);
+    let subQuery = `
+      SELECT s.id, s.email, s.name, s.source, s.status, s.subscribed_at
+      FROM subscribers s
+      WHERE s.status = 'active'
+      AND s.email NOT IN (SELECT email FROM accounts WHERE status = 'active')
+    `;
+    const subParams = [];
+    if (search) {
+      subQuery += ` AND (s.name LIKE ? OR s.email LIKE ?)`;
+      subParams.push(like, like);
+    }
+    subQuery += ` ORDER BY s.name ASC`;
+    subscribers = db.prepare(subQuery).all(...subParams);
   }
+
+  // Counts
+  const accountCount = db.prepare("SELECT COUNT(*) as c FROM accounts WHERE status = 'active'").get().c;
+  const adminCount = db.prepare("SELECT COUNT(*) as c FROM accounts WHERE status = 'active' AND roles LIKE '%admin%'").get().c;
+  const volunteerCount = db.prepare("SELECT COUNT(*) as c FROM accounts WHERE status = 'active' AND roles LIKE '%volunteer%'").get().c;
+  const directorCount = db.prepare("SELECT COUNT(*) as c FROM accounts WHERE status = 'active' AND roles LIKE '%director%'").get().c;
+  const subscriberOnlyCount = db.prepare("SELECT COUNT(*) as c FROM subscribers WHERE status = 'active' AND email NOT IN (SELECT email FROM accounts WHERE status = 'active')").get().c;
 
   res.render('directory', {
     title: 'Directory',
-    rows,
+    people,
+    subscribers,
     search,
     filter,
-    counts: { all: totalCount, volunteers: volunteerCount, directors: directorCount, subscribers: subscriberCount }
+    counts: {
+      all: accountCount + subscriberOnlyCount,
+      admin: adminCount,
+      volunteers: volunteerCount,
+      directors: directorCount,
+      subscribers: subscriberOnlyCount
+    }
   });
 });
 

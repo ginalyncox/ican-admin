@@ -318,6 +318,24 @@ db.exec(`CREATE TABLE IF NOT EXISTS initiatives (
 const { loadInitiatives } = require('./lib/constants');
 loadInitiatives(db);
 
+// ── Migration: Donations table ───────────────────────────────
+db.exec(`CREATE TABLE IF NOT EXISTS donations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  stripe_payment_id TEXT UNIQUE,
+  donor_email TEXT,
+  donor_name TEXT,
+  amount_cents INTEGER NOT NULL,
+  currency TEXT DEFAULT 'usd',
+  status TEXT DEFAULT 'completed',
+  donation_type TEXT DEFAULT 'one-time',
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// ── Migration: Leadership roles ─────────────────────────────
+try { db.exec(`ALTER TABLE gardeners ADD COLUMN leadership_role TEXT`); } catch(e) {}
+try { db.exec(`ALTER TABLE gardeners ADD COLUMN leadership_program TEXT`); } catch(e) {}
+
 // ── Migration: Unified Accounts table ───────────────────────
 db.exec(`CREATE TABLE IF NOT EXISTS accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -462,6 +480,29 @@ app.use(ejsLayouts);
 app.set('layout', 'layout');
 // app.set('layout extractScripts', true);
 
+// Stripe webhook endpoint (must be before body parsers to get raw body)
+app.post('/admin/api/stripe-webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  try {
+    const event = JSON.parse(req.body);
+    if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
+      const data = event.data && event.data.object ? event.data.object : {};
+      const amountCents = data.amount_total || data.amount || 0;
+      const email = data.customer_email || (data.customer_details && data.customer_details.email) || null;
+      const name = (data.metadata && data.metadata.donor_name) || null;
+      const paymentId = data.payment_intent || data.id || null;
+      if (amountCents > 0) {
+        db.prepare('INSERT OR IGNORE INTO donations (stripe_payment_id, donor_email, donor_name, amount_cents, donation_type, status) VALUES (?, ?, ?, ?, ?, ?)').run(
+          paymentId, email, name, amountCents, 'one-time', 'completed'
+        );
+      }
+    }
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Stripe webhook error:', err);
+    res.status(400).json({ error: 'Invalid payload' });
+  }
+});
+
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -541,9 +582,41 @@ app.use('/admin/initiatives', require('./routes/initiatives'));
 app.use('/admin/crm', require('./routes/crm'));
 app.use('/admin/retention', require('./routes/retention'));
 app.use('/admin/site', require('./routes/site-manager'));
+app.use('/admin/donations', require('./routes/donations'));
+app.use('/admin/leadership', require('./routes/leadership'));
 
 // API endpoints at spec-defined paths
 const { requireAuth } = require('./middleware/auth');
+
+// Stripe Checkout API (public, only if STRIPE_SECRET_KEY is set)
+if (process.env.STRIPE_SECRET_KEY) {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  app.post('/api/donate', express.json(), async (req, res) => {
+    try {
+      const { amount, name, email } = req.body;
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'Donation to ICAN' },
+            unit_amount: Math.round(amount * 100),
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        customer_email: email || undefined,
+        success_url: 'https://iowacannabisaction.org/donate.html?success=1',
+        cancel_url: 'https://iowacannabisaction.org/donate.html?cancelled=1',
+        metadata: { donor_name: name || '', source: 'website' },
+      });
+      res.json({ url: session.url });
+    } catch (err) {
+      console.error('Stripe error:', err);
+      res.status(500).json({ error: 'Payment failed' });
+    }
+  });
+}
 
 // Webhook endpoint - receives Web3Forms data (no auth required)
 app.post('/admin/api/webhook', (req, res) => {

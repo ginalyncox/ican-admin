@@ -1,9 +1,10 @@
 <div class="page-header">
-  <h1 class="page-title">Directory</h1>
+  <h1 class="page-header__title">Directory</h1>
+  <p class="page-header__subtitle">Unified view — one person, all roles</p>
 </div>
 
 <form method="GET" action="/admin/directory" style="display:flex; gap:0.75rem; margin-bottom:1.25rem; align-items:center; flex-wrap:wrap;">
-  <input type="text" name="q" value="<%= search %>" placeholder="Search by name or email..." class="form-control" style="max-width:320px;">
+  <input type="text" name="q" value="<%= search %>" placeholder="Search by name, email, or phone..." class="form-control" style="max-width:320px;">
   <input type="hidden" name="filter" value="<%= filter %>" id="filterInput">
   <button type="submit" class="btn btn--primary btn--sm">Search</button>
   <% if (search) { %>
@@ -13,54 +14,104 @@
 
 <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap;">
   <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=all" class="btn btn--sm <%= filter === 'all' ? 'btn--primary' : 'btn--outline' %>">All (<%= counts.all %>)</a>
+  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=admin" class="btn btn--sm <%= filter === 'admin' ? 'btn--primary' : 'btn--outline' %>">Admin (<%= counts.admin %>)</a>
   <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=volunteers" class="btn btn--sm <%= filter === 'volunteers' ? 'btn--primary' : 'btn--outline' %>">Volunteers (<%= counts.volunteers %>)</a>
-  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=directors" class="btn btn--sm <%= filter === 'directors' ? 'btn--primary' : 'btn--outline' %>">Directors (<%= counts.directors %>)</a>
+  <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=directors" class="btn btn--sm <%= filter === 'directors' ? 'btn--primary' : 'btn--outline' %>">Board (<%= counts.directors %>)</a>
   <a href="/admin/directory?q=<%= encodeURIComponent(search) %>&filter=subscribers" class="btn btn--sm <%= filter === 'subscribers' ? 'btn--primary' : 'btn--outline' %>">Subscribers (<%= counts.subscribers %>)</a>
 </div>
 
 <div class="card">
-  <div class="card__body">
-    <% if (rows.length === 0) { %>
-      <div class="verify-empty">
-        <h3>No results</h3>
-        <p><%= search ? 'No matches for "' + search + '".' : 'No records in this category yet.' %></p>
-      </div>
-    <% } else { %>
-      <div class="table-responsive">
-      <table class="table">
-        <thead>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Roles</th>
+          <th>Leadership</th>
+          <th>Last Login</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (people.length === 0 && subscribers.length === 0) { %>
+          <tr><td colspan="7" style="text-align:center; padding:2rem; color: var(--text-muted);">
+            <%= search ? 'No matches for "' + search + '".' : 'No people in this category yet.' %>
+          </td></tr>
+        <% } %>
+
+        <%/* Accounts (unified people) */%>
+        <% people.forEach(p => {
+          const roles = JSON.parse(p.roles || '[]');
+          const displayName = p.first_name ? (p.first_name + ' ' + (p.last_name || '')) : p.name;
+        %>
+        <tr>
+          <td>
+            <strong><%= displayName %></strong>
+            <% if (p.officer_title) { %>
+              <br><span style="font-size: 0.72rem; color: var(--primary);"><%= p.officer_title %></span>
+            <% } else if (p.board_title && p.board_title !== 'Director') { %>
+              <br><span style="font-size: 0.72rem; color: var(--text-muted);"><%= p.board_title %></span>
+            <% } %>
+          </td>
+          <td style="font-size: 0.85rem;"><%= p.email %></td>
+          <td style="font-size: 0.85rem;"><%= p.phone || '—' %></td>
+          <td>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+              <% if (roles.includes('admin')) { %>
+                <span class="badge" style="background: #ef444420; color: #ef4444; font-size: 0.65rem;">Admin</span>
+              <% } %>
+              <% if (roles.includes('director')) { %>
+                <span class="badge" style="background: #6366f120; color: #6366f1; font-size: 0.65rem;">Board</span>
+              <% } %>
+              <% if (roles.includes('volunteer')) { %>
+                <span class="badge" style="background: #2D6A3F20; color: #2D6A3F; font-size: 0.65rem;">Volunteer</span>
+              <% } %>
+            </div>
+          </td>
+          <td>
+            <% if (p.leadership_role) { %>
+              <span class="badge" style="background: #B8862B20; color: #B8862B; font-size: 0.65rem;">
+                <%= p.leadership_role === 'coordinator' ? 'Coordinator' : p.leadership_role === 'team_lead' ? 'Team Lead' : p.leadership_role === 'committee_chair' ? 'Committee Chair' : p.leadership_role %>
+              </span>
+              <% if (p.leadership_program) { %>
+                <br><span style="font-size: 0.68rem; color: var(--text-muted);"><%= p.leadership_program %></span>
+              <% } %>
+            <% } else { %>
+              <span style="color: var(--text-light);">—</span>
+            <% } %>
+          </td>
+          <td style="font-size: 0.75rem; color: var(--text-muted);">
+            <%= p.last_login ? new Date(p.last_login).toLocaleDateString() : 'Never' %>
+          </td>
+          <td>
+            <% if (roles.includes('volunteer') && p.gardener_id) { %>
+              <a href="/admin/crm/contacts/volunteer/<%= p.gardener_id %>" class="btn btn--sm btn--outline" title="View in CRM">View</a>
+            <% } else if (roles.includes('director') && p.board_member_id) { %>
+              <a href="/admin/crm/contacts/director/<%= p.board_member_id %>" class="btn btn--sm btn--outline" title="View in CRM">View</a>
+            <% } %>
+          </td>
+        </tr>
+        <% }); %>
+
+        <%/* Subscriber-only rows (no account) */%>
+        <% if (filter === 'all' || filter === 'subscribers') { %>
+          <% subscribers.forEach(s => { %>
           <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Role</th>
-            <th>Last Login</th>
+            <td><%= s.name || '—' %></td>
+            <td style="font-size: 0.85rem;"><%= s.email %></td>
+            <td style="font-size: 0.85rem;">—</td>
+            <td>
+              <span class="badge" style="background: #10b98120; color: #10b981; font-size: 0.65rem;">Subscriber</span>
+            </td>
+            <td><span style="color: var(--text-light);">—</span></td>
+            <td style="font-size: 0.75rem; color: var(--text-muted);">—</td>
+            <td></td>
           </tr>
-        </thead>
-        <tbody>
-          <% rows.forEach(r => { %>
-            <tr>
-              <td><strong><%= r.first_name %><%= r.last_name ? ' ' + r.last_name : '' %></strong></td>
-              <td><a href="mailto:<%= r.email %>"><%= r.email %></a></td>
-              <td class="text-muted"><%= r.phone || '—' %></td>
-              <td>
-                <% if (r.role === 'volunteer') { %>
-                  <span class="badge badge--garden">Volunteer</span>
-                <% } else if (r.role === 'director') { %>
-                  <span class="badge badge--meeting">Director</span>
-                <% } else { %>
-                  <span class="badge badge--general">Subscriber</span>
-                <% } %>
-              </td>
-              <td class="text-muted" style="font-size:0.8rem;">
-                <%= r.last_login ? new Date(r.last_login).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—' %>
-              </td>
-            </tr>
           <% }); %>
-        </tbody>
-      </table>
-      </div>
-      <p class="text-muted" style="margin-top:0.75rem; font-size:0.85rem;"><%= rows.length %> result<%= rows.length !== 1 ? 's' : '' %></p>
-    <% } %>
+        <% } %>
+      </tbody>
+    </table>
   </div>
 </div>

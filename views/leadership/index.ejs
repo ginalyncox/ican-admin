@@ -1,0 +1,102 @@
+<div class="page-header">
+  <h1 class="page-header__title">Leadership Roles</h1>
+  <p class="page-header__subtitle">Program coordinators, team leads, and committee chairs</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+  <!-- Current Leaders -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Current Leadership</h2>
+    </div>
+    <div class="card__body">
+      <% if (leaders.length === 0) { %>
+        <p class="empty-state">No leadership roles assigned yet. Use the form to assign roles.</p>
+      <% } else { %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Volunteer</th>
+              <th>Role</th>
+              <th>Program</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% leaders.forEach(l => { %>
+              <tr>
+                <td>
+                  <a href="/admin/garden/gardeners/<%= l.id %>"><strong><%= l.first_name %> <%= l.last_name %></strong></a>
+                  <% if (l.email) { %><br><span class="text-muted" style="font-size: 0.78rem;"><%= l.email %></span><% } %>
+                </td>
+                <td>
+                  <%
+                    const roleLabels = { coordinator: 'Coordinator', team_lead: 'Team Lead', committee_chair: 'Committee Chair' };
+                    const roleColors = { coordinator: '#2D6A3F', team_lead: '#B8862B', committee_chair: '#6366f1' };
+                  %>
+                  <span class="badge" style="background: <%= roleColors[l.leadership_role] || '#5E6B52' %>20; color: <%= roleColors[l.leadership_role] || '#5E6B52' %>; border: 1px solid <%= roleColors[l.leadership_role] || '#5E6B52' %>40;">
+                    <%= roleLabels[l.leadership_role] || l.leadership_role %>
+                  </span>
+                </td>
+                <td>
+                  <% if (l.program_name) { %>
+                    <span style="display: inline-flex; align-items: center; gap: 0.3rem;">
+                      <span style="font-size: 0.9rem;"><%= l.icon || '' %></span>
+                      <span style="font-size: 0.85rem;"><%= l.program_name %></span>
+                    </span>
+                  <% } else { %>
+                    <span class="text-muted">—</span>
+                  <% } %>
+                </td>
+                <td style="text-align: right;">
+                  <form method="POST" action="/admin/leadership/remove/<%= l.id %>" style="display: inline;" onsubmit="return confirm('Remove leadership role?')">
+                    <button type="submit" class="btn btn--outline btn--xs" style="color: #ef4444; border-color: #ef4444;">Remove</button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Assign Form -->
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Assign Leadership Role</h2>
+    </div>
+    <div class="card__body">
+      <form method="POST" action="/admin/leadership/assign">
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label class="form-label">Volunteer *</label>
+          <select name="volunteer_id" class="form-control" required>
+            <option value="">Select volunteer...</option>
+            <% volunteers.forEach(v => { %>
+              <option value="<%= v.id %>"><%= v.last_name %>, <%= v.first_name %><%= v.email ? ' (' + v.email + ')' : '' %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label class="form-label">Role *</label>
+          <select name="leadership_role" class="form-control" required>
+            <option value="">Select role...</option>
+            <option value="coordinator">Program Coordinator</option>
+            <option value="team_lead">Team Lead</option>
+            <option value="committee_chair">Committee Chair</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Program (optional)</label>
+          <select name="leadership_program" class="form-control">
+            <option value="">Organization-wide</option>
+            <% initiatives.forEach(i => { %>
+              <option value="<%= i.slug %>"><%= i.icon %> <%= i.program_name %></option>
+            <% }); %>
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary" style="width: 100%;">Assign Role</button>
+      </form>
+    </div>
+  </div>
+</div>
