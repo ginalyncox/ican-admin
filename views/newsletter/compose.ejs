@@ -8,9 +8,19 @@
   </div>
 </div>
 
+<% if (typeof brevoConfigured !== 'undefined' && brevoConfigured) { %>
+<div style="padding: 0.75rem 1rem; background: var(--success-light); border: 1px solid var(--primary); border-radius: 6px; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--primary);">
+  Email delivery is active via Brevo. Newsletters will be sent directly to subscriber inboxes.
+</div>
+<% } else { %>
+<div style="padding: 0.75rem 1rem; background: var(--warning-light); border: 1px solid var(--warning); border-radius: 6px; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text);">
+  Email delivery is not configured. Add <code>BREVO_API_KEY</code> to your environment variables to send real emails. <a href="https://www.brevo.com/" target="_blank">Get a free Brevo account</a>
+</div>
+<% } %>
+
 <div class="card">
   <div class="card__body">
-    <form method="POST" action="/admin/newsletter/preview">
+    <form method="POST" action="/admin/newsletter/preview" id="newsletterForm">
       <div class="form-field">
         <label for="subject">Subject Line</label>
         <input type="text" id="subject" name="subject" class="form-input form-input--lg" placeholder="e.g. ICAN March Update: Victory Garden Launch" required>
@@ -20,30 +30,42 @@
         <label for="body">Message Body</label>
         <textarea id="body" name="body" class="form-input" rows="16" placeholder="Write your newsletter content here...
 
-You can use simple formatting:
-- Paragraphs are separated by blank lines
-- Use line breaks for structure" required></textarea>
+Paragraphs are separated by blank lines.
+Use line breaks for structure.
+
+Links and formatting will be wrapped in a branded ICAN email template." required></textarea>
       </div>
 
-      <div class="form-actions">
+      <div class="form-actions" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
         <button type="submit" class="btn btn--primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           Preview
         </button>
+        <% if (typeof brevoConfigured !== 'undefined' && brevoConfigured) { %>
+        <button type="button" class="btn btn--outline" onclick="sendTest()">
+          Send Test to Me
+        </button>
+        <% } %>
         <a href="/admin/newsletter" class="btn btn--ghost">Cancel</a>
       </div>
     </form>
   </div>
 </div>
 
-<div class="card" style="margin-top: 1.5rem">
-  <div class="card__header"><h2 class="card__title">How It Works</h2></div>
-  <div class="card__body">
-    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.7">
-      Compose your newsletter here, then preview it before recording the send. Use the
-      <a href="/admin/api/subscribers/export">subscriber export</a> to get a CSV of all
-      active email addresses, which you can import into your email provider (Gmail, Mailchimp, etc.)
-      to deliver the message.
-    </p>
-  </div>
-</div>
+<% if (typeof brevoConfigured !== 'undefined' && brevoConfigured) { %>
+<!-- Hidden form for sending test email -->
+<form method="POST" action="/admin/newsletter/test" id="testForm" style="display: none;">
+  <input type="hidden" name="subject" id="testSubject">
+  <input type="hidden" name="body" id="testBody">
+</form>
+<script>
+function sendTest() {
+  var subj = document.getElementById('subject').value;
+  var body = document.getElementById('body').value;
+  if (!subj || !body) { alert('Please enter a subject and body first.'); return; }
+  document.getElementById('testSubject').value = subj;
+  document.getElementById('testBody').value = body;
+  document.getElementById('testForm').submit();
+}
+</script>
+<% } %>
