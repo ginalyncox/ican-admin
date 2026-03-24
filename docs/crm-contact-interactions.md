@@ -2,6 +2,8 @@
 
 This document describes the `contact_interactions` table — the unified interaction timeline for all contact types in ICAN Admin (volunteers, directors, subscribers).
 
+> **Note:** Migration `007b` corrected column names from the original `007`. The correct column names are `title` (not `subject`) and `created_by` (not `staff_user_id`) to match `routes/crm.js`.
+
 ---
 
 ## Purpose
@@ -18,13 +20,13 @@ Every touchpoint with a contact — a staff note, a phone call, an email, an eve
 | `contact_type` | TEXT | yes | — | `volunteer`, `director`, or `subscriber` |
 | `contact_id` | INTEGER | yes | — | Row ID from the relevant contact table |
 | `interaction_type` | TEXT | yes | — | See allowed values below |
-| `subject` | TEXT | yes | — | Short label for the interaction |
+| `title` | TEXT | yes | — | Short label for the interaction |
 | `body` | TEXT | no | NULL | Full notes or message content |
 | `channel` | TEXT | yes | `manual` | How the interaction occurred |
 | `direction` | TEXT | yes | `internal` | `inbound`, `outbound`, or `internal` |
 | `related_program_id` | INTEGER | no | NULL | FK to programs table (if applicable) |
 | `related_event_id` | INTEGER | no | NULL | FK to events table (if applicable) |
-| `staff_user_id` | INTEGER | no | NULL | Staff member who logged or handled it |
+| `created_by` | TEXT | no | NULL | Name of staff member who logged it |
 | `created_at` | DATETIME | yes | CURRENT_TIMESTAMP | When the interaction occurred/was logged |
 | `updated_at` | DATETIME | yes | CURRENT_TIMESTAMP | Last edit timestamp |
 
@@ -81,6 +83,15 @@ idx_contact_interactions_program (related_program_id) WHERE related_program_id I
 
 ---
 
+## Routes (in routes/crm.js)
+
+| Method | Path | Action |
+|---|---|---|
+| `GET` | `/admin/crm/contacts/:type/:id` | Contact detail view with full interaction timeline |
+| `POST` | `/admin/crm/contacts/:type/:id/interaction` | Log a new interaction |
+
+---
+
 ## Example Queries
 
 ### Last 50 interactions for a volunteer
@@ -112,21 +123,20 @@ ORDER BY created_at DESC;
 
 ### All outbound contacts this week by staff member
 ```sql
-SELECT ci.*, v.first_name, v.last_name
-FROM contact_interactions ci
-LEFT JOIN volunteers v
-  ON ci.contact_type = 'volunteer' AND ci.contact_id = v.id
-WHERE ci.direction = 'outbound'
-  AND ci.staff_user_id = 1
-  AND ci.created_at >= datetime('now', '-7 days')
-ORDER BY ci.created_at DESC;
+SELECT *
+FROM contact_interactions
+WHERE direction = 'outbound'
+  AND created_by = 'Gina'
+  AND created_at >= datetime('now', '-7 days')
+ORDER BY created_at DESC;
 ```
 
 ---
 
-## Migration
+## Migrations
 
-Run: `migrations/007-contact-interactions.sql`
+- `migrations/007-contact-interactions.sql` — initial table (original draft)
+- `migrations/007b-fix-contact-interactions-columns.sql` — corrects column names to match routes
 
 ## Seed Data
 
@@ -137,6 +147,6 @@ Sample rows: `db/seeds/seed-contact-interactions.sql`
 ## Next Steps
 
 - [ ] Wire event RSVPs to auto-insert an `event_rsvp` interaction row on status change
-- [ ] Add `contact_tags` + `contact_tag_assignments` tables (CRM tagging)
-- [ ] Build admin UI route: `GET /contacts/:type/:id/interactions` for timeline view
-- [ ] Add INSERT helper in `lib/` for logging interactions from routes
+- [ ] Build contacts list CSV export with interaction count column
+- [ ] Add date-range filter to the contact detail interaction timeline
+- [ ] Bulk interaction log (log same interaction for multiple contacts at once)
