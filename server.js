@@ -470,6 +470,31 @@ if (userCount === 0) {
   }
 })();
 
+// Migration: Ensure account foreign keys are linked
+(function() {
+  const accounts = db.prepare('SELECT * FROM accounts').all();
+  for (const a of accounts) {
+    const roles = JSON.parse(a.roles || '[]');
+    let changed = false;
+    // Link gardener_id if volunteer role but no link
+    if (roles.includes('volunteer') && !a.gardener_id) {
+      const mc = db.prepare('SELECT mc.gardener_id FROM member_credentials mc WHERE mc.email = ?').get(a.email);
+      if (mc) { db.prepare('UPDATE accounts SET gardener_id = ? WHERE id = ?').run(mc.gardener_id, a.id); changed = true; }
+    }
+    // Link board_member_id if director role but no link
+    if (roles.includes('director') && !a.board_member_id) {
+      const bm = db.prepare('SELECT id FROM board_members WHERE email = ?').get(a.email);
+      if (bm) { db.prepare('UPDATE accounts SET board_member_id = ? WHERE id = ?').run(bm.id, a.id); changed = true; }
+    }
+    // Link admin_user_id if admin role but no link
+    if (roles.includes('admin') && !a.admin_user_id) {
+      const u = db.prepare('SELECT id FROM users WHERE email = ?').get(a.email);
+      if (u) { db.prepare('UPDATE accounts SET admin_user_id = ? WHERE id = ?').run(u.id, a.id); changed = true; }
+    }
+    if (changed) console.log('Fixed account links for ' + a.email);
+  }
+})();
+
 // Make db available to routes
 app.locals.db = db;
 
